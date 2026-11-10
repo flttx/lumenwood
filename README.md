@@ -1,5 +1,49 @@
 # Lumenwood · 流光之森
 
-独立第三人称森林探索游戏的灰盒原型（P1 探索手感）。需要 Node.js 22 和 pnpm；执行 `pnpm install`、`pnpm dev` 启动。点击开始后点击画面捕获鼠标，WASD 移动，Shift 奔跑，Esc 暂停或恢复；失焦或切换标签页会自动暂停。“继续探索”会尝试直接恢复鼠标捕获，被浏览器拒绝时再点击画面。`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build` 验证；`pnpm test:e2e` 构建后用本机 Chrome 运行浏览器交互测试与性能基线（结果在 `test-results/`，可用 `PW_CHANNEL` 切换浏览器）；URL 加 `?debug` 可启用测试钩子 `window.__lumenwood`。`pnpm preview` 预览构建。构建采用相对路径，适合静态托管。
+独立第三人称森林探索游戏，面向 Windows PC 浏览器。玩家在安静而充满生机的奇幻森林中探索、观察，并发现环境的回应。整体体验与未来规划见[项目大纲与总体方案](docs/PROJECT_OVERVIEW.md)。
 
-画质目前仅控制像素比，音量设置尚未连接音频；设置保存于本地浏览器，尚无游戏进度存档。参见 [进度](PROGRESS.md) 和 [架构](docs/ARCHITECTURE.md)。
+## 当前状态
+
+P0 基础灰盒与 P1 探索手感已完成。首批角色、针叶树、发光植物和木屋模型已生成并接入：针叶树已由用户确认视觉，其余三种待游戏内视觉验收。角色已有待机、行走和奔跑动画；地面仍是临时灰盒。萤火航线、区域扩展、环境音及游戏进度存档仍为计划。具体状态与实测记录以[项目进度](PROGRESS.md)和[资产清单](docs/ASSET_MANIFEST.md)为准。
+
+## 本地运行
+
+需要 Node.js 22 和 pnpm：
+
+```bash
+pnpm install
+pnpm dev
+```
+
+点击开始后点击画面捕获鼠标；WASD 移动、Shift 奔跑、鼠标环视、Esc 暂停或恢复。窗口失焦、切换标签页或鼠标锁意外释放时会自动暂停。“继续探索”尝试恢复鼠标捕获；浏览器拒绝时，按提示点击画面。
+
+画质当前只控制像素比，音量设置尚未连接音频；设置保存在本地浏览器，游戏进度尚无存档。
+
+## 验证与部署
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+pnpm test:e2e
+pnpm preview
+```
+
+`pnpm test:e2e` 会构建并用 Playwright 运行浏览器交互测试和性能基线，默认使用本机 Chrome，可通过 `PW_CHANNEL` 切换；结果保存在 `test-results/`。开发模式或 URL 添加 `?debug` 时启用 `window.__lumenwood` 测试钩子。Vite 使用相对资源路径，构建产物适合静态托管。上述命令是操作说明，实际验证结果请查[项目进度](PROGRESS.md)。
+
+## 文档导航
+
+| 想了解什么 | 文档 | 职责 |
+| --- | --- | --- |
+| 项目整体方向与待定决策 | [项目大纲与总体方案](docs/PROJECT_OVERVIEW.md) | 汇总定位、体验、区域、系统与方案来源；计划不代表已实现 |
+| 当前完成情况与验证 | [项目进度](PROGRESS.md) | 记录实际进展、测试结果、限制和下一步 |
+| 阶段目标与顺序 | [路线图](docs/ROADMAP.md) | 当前阶段划分及验收方向 |
+| 愿景与玩法 | [游戏愿景](docs/GAME_VISION.md) · [玩法设计](docs/GAMEPLAY.md) | 产品方向、已实现操作与玩法设想 |
+| 视觉方向 | [美术方向](docs/ART_DIRECTION.md) · [总概念图说明](docs/concept/README.md) | 已确认风格规范、角色参考和概念图边界 |
+| 资产状态与生产 | [资产清单](docs/ASSET_MANIFEST.md) · [Meshy 流程](docs/MESHY_PIPELINE.md) · [动画流程](docs/ANIMATION_PIPELINE.md) | 资产来源、状态、成本与许可；制作和动画验收流程 |
+| 技术实现 | [工程架构](docs/ARCHITECTURE.md) · [公开资源说明](public/assets/README.md) | 模块职责、数据流、资源路径与部署约束 |
+| 提交准备 | [提交说明](docs/SUBMISSION.md) | 待核实的提交要求与准备事项 |
+| 项目协作规则 | [AGENTS.md](AGENTS.md) | 工程独立性、资产授权、文档与验证约定 |
+
+[导入的总体方案与开发大纲](Lumenwood_总体方案与开发大纲_v1.md)和两张概念板是设计来源；现行总体方案吸收其中内容，其历史日期与阶段编号不等同于当前路线图。角色参考图和原始模型中有不纳入 Git 的文件，具体位置、校验信息及权利状态见[资产清单](docs/ASSET_MANIFEST.md)与各参考目录说明。
