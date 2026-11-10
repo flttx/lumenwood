@@ -5,6 +5,7 @@ import { Matrix4, Mesh, Quaternion, Vector3, type InstancedMesh } from 'three'
 import { assetConfig } from '../../assets/config'
 import { forestTrees } from './forestLayout'
 import { selectLod } from './treeLod'
+import { Cabin } from './Cabin'
 // VEG-001 (docs/ASSET_MANIFEST.md): one GLB holding two meshes that share a material.
 const TREE_URL = `${assetConfig.baseUrl}models/vegetation/VEG-001.glb`
 const LOD_NAMES = ['VEG-001_LOD0', 'VEG-001_LOD1']
@@ -44,8 +45,8 @@ function Trees() {
 }
 
 export function Forest() {
-  // The ground plane is a temporary greybox; trees appear once the model has loaded.
+  // The ground plane is a temporary greybox; trees and the cabin appear once their models have loaded.
   return <><mesh rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[50, 50]}/><meshStandardMaterial color="#718b69" roughness={1}/></mesh>
-    <Suspense fallback={null}><Trees/></Suspense>
+    <Suspense fallback={null}><Trees/><Cabin/></Suspense>
   </>
 }

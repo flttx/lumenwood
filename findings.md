@@ -16,3 +16,9 @@
 - 余额：`GET /openapi/v1/balance`，免费。速率：Pro 20 req/s、10 并发。
 - 保留期：API 生成的模型最多保留 3 天，下载 URL 签名并在 `expires_at` 失效——生成后必须立即下载到本地。
 - 许可（help.meshy.ai，第三方摘要，需以现行条款为准）：付费套餐输出归用户私有、可商用；免费套餐为 CC BY 4.0。API 创建任务本身需付费套餐（否则 402）。
+
+## 资产阶段·其余三种（2026-11-10 查阅 Meshy 官方文档）
+- Multi-Image to 3D：`POST /openapi/v1/multi-image-to-3d`，`image_urls` 1–4 张（支持 data URI），参数与 Image to 3D 基本相同，另有 `pose_mode`（a-pose/t-pose）。Emission 贴图只在 meshy-6 + `enable_pbr` + 2k/4k 时输出。
+- Rigging：`POST /openapi/v1/rigging`，`input_task_id` 或 `model_url`，`height_meters` 默认 1.7；只支持带贴图的标准人形，≤ 380,000 三角形，脸朝 +Z。结果含 `rigged_character_glb_url` 与 `basic_animations`（walking/running）。实测 5 积分。
+- Animation：`POST /openapi/v1/animations`，`rig_task_id` + `action_id(s)`，按动作计费，实测每个 3 积分。动作库 `GET /openapi/v1/animations/library` 免费；Idle 为 0，Idle 1–15 等为 11、12、243–254、599。
+- 产物骨架根节点名为 Armature，缩放 0.01（厘米单位），24 根骨骼；Blender 5.2 的 action 为分层结构，F-curve 要经 `layers → strips → channelbags` 读取。

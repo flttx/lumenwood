@@ -2,8 +2,8 @@
 
 ## 已实现
 - 本清单的分类、字段与状态定义，以及第一批四种资产的规划条目。
-- VEG-001 针叶树：2026-11-10 生成（30 积分），用户采用，已优化并集成为 48 棵实例化树木，2026-11-10 用户确认视觉，状态 `可用`。其余资产未生成。地面与角色仍是灰盒几何体，不登记为正式美术资产。
-- CHR-001 的已确认参考图已入库（`assets/reference/CHR-001-pinecone-gleaner/`，PNG 不纳入版本管理）。
+- 第一批四种资产全部生成并集成（2026-11-10）。VEG-001 针叶树经用户确认为 `可用`；CHR-001 松果拾光者、INT-001 发光植物、ARC-001 森林木屋为 `已集成`，待用户在游戏内确认视觉后改为 `可用`。地面仍是灰盒几何体，不登记为正式美术资产。
+- 参考图均入库于 `assets/reference/<ID>/`（PNG 不纳入版本管理，README 记录来源与 SHA-256）。
 
 流程见 `docs/MESHY_PIPELINE.md`，风格依据见 `docs/ART_DIRECTION.md`。禁止使用 Aholo Forest Moments 的任何资产，禁止在此记录密钥。
 
@@ -40,20 +40,26 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 
 | ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数（暂定 LOD0 上限） | 贴图规格（暂定） | GLB 路径 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| CHR-001 | 松果拾光者 | Character | 高 | 参考就绪（待补背视图、修正配件左右） | A 方案 3 张 | — | 0 | ≤ 20,000 | 2048² BaseColor / Normal / ORM | `public/assets/models/character/CHR-001.glb` |
+| CHR-001 | 松果拾光者 | Character | 高 | 已集成 | `a-front.png` + `a-back.png`（背视图 codex-cli 生成） | 生成 `01a1c5ac-a8ac-7590-879d-e5e557b9c476`；绑骨 `01a1c5b1-b1d1-7168-bf2e-825f26227a07`；待机动画 `01a1c5b2-8644-77a9-9c7d-ee068d22d165` | 38（30 + 5 + 3） | 20,767 → 19,600（≤ 20,000） | 1024² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/character/CHR-001.glb` |
 | VEG-001 | 针叶树 | Vegetation | 高 | 可用 | `front.png`（codex-cli 生成） | `01a1c2fb-9c7c-76b4-bfad-a01f9df70604`（第 1 次，采用） | 30 | 3,987 → LOD0 3,987 → LOD1 1,176 | 1024² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/vegetation/VEG-001.glb` |
-| INT-001 | 发光植物 | Interactive | 中 | 规划 | 无 | — | 0 | ≤ 2,000 | 1024² BaseColor / Normal / ORM / Emissive | `public/assets/models/interactive/INT-001.glb` |
-| ARC-001 | 森林木屋 | Architecture | 中 | 规划 | 无 | — | 0 | ≤ 15,000 | 2048² BaseColor / Normal / ORM | `public/assets/models/architecture/ARC-001.glb` |
+| INT-001 | 发光植物 | Interactive | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1c5a5-99bc-767a-aa7f-d46fc8e57baa` | 30 | 2,002 → 1,959（≤ 2,000） | 1024² BaseColor / Normal / MetallicRoughness / Emissive（JPEG，内嵌） | `public/assets/models/interactive/INT-001.glb` |
+| ARC-001 | 森林木屋 | Architecture | 中 | 已集成 | `front.png` + `three-quarter.png`（codex-cli 生成） | `01a1c5a9-7bfc-725b-8493-8f24167765a3` | 30 | 14,533（≤ 15,000，未减面） | 2048² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/architecture/ARC-001.glb` |
 
-累计积分：30。授权上限：VEG-001 最多 2 次、60 积分（2026-11-10 用户授权，已用 1 次、30 积分）；其余资产未授权。
+累计积分：128（VEG-001 30、INT-001 30、ARC-001 30、CHR-001 38）；2026-11-10 生成后余额 1092。
+
+授权：VEG-001 为 2026-11-10 用户逐项授权（最多 2 次、60 积分，用了 1 次）。同日用户表示第一批其余资产“都不需要授权”，参考图（codex-cli）与 Meshy 生成、绑骨、动画据此执行；脚本仍要求上限参数，本轮自设 INT-001、ARC-001 各最多 3 次 / 90 积分，CHR-001 生成最多 3 次、绑骨与动画各最多 2 次、合计 150 积分，均只用了 1 次。
 
 ### CHR-001 松果拾光者
 - **用途**：玩家角色，替换灰盒胶囊体。
 - **参考**：A 方案，用户已确认；是唯一造型依据，详见 `docs/ART_DIRECTION.md` 第 3 节。来源与权利说明待用户补充。
-- **待解决**：缺背视图；正视图与侧视图的皮袋、铜环左右相反。
-- **尺寸**：游戏内身高待定。现有镜头注视高度 1.25 m、碰撞半径 0.35 m 以灰盒约 2 m 为基准，确定身高后同步调参。
-- **动画**：idle / walk / run，按 `docs/ANIMATION_PIPELINE.md`；绑骨来源与许可待核实。
+- **参考处理（2026-11-10）**：以 `a-front.png` 为输入用 codex-cli 补出背视图 `a-back.png`；配件左右以正视图为准，两张侧视图与之矛盾，不作为生成输入。
+- **尺寸**：游戏内身高定为 1.6 m（绑骨时由 `height_meters` 设定）。A 字姿势下双臂展开宽 0.93 m、前后 0.53 m；碰撞半径 0.35 m 与镜头注视高度 1.25 m 未改。
 - **验收重点**：面部与眼睛的可读性；兜帽、叶片披肩、前后摆的穿插与蒙皮变形；手指。
+- **生成（2026-11-10）**：multi-image-to-3d，meshy-7.1，`pose_mode: a-pose`，输入正、背两张，参数见 `assets/meshy/params/CHR-001.json`，30 积分。原始 20,767 三角形、单材质，无 Emissive。
+- **绑骨与动画**：Meshy Rigging（5 积分）产出 24 根骨骼的人形骨架，附带 walking（1.07 s）与 running（0.67 s）；Animation 库动作 0「Idle」（3 积分，4.03 s）。三段动作都是原地动作（髋部水平位移为 0）。来源是 Meshy 付费套餐，未用 Mixamo。
+- **优化**：`scripts/blender/assemble_character.py` 把三段动作合进同一骨架（clip 名 idle / walk / run），删去绑骨自带的单帧绑定动作；在骨骼修改器之前减面到 19,600；贴图缩到 1024²（角色在 6.5 m 镜头下约占画面高度三分之一，1024 已够用）。产物 `public/assets/models/character/CHR-001.glb`，2.38 MB，SHA-256 `2d2ae554…d7d935`；`.blend` 在绑骨任务目录（不纳入版本管理）。
+- **集成**：`player/Character.tsx` 替换胶囊体，按水平速度切换动作（< 0.3 m/s 待机，> 5.2 m/s 奔跑，±0.3 m/s 滞回，交叉淡化 0.25 s），走/跑播放速率随速度缩放。
+- **初检（Claude，非用户验收）**：Meshy 缩略图与游戏截图中脸、兜帽、披肩、皮袋与铜环位置和参考一致，行走姿态正常、朝向正确；未近距离检查手指、穿插与蒙皮变形，未检查脚滑。
 
 ### VEG-001 针叶树
 - **用途**：森林主体树种，替换灰盒圆锥树，需实例化（灰盒中有 48 棵）。
@@ -73,15 +79,23 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 
 ### INT-001 发光植物
 - **用途**：对应 Master Prompt 中的 luminous flowers / glowing mushrooms，作为玩家靠近或停留时产生反应的交互植物原型。归入 Interactive，因为其核心是反应，而不只是植被装饰。
-- **尺寸**：待定，以角色身高为参照。
-- **特殊需求**：发光部位必须能拆出 Emissive 贴图或独立材质；发光强度、呼吸和反应动画由代码驱动，粒子由代码生成。Meshy 可能不直接输出 Emissive，需在 Blender 中补绘。
+- **尺寸**：高 0.7 m（角色膝到腰之间），占地 0.44 × 0.32 m。
+- **特殊需求**：发光部位必须能拆出 Emissive 贴图或独立材质；发光强度、呼吸和反应动画由代码驱动，粒子由代码生成。
 - **验收重点**：暮光照明下的发光可读性；避免 exaggerated bloom 和 excessive neon。
+- **生成（2026-11-10）**：image-to-3d，选用 meshy-6，因为按 Meshy 文档只有 meshy-6 + PBR + 2k 才输出 Emission 贴图；参数见 `assets/meshy/params/INT-001.json`，30 积分。原始 2,002 三角形，Emission 贴图只覆盖花冠，无需在 Blender 补绘。
+- **优化**：`scripts/blender/optimize_static.py` 缩放到 0.7 m、原点在底部中心、减到 1,959 三角形、四张贴图缩到 1024² JPEG。产物 0.85 MB，SHA-256 `5daa8587…2753d4`。
+- **集成**：`features/flora/GlowFlowers.tsx` 在出生点和木屋附近放 6 株（位置见 `world/zones/campLayout.ts`），共享几何、各自复制材质。玩家距离 4 m 内发光强度从 0.5 平滑升到 2.4（1.2 m 内达到峰值），离开后回落，纯函数 `glow.ts` 有单元测试。植物不参与碰撞，可以穿过。
+- **初检（Claude，非用户验收）**：模型完整，花、叶、苔藓与石头可辨；当前白天光照下截图看不出发光强弱变化，反应只由单元测试验证，未目视确认，也未在暮光下检查。
 
 ### ARC-001 森林木屋
 - **用途**：林间营地的地标建筑，验证大型静态资产的面数、贴图与碰撞代理。
 - **风格依据**：Master Prompt 中的 cozy wooden structures、温暖木质、覆苔、与森林有可信联系；不得出现哥特式建筑元素（Negative Prompt）。
-- **尺寸**：待定，门高以角色身高为参照；碰撞用代码盒体代理。
+- **尺寸**：5.23 × 5.0 × 4.86 m（宽 × 高 × 深，含烟囱），按参考图门高约占总高 42% 推算门高约 2.1 m。
 - **验收重点**：地标剪影；木纹与苔藓材质不嘈杂；面数在预算内。
+- **生成（2026-11-10）**：multi-image-to-3d，meshy-7.1，输入正面与左前 3/4 两张，参数见 `assets/meshy/params/ARC-001.json`，30 积分。原始 14,533 三角形，已在预算内。
+- **优化**：`scripts/blender/optimize_static.py` 缩放到 5.0 m、原点在底部中心，贴图保留 2048²（地标，玩家会走近）并转 JPEG。产物 6.29 MB，是目前最大的资产（BaseColor 占 3.4 MB），SHA-256 `2db2d0b7…65c6e9`。
+- **集成**：`world/zones/Cabin.tsx` 放在 (14, −14)，门朝出生点（旋转 −45°），周围 7.8 m 内没有树。碰撞代理为旋转盒体 4.6 × 4.2 m（`player/collision.ts` 的 `pushOutOfBox`，略小于墙体，玩家可站到屋檐下）；镜头遮挡代理为半径 2.1 m、高 5 m 的圆柱，是近似值。
+- **初检（Claude，非用户验收）**：截图中门、窗、灯笼、烟囱与参考一致，门朝出生点；未逐项检查背面、屋内和接缝。
 
 ## 后续类别（未规划具体资产）
 Props、Creatures 暂无条目。新增资产时先在本表登记为 `规划`，再进入流程。

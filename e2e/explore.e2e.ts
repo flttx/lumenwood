@@ -80,7 +80,17 @@ test('pointer lock drives mouse look; losing lock pauses', async ({ page }) => {
   await expectPhase(page, 'paused')
 })
 
+test('cabin walls block the player', async ({ page }) => {
+  // ARC-001 stands at (14, -14) with its door toward the origin; start 4 m in front of the door and walk at it.
+  await teleport(page, 14 - 4 * Math.SQRT1_2, -14 + 4 * Math.SQRT1_2); await setView(page, -Math.PI / 4, 0.28)
+  await hold(page, 'KeyW', 1500)
+  const [x, z] = (await snapshot(page)).position
+  const fromCentre = Math.hypot(x - 14, z + 14)
+  expect(fromCentre).toBeLessThan(3.2) // actually walked up to the wall
+  expect(fromCentre).toBeGreaterThan(2.4) // ...and stopped outside it (half depth 2.1 + radius 0.35)
+})
+
 test('forest trees render from the VEG-001 model', async ({ page }) => {
-  // Greybox ground and player alone are under 1,000 triangles; 48 instanced trees add far more once the GLB loads.
+  // Greybox ground alone is 2 triangles; 48 instanced trees add far more once the GLB loads.
   await expect.poll(async () => (await snapshot(page)).triangles, { timeout: 10_000 }).toBeGreaterThan(20_000)
 })

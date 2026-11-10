@@ -8,6 +8,12 @@ describe('estimateCredits', () => {
     expect(estimateCredits({ ai_model: 'meshy-6-lite' })).toBe(15)
     expect(estimateCredits({ ai_model: 'meshy-7.1', geometry_resolution: '2k' })).toBe(35)
   })
+  it('prices multi-image, rigging and per-action animation', () => {
+    expect(estimateCredits({ ai_model: 'meshy-6', texture_resolution: '2k' }, 'multi-image-to-3d')).toBe(30)
+    expect(estimateCredits({}, 'rigging')).toBe(5)
+    expect(estimateCredits({ action_ids: [1, 2, 3] }, 'animations')).toBe(9)
+    expect(() => estimateCredits({ ai_model: 'meshy-t2' }, 'multi-image-to-3d')).toThrow()
+  })
   it('refuses to guess unknown or surcharged configurations', () => {
     expect(() => estimateCredits({ ai_model: 'meshy-99' })).toThrow()
     expect(() => estimateCredits({ ai_model: 'meshy-7.1', texture_model: 'meshy-n1' })).toThrow()

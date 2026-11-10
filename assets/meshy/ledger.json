@@ -28,5 +28,134 @@
       "sha256": "50f141155d075e7cb7f5e1f54ea7180de1c0b903d71ed285fb554e2e9758455a"
     },
     "outputDir": "assets/meshy/raw/VEG-001/01a1c2fb-9c7c-76b4-bfad-a01f9df70604"
+  },
+  {
+    "asset": "INT-001",
+    "taskId": "01a1c5a5-99bc-767a-aa7f-d46fc8e57baa",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-10T13:28:50.689Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-6",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "target_polycount": 2000,
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ]
+    },
+    "input": {
+      "file": "assets/reference/INT-001-glow-flower/front.png",
+      "sha256": "d5d0ac98f5b3212c961d9a044568b8e47506305d5418968ac9c55a9da21de5f8"
+    },
+    "outputDir": "assets/meshy/raw/INT-001/01a1c5a5-99bc-767a-aa7f-d46fc8e57baa"
+  },
+  {
+    "asset": "ARC-001",
+    "taskId": "01a1c5a9-7bfc-725b-8493-8f24167765a3",
+    "endpoint": "multi-image-to-3d",
+    "createdAt": "2026-11-10T13:33:14.781Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "target_polycount": 15000,
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ]
+    },
+    "input": [
+      {
+        "file": "assets/reference/ARC-001-forest-cabin/front.png",
+        "sha256": "59e860924f565c224b3516f0242f22d58f15f6455dbd8213a4fd3ea33f6c4aa8"
+      },
+      {
+        "file": "assets/reference/ARC-001-forest-cabin/three-quarter.png",
+        "sha256": "1dfb6491c54b2c37e9cbea13fe390fcf5277c690167359a46ab096a074915bdf"
+      }
+    ],
+    "outputDir": "assets/meshy/raw/ARC-001/01a1c5a9-7bfc-725b-8493-8f24167765a3"
+  },
+  {
+    "asset": "CHR-001",
+    "taskId": "01a1c5ac-a8ac-7590-879d-e5e557b9c476",
+    "endpoint": "multi-image-to-3d",
+    "createdAt": "2026-11-10T13:36:46.963Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "target_polycount": 20000,
+      "save_pre_remeshed_model": true,
+      "pose_mode": "a-pose",
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ]
+    },
+    "input": [
+      {
+        "file": "assets/reference/CHR-001-pinecone-gleaner/a-front.png",
+        "sha256": "3b8bbc70ad57a6232158496e6019bfdcf1491883dc05101db418aa3bb72a98ad"
+      },
+      {
+        "file": "assets/reference/CHR-001-pinecone-gleaner/a-back.png",
+        "sha256": "56a8c37aa4249d7f7a5725b9174b48203f39f11ac8d3f8b922ffbfd849390abe"
+      }
+    ],
+    "outputDir": "assets/meshy/raw/CHR-001/01a1c5ac-a8ac-7590-879d-e5e557b9c476"
+  },
+  {
+    "asset": "CHR-001",
+    "taskId": "01a1c5b1-b1d1-7168-bf2e-825f26227a07",
+    "endpoint": "rigging",
+    "createdAt": "2026-11-10T13:41:58.799Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 5,
+    "consumedCredits": 5,
+    "params": {
+      "input_task_id": "01a1c5ac-a8ac-7590-879d-e5e557b9c476",
+      "height_meters": 1.6
+    },
+    "input": null,
+    "outputDir": "assets/meshy/raw/CHR-001/01a1c5b1-b1d1-7168-bf2e-825f26227a07"
+  },
+  {
+    "asset": "CHR-001",
+    "taskId": "01a1c5b2-8644-77a9-9c7d-ee068d22d165",
+    "endpoint": "animations",
+    "createdAt": "2026-11-10T13:42:50.097Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 3,
+    "consumedCredits": 3,
+    "params": {
+      "rig_task_id": "01a1c5b1-b1d1-7168-bf2e-825f26227a07",
+      "action_ids": [
+        0
+      ]
+    },
+    "input": null,
+    "outputDir": "assets/meshy/raw/CHR-001/01a1c5b2-8644-77a9-9c7d-ee068d22d165"
   }
 ]

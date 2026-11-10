@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { Suspense, useEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Vector3 } from 'three'
 import { createInput, attachInput } from '../input/input'
@@ -7,6 +7,7 @@ import { Player } from '../player/Player'
 import { CAMERA_DISTANCE, FollowCamera, type CameraRig } from '../camera/FollowCamera'
 import { installDebugApi } from '../debug/debugApi'
 import { Forest } from './zones/Forest'
+import { GlowFlowers } from '../features/flora/GlowFlowers'
 import { useGameStore } from '../../state/gameStore'
 export function World() {
   const input = useMemo(() => createInput(), [])
@@ -20,6 +21,6 @@ export function World() {
   useEffect(() => installDebugApi({ input, position, velocity, rig, gl }), [input, position, velocity, rig, gl])
   return <><color attach="background" args={['#a5b9aa']}/><fog attach="fog" args={['#a5b9aa', 24, 65]}/>
     <hemisphereLight args={['#e7f4e5', '#596b4c', 2]}/><directionalLight position={[8, 15, 5]} intensity={2}/>
-    <Forest/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/>
+    <Forest/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/>
   </>
 }

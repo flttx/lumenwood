@@ -1,0 +1,12 @@
+{
+  "ai_model": "meshy-6",
+  "should_texture": true,
+  "enable_pbr": true,
+  "texture_resolution": "2k",
+  "should_remesh": true,
+  "topology": "triangle",
+  "target_polycount": 2000,
+  "save_pre_remeshed_model": true,
+  "multi_view_thumbnails": true,
+  "target_formats": ["glb"]
+}
