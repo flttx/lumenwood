@@ -2,7 +2,7 @@
 
 ## 已实现
 - 本清单的分类、字段与状态定义，以及第一批四种资产的规划条目。
-- VEG-001 针叶树：2026-11-10 生成（30 积分），用户采用，已优化并集成为 48 棵实例化树木，状态 `已集成`，待用户在游戏内确认视觉后改为 `可用`。其余资产未生成。地面与角色仍是灰盒几何体，不登记为正式美术资产。
+- VEG-001 针叶树：2026-11-10 生成（30 积分），用户采用，已优化并集成为 48 棵实例化树木，2026-11-10 用户确认视觉，状态 `可用`。其余资产未生成。地面与角色仍是灰盒几何体，不登记为正式美术资产。
 - CHR-001 的已确认参考图已入库（`assets/reference/CHR-001-pinecone-gleaner/`，PNG 不纳入版本管理）。
 
 流程见 `docs/MESHY_PIPELINE.md`，风格依据见 `docs/ART_DIRECTION.md`。禁止使用 Aholo Forest Moments 的任何资产，禁止在此记录密钥。
@@ -41,7 +41,7 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 | ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数（暂定 LOD0 上限） | 贴图规格（暂定） | GLB 路径 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | CHR-001 | 松果拾光者 | Character | 高 | 参考就绪（待补背视图、修正配件左右） | A 方案 3 张 | — | 0 | ≤ 20,000 | 2048² BaseColor / Normal / ORM | `public/assets/models/character/CHR-001.glb` |
-| VEG-001 | 针叶树 | Vegetation | 高 | 已集成 | `front.png`（codex-cli 生成） | `01a1c2fb-9c7c-76b4-bfad-a01f9df70604`（第 1 次，采用） | 30 | 3,987 → LOD0 3,987 → LOD1 1,176 | 1024² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/vegetation/VEG-001.glb` |
+| VEG-001 | 针叶树 | Vegetation | 高 | 可用 | `front.png`（codex-cli 生成） | `01a1c2fb-9c7c-76b4-bfad-a01f9df70604`（第 1 次，采用） | 30 | 3,987 → LOD0 3,987 → LOD1 1,176 | 1024² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/vegetation/VEG-001.glb` |
 | INT-001 | 发光植物 | Interactive | 中 | 规划 | 无 | — | 0 | ≤ 2,000 | 1024² BaseColor / Normal / ORM / Emissive | `public/assets/models/interactive/INT-001.glb` |
 | ARC-001 | 森林木屋 | Architecture | 中 | 规划 | 无 | — | 0 | ≤ 15,000 | 2048² BaseColor / Normal / ORM | `public/assets/models/architecture/ARC-001.glb` |
 
