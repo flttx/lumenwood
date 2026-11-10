@@ -2,7 +2,7 @@
 
 ## 已实现
 - 本清单的分类、字段与状态定义，以及第一批四种资产的规划条目。
-- VEG-001 已完成首次 Meshy 生成（2026-11-10，30 积分），原始文件已下载，待用户验收；其余资产未生成。尚无已集成的正式资产，灰盒几何体不登记为正式美术资产。
+- VEG-001 针叶树：2026-11-10 生成（30 积分），用户采用，已优化并集成为 48 棵实例化树木，状态 `已集成`，待用户在游戏内确认视觉后改为 `可用`。其余资产未生成。地面与角色仍是灰盒几何体，不登记为正式美术资产。
 - CHR-001 的已确认参考图已入库（`assets/reference/CHR-001-pinecone-gleaner/`，PNG 不纳入版本管理）。
 
 流程见 `docs/MESHY_PIPELINE.md`，风格依据见 `docs/ART_DIRECTION.md`。禁止使用 Aholo Forest Moments 的任何资产，禁止在此记录密钥。
@@ -41,7 +41,7 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 | ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数（暂定 LOD0 上限） | 贴图规格（暂定） | GLB 路径 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | CHR-001 | 松果拾光者 | Character | 高 | 参考就绪（待补背视图、修正配件左右） | A 方案 3 张 | — | 0 | ≤ 20,000 | 2048² BaseColor / Normal / ORM | `public/assets/models/character/CHR-001.glb` |
-| VEG-001 | 针叶树 | Vegetation | 高 | 已生成（待验收） | `front.png`（codex-cli 生成） | `01a1c2fb-9c7c-76b4-bfad-a01f9df70604`（第 1 次，待定是否采用） | 30 | 原始 3,987（预算 ≤ 4,000；LOD1 ≤ 1,200 未做） | 1024² BaseColor / Normal / ORM | `public/assets/models/vegetation/VEG-001.glb` |
+| VEG-001 | 针叶树 | Vegetation | 高 | 已集成 | `front.png`（codex-cli 生成） | `01a1c2fb-9c7c-76b4-bfad-a01f9df70604`（第 1 次，采用） | 30 | 3,987 → LOD0 3,987 → LOD1 1,176 | 1024² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/vegetation/VEG-001.glb` |
 | INT-001 | 发光植物 | Interactive | 中 | 规划 | 无 | — | 0 | ≤ 2,000 | 1024² BaseColor / Normal / ORM / Emissive | `public/assets/models/interactive/INT-001.glb` |
 | ARC-001 | 森林木屋 | Architecture | 中 | 规划 | 无 | — | 0 | ≤ 15,000 | 2048² BaseColor / Normal / ORM | `public/assets/models/architecture/ARC-001.glb` |
 
@@ -64,7 +64,12 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 - **生成记录（第 1 次，2026-11-10）**：image-to-3d，meshy-7.1，参数见 `assets/meshy/params/VEG-001.json`，实际消耗 30 积分（与估算一致）。原始文件在 `assets/meshy/raw/VEG-001/01a1c2fb-9c7c-76b4-bfad-a01f9df70604/`（不纳入版本管理）：`model.glb` 11.6 MB（SHA-256 `2827704d…74921a`）、`model.pre_remeshed.glb` 107 MB（约 445.7 万三角形）、BaseColor/Normal/Roughness/Metallic 贴图与 5 张缩略图。Meshy 最多保留 3 天，本地副本是唯一留存。
 - **实测（解析 GLB，未在 Blender 或游戏内打开）**：单网格、单材质（双面），3,987 三角形、8,305 顶点；内嵌 3 张贴图（BaseColor、Normal、MetallicRoughness），无 Emissive。包围盒 7.88 × 15.0 × 7.53 m，原点在底部——`auto_size` 估成 15 m，优化时需缩放到约 4.8 m（系数 0.32），缩放后树冠最宽约 2.5 m。
 - **初步观察（仅看 Meshy 缩略图，非正式验收）**：分层枝叶、裸露树干与带苔藓的根部和参考图一致，四个视角剪影完整，未见漂浮碎片；4,000 面下枝叶为较大的片状簇，比参考图粗。接缝、法线、根部展开宽度是否影响碰撞代理（树干底半径 0.4 m）未检查。
-- **待办**：用户在 Blender 或查看器中按 `docs/MESHY_PIPELINE.md` 第 4 步验收并决定采用或退回；通过后做缩放、贴图降到 1024²、LOD1，再集成。
+- **验收**：2026-11-10 用户决定采用第 1 次生成结果（依据为缩略图与以上数据，未逐项做第 4 步的接缝、法线检查）。
+- **优化（2026-11-10）**：`scripts/blender/optimize_tree.py` 在 Blender 5.2.1 后台运行，可复现。缩放 0.32 到高 4.8 m；原点移到裸露树干段（离地 12%–20% 高度）的中心、底部贴地；三张贴图缩到 1024² 并以 JPEG（质量 85）内嵌；Decimate 生成 LOD1（1,176 三角形）。LOD0 未减面（3,987 已在预算内）。两级共用一个材质，导出为单个 GLB，含 `VEG-001_LOD0`、`VEG-001_LOD1` 两个网格。产物 `public/assets/models/vegetation/VEG-001.glb`，1.03 MB，SHA-256 `4f2c6d1b…f39326`；`.blend` 存于原始目录 `assets/meshy/raw/VEG-001/01a1c2fb-9c7c-76b4-bfad-a01f9df70604/VEG-001.blend`（不纳入版本管理）。未用 Draco/meshopt/KTX2，加载端也未启用解码器。
+- **实测尺寸（缩放后，按距树干轴的最大半径）**：地面 0–0.2 m 根部展开 0.82 m，0.4–1.0 m 裸干 0.24–0.37 m，树冠最宽 1.33 m（1.8–2.0 m 高）。碰撞代理与遮挡代理保持不变（树干底半径 0.4 m、高 4.8 m，再乘实例缩放），与裸干相符；根部的视觉展开比碰撞圆宽，角色可踩进根须外缘，属预期。
+- **集成**：`world/zones/Forest.tsx` 用 drei `useGLTF` 加载，两个 `InstancedMesh`（LOD0 近、LOD1 远）承载 48 棵树，每 0.2 s 按相机水平距离重新分组（切换距离 16 m，滞回 ±2 m，纯函数 `treeLod.ts` 有单元测试）；每棵树绕竖轴按序号旋转，避免完全相同的朝向。模型加载前树木不显示（Suspense 空回退），灰盒树已移除。
+- **性能（e2e 基线，同上一轮条件）**：平均 16.67 ms、p95 16.8 ms、最大 17.3 ms；绘制调用 32 → 6，三角形 962 → 约 10.5 万（随视角变化，目视检查时一帧为 15.0 万）。仍受 60 Hz vsync 封顶。
+- **游戏内目视检查（2026-11-10，Claude 内置浏览器）**：比例与角色、视距协调，根部苔藓与分层枝叶可读，无漂浮或缺面；未在不同光照、近距离贴树或低画质下检查。
 
 ### INT-001 发光植物
 - **用途**：对应 Master Prompt 中的 luminous flowers / glowing mushrooms，作为玩家靠近或停留时产生反应的交互植物原型。归入 Interactive，因为其核心是反应，而不只是植被装饰。

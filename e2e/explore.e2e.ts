@@ -79,3 +79,8 @@ test('pointer lock drives mouse look; losing lock pauses', async ({ page }) => {
   await page.evaluate(() => document.exitPointerLock()) // same event path as the browser releasing lock on Esc
   await expectPhase(page, 'paused')
 })
+
+test('forest trees render from the VEG-001 model', async ({ page }) => {
+  // Greybox ground and player alone are under 1,000 triangles; 48 instanced trees add far more once the GLB loads.
+  await expect.poll(async () => (await snapshot(page)).triangles, { timeout: 10_000 }).toBeGreaterThan(20_000)
+})

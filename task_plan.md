@@ -14,7 +14,7 @@
 | 6 | 全量验证（typecheck/lint/test/build/e2e），更新 PROGRESS 与设计文档 | complete |
 | 7 | 资产阶段：风格规范、Meshy 流程、六类资产清单、首批 4 种规划，参考图入库（不生成） | complete |
 | 8 | VEG-001 首次生成：codex-cli 参考图 1 张 + Meshy image-to-3d 1 次（授权上限 2 次 / 60 积分），下载并登记 | complete |
-| 9 | VEG-001 验收（用户）→ Blender 优化 → GLB 导入与实例化 | pending |
+| 9 | VEG-001 验收（用户采用）→ Blender 优化 → GLB 导入、实例化与 LOD | complete |
 
 ## 决策
 - 碰撞用 2D 圆（XZ 平面）推出解算，不引入物理引擎：灰盒只有树干圆柱和方形边界，物理库会增大包体且超出 P1 需要。
