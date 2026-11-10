@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "asset": "VEG-001",
+    "taskId": "01a1c2fb-9c7c-76b4-bfad-a01f9df70604",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-10T01:03:53.277Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "target_polycount": 4000,
+      "save_pre_remeshed_model": true,
+      "auto_size": true,
+      "origin_at": "bottom",
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ]
+    },
+    "input": {
+      "file": "assets/reference/VEG-001-conifer/front.png",
+      "sha256": "50f141155d075e7cb7f5e1f54ea7180de1c0b903d71ed285fb554e2e9758455a"
+    },
+    "outputDir": "assets/meshy/raw/VEG-001/01a1c2fb-9c7c-76b4-bfad-a01f9df70604"
+  }
+]

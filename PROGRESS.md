@@ -1,6 +1,6 @@
 # 项目进度
 
-更新时间：2026-11-09。当前阶段：资产阶段·规范与清单（本轮完成）；P1 探索手感已完成，用户试玩确认操作正常。下一步为首批资产生成，须另行授权。
+更新时间：2026-11-10。当前阶段：资产阶段·首批生成；VEG-001 针叶树已生成原始模型，待用户验收。P1 探索手感已完成，用户试玩确认操作正常。下一步为 VEG-001 验收、Blender 优化与 GLB 导入；其余资产的生成须另行授权。
 
 ## 已实现
 - P0：React 19、TypeScript、Vite、R3F、Three.js、Zustand 和 pnpm 工程；标题、灰盒森林、几何角色、WASD/Shift、第三人称镜头、边界、Esc 暂停、HUD、加载和错误提示、画质像素比与本地设置。
@@ -13,6 +13,13 @@
 
 - 资产规范：`docs/ART_DIRECTION.md` 收录 Master Art Style Prompt v1（全局风格、单资产建模要求、角色规范、Negative Prompt 及适用说明）；`docs/MESHY_PIPELINE.md` 确立六步流程（风格确认 → 参考图 → Meshy 生成 → 视觉与结构验收 → Blender 优化 → GLB 导入）及授权、密钥和登记规则；`docs/ASSET_MANIFEST.md` 按六类建立字段与状态，规划首批 CHR-001 松果拾光者、VEG-001 针叶树、INT-001 发光植物、ARC-001 森林木屋。
 - 角色 A 方案参考图 3 张入库于 `assets/reference/CHR-001-pinecone-gleaner/`（PNG 不纳入版本管理，README 记录 SHA-256）。
+- 生成脚本：`scripts/meshy.ts`（`pnpm meshy`）按台账核对授权次数与积分上限后才发请求，完成即下载；`scripts/meshyPricing.ts` 估算积分。
+- VEG-001 首次生成（2026-11-10，用户授权：codex-cli 参考图 1 张；Meshy 最多 2 次 / 60 积分）：参考图 `front.png` 按已入库提示词一次生成；Meshy image-to-3d（meshy-7.1）1 次成功，任务 `01a1c2fb-9c7c-76b4-bfad-a01f9df70604`，消耗 30 积分。原始 GLB 3,987 三角形、单材质、内嵌 BaseColor/Normal/MetallicRoughness，包围盒高 15 m（需缩放到约 4.8 m）。台账、清单已登记，状态 `已生成`。
+
+## 实际验证（2026-11-10，VEG-001 生成轮）
+- 游戏代码未改；脚本只改一行（台账 `outputDir` 统一为正斜杠）。`pnpm typecheck`、`pnpm lint` 通过；`pnpm test` 4 个文件 13 项通过；`pnpm build` 通过。未重跑 `pnpm test:e2e`（游戏包无变化）。
+- Meshy：生成前余额 1170、估算 30；任务返回 `consumed_credits` 30；生成后未再查余额。模型数据来自对 GLB JSON 块的解析和 Meshy 缩略图，未在 Blender、查看器或游戏内打开，未做正式验收。
+- 密钥只经环境变量由脚本读取，未打印、未写入文件；`task.json` 与台账中的 URL 不含签名参数。原始模型、贴图与参考图 PNG 均被 `.gitignore` 排除。
 
 ## 实际验证（2026-11-09）
 - 资产规范轮：只改文档、参考图目录和 `.gitignore`，游戏代码未改。`pnpm typecheck`、`pnpm lint`、`pnpm test` 复跑通过（见下方 P1 记录）。未调用 Meshy、codex-cli 或任何付费 API；`MESHY_API_KEY` 只确认存在，未读取其值。
@@ -26,6 +33,7 @@
 - 未经人工试玩确认手感参数；真实浏览器中按 Esc 释放指针锁的路径只用 `exitPointerLock()` 模拟，按键回声防护未在真机验证。
 - 遮挡只对树干代理生效，树冠不遮挡判定；地面平坦，未处理坡地与相机触地。相邻树间隙小于角色直径时不可通过（预期行为）。
 - 性能基线仅一台高端机、vsync 封顶；尚无低端设备、移动端或不封顶的 GPU 计时。包体未分包。
-- 无 Meshy 调用、积分支出或正式 3D 资产；首批生成需用户授权次数与积分上限。
+- 尚无已集成的正式 3D 资产。VEG-001 只完成生成，未验收、未优化、未导入；授权余量为 1 次 / 30 积分。CHR-001、INT-001、ARC-001 未授权。Meshy 端文件 3 天后删除，本机 `assets/meshy/raw/` 是唯一副本（未备份）。
+- VEG-001 参考图只有正面一张；codex-cli 生成图的账号类型与使用权利待用户确认。
 - CHR-001 参考图缺背视图，且正视图与侧视图的皮袋、铜环左右相反，生成前需确认；参考图的来源与使用权利待补。
 - 资产预算均为暂定，角色游戏内身高、发光植物与木屋尺寸待首批验证确定；GLB 加载、实例化与压缩尚未实现。

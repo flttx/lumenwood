@@ -5,7 +5,8 @@
 - 目录：`assets/reference/<资产ID>/` 存参考图，`assets/meshy/raw/<资产ID>/` 存 Meshy 原始导出（以上二进制文件默认不纳入版本管理，只保留 README 与校验值），`public/assets/models/<类别>/` 存优化后的 GLB。
 - 本地生成脚本 `scripts/meshy.ts`（`pnpm meshy <balance|estimate|image-to-3d|fetch>`）：发请求前按台账 `assets/meshy/ledger.json` 核对授权的次数与积分上限，并查余额；完成后立即下载全部模型、贴图、缩略图到 `assets/meshy/raw/<ID>/<任务ID>/`，`task.json` 去掉签名参数。积分估算 `scripts/meshyPricing.ts` 按 2026-11-09 价格页编写，未知模型直接拒绝。每个资产的生成参数存于 `assets/meshy/params/<ID>.json`。
 - 本机网络：DNS 会把 api.meshy.ai 解析到错误地址，需要走系统代理。运行时设置 `NODE_USE_ENV_PROXY=1` 和 `HTTPS_PROXY=http://127.0.0.1:20890`（本机代理地址，因机器而异；Node 会提示 EnvHttpProxyAgent 为实验特性）。
-- 2026-11-09 已用免费余额接口验证密钥可用（余额 1170）。尚未发起任何生成任务，积分支出为 0；游戏代码尚未加载 GLB。
+- 2026-11-09 已用免费余额接口验证密钥可用（余额 1170）。
+- 2026-11-10 首次实际生成：VEG-001 走通第 2、3 步（codex-cli 参考图 → image-to-3d → 下载 → 台账），消耗 30 积分，详见清单。第 4–6 步（验收、Blender 优化、导入）尚未执行；游戏代码尚未加载 GLB。
 
 ## 总则
 - **付费调用须事先授权**：每次调用 Meshy 或其他付费生成服务（包括用 codex-cli 生成参考图），都要经用户明确授权；授权写明资产、次数上限和积分上限。超出上限须重新授权。

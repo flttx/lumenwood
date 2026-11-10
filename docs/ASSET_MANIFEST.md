@@ -2,7 +2,7 @@
 
 ## 已实现
 - 本清单的分类、字段与状态定义，以及第一批四种资产的规划条目。
-- 尚无正式资产：没有调用 Meshy，积分支出为 0。灰盒几何体不登记为正式美术资产。
+- VEG-001 已完成首次 Meshy 生成（2026-11-10，30 积分），原始文件已下载，待用户验收；其余资产未生成。尚无已集成的正式资产，灰盒几何体不登记为正式美术资产。
 - CHR-001 的已确认参考图已入库（`assets/reference/CHR-001-pinecone-gleaner/`，PNG 不纳入版本管理）。
 
 流程见 `docs/MESHY_PIPELINE.md`，风格依据见 `docs/ART_DIRECTION.md`。禁止使用 Aholo Forest Moments 的任何资产，禁止在此记录密钥。
@@ -36,16 +36,16 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 
 预算均为**暂定**：首个资产集成后，用 `pnpm test:e2e` 的性能基线实测修正。当前灰盒基线是 60 FPS（vsync 封顶）、32 次绘制调用、962 个三角形。
 
-## 第一批：代表性资产（仅规划，未生成）
+## 第一批：代表性资产
 
 | ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数（暂定 LOD0 上限） | 贴图规格（暂定） | GLB 路径 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | CHR-001 | 松果拾光者 | Character | 高 | 参考就绪（待补背视图、修正配件左右） | A 方案 3 张 | — | 0 | ≤ 20,000 | 2048² BaseColor / Normal / ORM | `public/assets/models/character/CHR-001.glb` |
-| VEG-001 | 针叶树 | Vegetation | 高 | 规划 | 无 | — | 0 | ≤ 4,000；LOD1 ≤ 1,200 | 1024² BaseColor / Normal / ORM | `public/assets/models/vegetation/VEG-001.glb` |
+| VEG-001 | 针叶树 | Vegetation | 高 | 已生成（待验收） | `front.png`（codex-cli 生成） | `01a1c2fb-9c7c-76b4-bfad-a01f9df70604`（第 1 次，待定是否采用） | 30 | 原始 3,987（预算 ≤ 4,000；LOD1 ≤ 1,200 未做） | 1024² BaseColor / Normal / ORM | `public/assets/models/vegetation/VEG-001.glb` |
 | INT-001 | 发光植物 | Interactive | 中 | 规划 | 无 | — | 0 | ≤ 2,000 | 1024² BaseColor / Normal / ORM / Emissive | `public/assets/models/interactive/INT-001.glb` |
 | ARC-001 | 森林木屋 | Architecture | 中 | 规划 | 无 | — | 0 | ≤ 15,000 | 2048² BaseColor / Normal / ORM | `public/assets/models/architecture/ARC-001.glb` |
 
-累计积分：0。各资产的积分上限在授权时写入。
+累计积分：30。授权上限：VEG-001 最多 2 次、60 积分（2026-11-10 用户授权，已用 1 次、30 积分）；其余资产未授权。
 
 ### CHR-001 松果拾光者
 - **用途**：玩家角色，替换灰盒胶囊体。
@@ -60,6 +60,11 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 - **风格依据**：Master Prompt 中的树皮、深林绿与苔藓绿枝叶、有机剪影。
 - **尺寸**：与灰盒一致，树高约 4.8 m、树干底半径约 0.4 m（再乘 0.8–1.28 的实例缩放），以免改变已验证的碰撞与遮挡参数；如有偏差，同步更新 `forestLayout.ts`。
 - **验收重点**：林冠剪影在镜头距离下的层次；实例化后的绘制调用与三角形数；LOD1 的切换。
+- **参考图**：`assets/reference/VEG-001-conifer/front.png`，2026-11-10 经授权用 codex-cli 按 `prompt.md` v1 生成 1 张；只有正面，权利说明待用户确认。
+- **生成记录（第 1 次，2026-11-10）**：image-to-3d，meshy-7.1，参数见 `assets/meshy/params/VEG-001.json`，实际消耗 30 积分（与估算一致）。原始文件在 `assets/meshy/raw/VEG-001/01a1c2fb-9c7c-76b4-bfad-a01f9df70604/`（不纳入版本管理）：`model.glb` 11.6 MB（SHA-256 `2827704d…74921a`）、`model.pre_remeshed.glb` 107 MB（约 445.7 万三角形）、BaseColor/Normal/Roughness/Metallic 贴图与 5 张缩略图。Meshy 最多保留 3 天，本地副本是唯一留存。
+- **实测（解析 GLB，未在 Blender 或游戏内打开）**：单网格、单材质（双面），3,987 三角形、8,305 顶点；内嵌 3 张贴图（BaseColor、Normal、MetallicRoughness），无 Emissive。包围盒 7.88 × 15.0 × 7.53 m，原点在底部——`auto_size` 估成 15 m，优化时需缩放到约 4.8 m（系数 0.32），缩放后树冠最宽约 2.5 m。
+- **初步观察（仅看 Meshy 缩略图，非正式验收）**：分层枝叶、裸露树干与带苔藓的根部和参考图一致，四个视角剪影完整，未见漂浮碎片；4,000 面下枝叶为较大的片状簇，比参考图粗。接缝、法线、根部展开宽度是否影响碰撞代理（树干底半径 0.4 m）未检查。
+- **待办**：用户在 Blender 或查看器中按 `docs/MESHY_PIPELINE.md` 第 4 步验收并决定采用或退回；通过后做缩放、贴图降到 1024²、LOD1，再集成。
 
 ### INT-001 发光植物
 - **用途**：对应 Master Prompt 中的 luminous flowers / glowing mushrooms，作为玩家靠近或停留时产生反应的交互植物原型。归入 Interactive，因为其核心是反应，而不只是植被装饰。

@@ -81,7 +81,7 @@ async function pollAndDownload(asset: string, taskId: string) {
     if (Date.now() - started > TIMEOUT_MS) fail(`Timed out waiting for ${taskId}; resume with: fetch --asset ${asset} --task ${taskId}`)
     await new Promise(resolve => setTimeout(resolve, POLL_MS))
   }
-  const dir = join(RAW_DIR, asset, taskId)
+  const dir = join(RAW_DIR, asset, taskId).replaceAll('\\', '/')
   await mkdir(dir, { recursive: true })
   if (task.status === 'SUCCEEDED') {
     for (const [format, url] of Object.entries(task.model_urls ?? {})) await download(url, join(dir, `model${format === 'pre_remeshed_glb' ? '.pre_remeshed.glb' : `.${format}`}`))
