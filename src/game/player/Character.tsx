@@ -16,6 +16,7 @@ export function Character({ velocity }: { velocity: Vector3 }) {
   const { actions } = useAnimations(animations, group)
   const current = useRef('idle')
   useEffect(() => { actions.idle?.reset().play() }, [actions])
+  useEffect(() => scene.traverse(o => { o.castShadow = true }), [scene])
   useFrame(() => {
     const speed = Math.hypot(velocity.x, velocity.z), gait = gaitFor(speed, current.current)
     if (gait !== current.current) {

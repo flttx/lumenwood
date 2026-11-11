@@ -6,6 +6,7 @@ import { assetConfig } from '../../assets/config'
 import { glowFlowers } from '../../world/zones/campLayout'
 import { dampFactor } from '../../player/movement'
 import { GLOW_BASE, glowTarget } from './glow'
+import { atmosphere } from '../../rendering/timeOfDay'
 // INT-001 interactive flowers. Each copy owns its material so its glow can react on its own; the geometry is shared.
 const FLOWER_URL = `${assetConfig.baseUrl}models/interactive/INT-001.glb`
 const GLOW_RATE = 3
@@ -25,7 +26,9 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
   }, [scene])
   useFrame((_, delta) => {
     const k = dampFactor(GLOW_RATE, Math.min(delta, 0.1))
-    for (const f of flowers) f.material.emissiveIntensity += (glowTarget(Math.hypot(player.x - f.x, player.z - f.z)) - f.material.emissiveIntensity) * k
+    // Twilight multiplies the glow so the flowers read as light sources once the sun is down.
+    const scale = atmosphere.preset.flowerGlow
+    for (const f of flowers) f.material.emissiveIntensity += (glowTarget(Math.hypot(player.x - f.x, player.z - f.z)) * scale - f.material.emissiveIntensity) * k
   })
   return <>{flowers.map(f => <primitive key={`${f.x},${f.z}`} object={f.mesh} position={[f.x, 0, f.z]} rotation={[0, f.angle, 0]}/>)}</>
 }

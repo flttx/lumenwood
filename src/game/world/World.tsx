@@ -8,6 +8,8 @@ import { CAMERA_DISTANCE, FollowCamera, type CameraRig } from '../camera/FollowC
 import { installDebugApi } from '../debug/debugApi'
 import { Forest } from './zones/Forest'
 import { GlowFlowers } from '../features/flora/GlowFlowers'
+import { Atmosphere } from '../rendering/Atmosphere'
+import { Fireflies } from '../features/firefly/Fireflies'
 import { useGameStore } from '../../state/gameStore'
 export function World() {
   const input = useMemo(() => createInput(), [])
@@ -19,8 +21,7 @@ export function World() {
   useEffect(() => attachInput(input, element, () => useGameStore.getState().phase === 'playing'), [element, input])
   useEffect(() => attachFocusGuards(element), [element])
   useEffect(() => installDebugApi({ input, position, velocity, rig, gl }), [input, position, velocity, rig, gl])
-  return <><color attach="background" args={['#a5b9aa']}/><fog attach="fog" args={['#a5b9aa', 24, 65]}/>
-    <hemisphereLight args={['#e7f4e5', '#596b4c', 2]}/><directionalLight position={[8, 15, 5]} intensity={2}/>
-    <Forest/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/>
+  return <><Atmosphere player={position}/>
+    <Forest/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/>
   </>
 }
