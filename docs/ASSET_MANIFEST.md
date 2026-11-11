@@ -3,6 +3,7 @@
 ## 已实现
 - 本清单的分类、字段与状态定义，以及第一批四种资产的规划条目。
 - 第一批四种资产全部生成并集成（2026-11-10）。VEG-001 针叶树经用户确认为 `可用`；CHR-001 松果拾光者、INT-001 发光植物、ARC-001 森林木屋为 `已集成`，待用户在游戏内确认视觉后改为 `可用`。地面仍是灰盒几何体，不登记为正式美术资产。
+- P3 新增 INT-002 灯笼柱（2026-11-11 用户授权约 30–40 积分），一次生成成功并集成为萤火航线的灯笼，状态 `已集成`，待用户游戏内确认。
 - 参考图均入库于 `assets/reference/<ID>/`（PNG 不纳入版本管理，README 记录来源与 SHA-256）。
 
 流程见 `docs/MESHY_PIPELINE.md`，风格依据见 `docs/ART_DIRECTION.md`。禁止使用 Aholo Forest Moments 的任何资产，禁止在此记录密钥。
@@ -45,7 +46,7 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 | INT-001 | 发光植物 | Interactive | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1c5a5-99bc-767a-aa7f-d46fc8e57baa` | 30 | 2,002 → 1,959（≤ 2,000） | 1024² BaseColor / Normal / MetallicRoughness / Emissive（JPEG，内嵌） | `public/assets/models/interactive/INT-001.glb` |
 | ARC-001 | 森林木屋 | Architecture | 中 | 已集成 | `front.png` + `three-quarter.png`（codex-cli 生成） | `01a1c5a9-7bfc-725b-8493-8f24167765a3` | 30 | 14,533（≤ 15,000，未减面） | 2048² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/architecture/ARC-001.glb` |
 
-累计积分：128（VEG-001 30、INT-001 30、ARC-001 30、CHR-001 38）；2026-11-10 生成后余额 1092。
+累计积分：128（VEG-001 30、INT-001 30、ARC-001 30、CHR-001 38）；2026-11-10 生成后余额 1092。P3 起累计见下方 INT-002。
 
 授权：VEG-001 为 2026-11-10 用户逐项授权（最多 2 次、60 积分，用了 1 次）。同日用户表示第一批其余资产“都不需要授权”，参考图（codex-cli）与 Meshy 生成、绑骨、动画据此执行；脚本仍要求上限参数，本轮自设 INT-001、ARC-001 各最多 3 次 / 90 积分，CHR-001 生成最多 3 次、绑骨与动画各最多 2 次、合计 150 积分，均只用了 1 次。
 
@@ -96,6 +97,25 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 - **优化**：`scripts/blender/optimize_static.py` 缩放到 5.0 m、原点在底部中心，贴图保留 2048²（地标，玩家会走近）并转 JPEG。产物 6.29 MB，是目前最大的资产（BaseColor 占 3.4 MB），SHA-256 `2db2d0b7…65c6e9`。
 - **集成**：`world/zones/Cabin.tsx` 放在 (14, −14)，门朝出生点（旋转 −45°），周围 7.8 m 内没有树。碰撞代理为旋转盒体 4.6 × 4.2 m（`player/collision.ts` 的 `pushOutOfBox`，略小于墙体，玩家可站到屋檐下）；镜头遮挡代理为半径 2.1 m、高 5 m 的圆柱，是近似值。
 - **初检（Claude，非用户验收）**：截图中门、窗、灯笼、烟囱与参考一致，门朝出生点；未逐项检查背面、屋内和接缝。
+
+## P3：萤火航线资产
+
+| ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数 | 贴图规格 | GLB 路径 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| INT-002 | 灯笼柱 | Interactive | 高 | 已集成 | `front.png`（codex-cli 生成） | `01a1cb36-6dd4-777f-9fc8-44be45d8a29a` | 30 | 4,132（≤ 4,200，未减面） | 1024² BaseColor / Normal / MetallicRoughness / Emissive（JPEG，内嵌） | `public/assets/models/interactive/INT-002.glb` |
+
+累计积分：158（第一批 128 + INT-002 30）。生成前余额 1092，生成后未再查询（按消耗推算 1062）。
+
+授权：2026-11-11 用户在 P3 范围选择中授权“Meshy 生成灯笼柱，约 30–40 积分（含参考图）”。脚本上限设为 1 次 / 40 积分，实际 1 次、30 积分；参考图用 codex-cli 生成 1 张。
+
+### INT-002 灯笼柱
+- **用途**：萤火航线的节点。玩家把萤火带到灯笼旁点亮它，同一区域的灯笼全部点亮后，萤火流沿灯笼链打开去往下一区域的路。归入 Interactive。
+- **尺寸**：高 1.9 m（略高于角色），占地约 0.62 × 0.57 m；灯笼挂在横臂下，位于模型局部 −X 方向 0.19 m、离地约 1.3 m。
+- **参考图**：`assets/reference/INT-002-lantern-post/front.png`，提示词见同目录 `prompt.md`（词汇取自 Master Prompt，灯笼玻璃内只有微弱暖光，便于拆出 Emission）。权利说明待用户确认。
+- **生成（2026-11-11）**：image-to-3d，选 meshy-6 以取得 Emission 贴图，参数 `assets/meshy/params/INT-002.json`，30 积分。原始 4,132 三角形、单材质；Emission 贴图只覆盖灯笼玻璃。
+- **初检（Claude，非用户验收）**：Meshy 四视图缩略图中弯曲木柱、绳箍与铜箍、横臂、铜框玻璃灯笼、缠藤和覆苔石基与参考一致，无明显破面或漂浮碎片；未在 Blender 中逐项检查法线与接缝。
+- **优化**：`scripts/blender/optimize_static.py`（Blender 5.2）高 1.9 m、原点在底部中心，三角形未减（已在预算内），四张贴图缩到 1024² JPEG。产物 0.95 MB，SHA-256 `e1c98172…ab0c1c4`；`.blend` 存于原始目录（不纳入版本管理）。
+- **集成**：`features/route/Lanterns.tsx` 在营地北侧林径旁放 3 座（`features/route/routeLayout.ts`），横臂转向林径。未点亮时玻璃不发光；点亮后发光强度在 2 s 内升起，并有加色光晕与地面光池（不使用实时点光源）。柱子有 0.18 m 圆形碰撞，不参与镜头遮挡。
 
 ## 后续类别（未规划具体资产）
 Props、Creatures 暂无条目。新增资产时先在本表登记为 `规划`，再进入流程。

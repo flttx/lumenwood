@@ -1,15 +1,7 @@
 import { glowFlowers } from '../../world/zones/campLayout'
 import { WORLD_LIMIT } from '../../player/movement'
-/** Deterministic PRNG (mulberry32) so the swarm looks the same every visit. */
-export function random(seed: number) {
-  let a = seed >>> 0
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
+import { random } from '../../shared/random'
+export { random }
 export const FIREFLY_COUNT = 160
 /** Home positions: most hover around the glowing flowers, the rest drift over the whole camp. Flat xyz array. */
 export function fireflyHomes(count = FIREFLY_COUNT, seed = 7) {

@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { BackSide, Color, Fog, ShaderMaterial, type DirectionalLight, type HemisphereLight, type Vector3 } from 'three'
+import { BackSide, Color, Fog, ShaderMaterial, type DirectionalLight, type HemisphereLight, type Mesh, type Vector3 } from 'three'
 import { useGameStore } from '../../state/gameStore'
 import { qualitySettings } from './config'
 import { atmosphere, blendPresets } from './timeOfDay'
@@ -20,11 +20,13 @@ void main() {
 export function Atmosphere({ player }: { player: Vector3 }) {
   const shadowMapSize = useGameStore(s => qualitySettings[s.quality].shadowMapSize)
   const { gl, scene } = useThree()
-  const sun = useRef<DirectionalLight>(null), hemi = useRef<HemisphereLight>(null)
+  const sun = useRef<DirectionalLight>(null), hemi = useRef<HemisphereLight>(null), dome = useRef<Mesh>(null)
   const sky = useMemo(() => new ShaderMaterial({ uniforms: { top: { value: new Color() }, horizon: { value: new Color() } }, vertexShader: skyVertex, fragmentShader: skyFragment, side: BackSide, depthWrite: false, fog: false }), [])
   const fog = useMemo(() => new Fog(0xffffff, 1, 2), [])
   const background = useMemo(() => new Color(), [])
-  useFrame((_, delta) => {
+  useFrame(({ camera }, delta) => {
+    // The dome travels with the camera so it never falls outside the far plane as the world grows north.
+    dome.current?.position.copy(camera.position)
     const target = useGameStore.getState().timeOfDay === 'twilight' ? 1 : 0
     atmosphere.blend += (target - atmosphere.blend) * dampFactor(TRANSITION_RATE, Math.min(delta, 0.1))
     if (Math.abs(target - atmosphere.blend) < 1e-3) atmosphere.blend = target
@@ -44,7 +46,7 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     }
   })
   return <>
-    <mesh material={sky} renderOrder={-1} frustumCulled={false}><sphereGeometry args={[100, 32, 16]}/></mesh>
+    <mesh ref={dome} material={sky} renderOrder={-1} frustumCulled={false}><sphereGeometry args={[100, 32, 16]}/></mesh>
     <hemisphereLight ref={hemi}/>
     {/* Keyed on the shadow setting so a quality change rebuilds the shadow map at the new size. */}
     <directionalLight key={shadowMapSize} ref={sun} castShadow={shadowMapSize > 0} shadow-mapSize={[shadowMapSize || 1, shadowMapSize || 1]}

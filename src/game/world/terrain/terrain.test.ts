@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { FLAT_EDGE, HILL_HEIGHT, groundColor, heightAt, pathWeight, paths, valueNoise } from './terrain'
-import { WORLD_LIMIT } from '../../player/movement'
-import { forestTrees, outerTrees } from '../zones/forestLayout'
+import { OUTER_CLEARANCE, forestTrees, outerTrees } from '../zones/forestLayout'
+import { allRegions, regionDistance } from '../regions'
 import { cabin } from '../zones/campLayout'
 describe('terrain', () => {
-  it('is exactly flat everywhere the player can stand', () => {
-    for (let x = -WORLD_LIMIT - 1; x <= WORLD_LIMIT + 1; x += 0.5) for (const z of [-WORLD_LIMIT - 1, -7, 0, 13, WORLD_LIMIT + 1]) {
-      expect(heightAt(x, z)).toBe(0); expect(heightAt(z, x)).toBe(0)
-    }
+  it('is exactly flat everywhere the player can stand, in every region', () => {
+    for (const r of allRegions) for (let x = r.minX - 1; x <= r.maxX + 1; x += 0.5) for (let z = r.minZ - 1; z <= r.maxZ + 1; z += 3) expect(heightAt(x, z)).toBe(0)
   })
-  it('rises into bounded hills beyond the boundary', () => {
-    expect(heightAt(FLAT_EDGE + 20, 0)).toBeGreaterThan(1)
+  it('rises into bounded hills away from the regions, including the ridges beside the corridor', () => {
+    expect(heightAt(22 + FLAT_EDGE + 20, 0)).toBeGreaterThan(1)
+    expect(heightAt(6, 29)).toBeGreaterThan(1) // between camp and wetlands, east of the corridor
     for (let x = 30; x < 70; x += 3) expect(heightAt(x, x * 0.3)).toBeLessThanOrEqual(HILL_HEIGHT)
   })
   it('noise stays in [0, 1] and is deterministic', () => {
@@ -28,8 +27,11 @@ describe('terrain', () => {
     for (const c of [...path, ...grass]) { expect(c).toBeGreaterThanOrEqual(0); expect(c).toBeLessThanOrEqual(1) }
     expect(path[0]).toBeGreaterThan(grass[0]) // earth is redder than moss
   })
-  it('backdrop trees stay outside the play area', () => {
-    expect(outerTrees.length).toBeGreaterThan(60)
-    for (const t of outerTrees) expect(Math.max(Math.abs(t.x), Math.abs(t.z))).toBeGreaterThan(WORLD_LIMIT + 2)
+  it('backdrop trees stay clear of every region, gated corridor included', () => {
+    expect(outerTrees.length).toBeGreaterThan(120); expect(outerTrees.length).toBeLessThan(260)
+    for (const t of outerTrees) expect(regionDistance(t.x, t.z)).toBeGreaterThanOrEqual(OUTER_CLEARANCE)
+  })
+  it('the north trail runs through the corridor into the wetlands', () => {
+    for (const z of [24, 28, 33]) expect(Math.max(...[-5, -4, -3.5, -3, -2].map(x => pathWeight(x, z)))).toBeGreaterThan(0.9)
   })
 })

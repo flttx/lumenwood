@@ -62,14 +62,14 @@ class Soundscape {
     }
   }
 
-  /** Bell-like note from a flower, placed in 3D so it comes from the flower's direction. */
-  chime(index: number, x: number, y: number, z: number) {
+  /** Bell-like note placed in 3D so it comes from its source's direction; `delay` (s) staggers notes into chords. */
+  chime(index: number, x: number, y: number, z: number, delay = 0) {
     const ctx = this.ctx
     this.chimes++
     if (!ctx || ctx.state !== 'running') return
     const panner = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 2, positionX: x, positionY: y, positionZ: z })
     panner.connect(this.master)
-    const f = chimeFrequency(index), now = ctx.currentTime
+    const f = chimeFrequency(index), now = ctx.currentTime + delay
     for (const [ratio, level, decay] of [[1, 0.35, 2.2], [2.005, 0.12, 1.2], [3.01, 0.05, 0.6]]) {
       const osc = new OscillatorNode(ctx, { frequency: f * ratio }), gain = new GainNode(ctx, { gain: 0 })
       gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(level, now + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, now + decay)

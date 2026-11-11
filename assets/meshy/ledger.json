@@ -157,5 +157,33 @@
     },
     "input": null,
     "outputDir": "assets/meshy/raw/CHR-001/01a1c5b2-8644-77a9-9c7d-ee068d22d165"
+  },
+  {
+    "asset": "INT-002",
+    "taskId": "01a1cb36-6dd4-777f-9fc8-44be45d8a29a",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-11T15:25:05.713Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-6",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "target_polycount": 4000,
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ]
+    },
+    "input": {
+      "file": "assets/reference/INT-002-lantern-post/front.png",
+      "sha256": "feb1f1af7b9ba586d7516202ddf0cafab34ec1d97628c55542de892df61e5d98"
+    },
+    "outputDir": "assets/meshy/raw/INT-002/01a1cb36-6dd4-777f-9fc8-44be45d8a29a"
   }
 ]

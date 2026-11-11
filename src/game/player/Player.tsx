@@ -2,13 +2,16 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Group, Vector3 } from 'three'
 import type { InputState } from '../input/input'
-import { clampPosition, dampAngle, dampFactor, movementAxis, PLAYER_RADIUS, RUN_SPEED, WALK_SPEED } from './movement'
+import { dampAngle, dampFactor, movementAxis, PLAYER_RADIUS, RUN_SPEED, WALK_SPEED } from './movement'
 import { pushOutOfBox, resolveCollisions } from './collision'
 import { treeColliders } from '../world/zones/forestLayout'
 import { cabinCollider } from '../world/zones/campLayout'
+import { clampToRegions, walkableRegions } from '../world/regions'
+import { lanternColliders } from '../features/route/routeLayout'
 import { Character } from './Character'
 import { useGameStore } from '../../state/gameStore'
 const ACCELERATION = 12, DECELERATION = 9, TURN_RATE = 14
+const circleColliders = [...treeColliders, ...lanternColliders]
 export function Player({ input, position, velocity }: { input: InputState; position: Vector3; velocity: Vector3 }) {
   const group = useRef<Group>(null!)
   useFrame((_, delta) => {
@@ -24,12 +27,11 @@ export function Player({ input, position, velocity }: { input: InputState; posit
     if (dt > 0 && (velocity.x || velocity.z)) {
       const px = position.x, pz = position.z
       position.x += velocity.x * dt; position.z += velocity.z * dt
-      // The cabin clearing has no trees, so resolving the cabin box after the trunks cannot push back into a trunk.
-      const hitTree = resolveCollisions(position, PLAYER_RADIUS, treeColliders), hitCabin = pushOutOfBox(position, PLAYER_RADIUS, cabinCollider)
-      const hit = hitTree || hitCabin
-      const cx = clampPosition(position.x), cz = clampPosition(position.z)
+      // The cabin clearing has no trees or posts, so resolving the cabin box after the trunks cannot push back into a trunk.
+      const hitTree = resolveCollisions(position, PLAYER_RADIUS, circleColliders), hitCabin = pushOutOfBox(position, PLAYER_RADIUS, cabinCollider)
+      const clamped = clampToRegions(position, walkableRegions())
       // Keep only the motion that actually happened so speed does not build up against obstacles.
-      if (hit || cx !== position.x || cz !== position.z) { position.x = cx; position.z = cz; velocity.x = (cx - px) / dt; velocity.z = (cz - pz) / dt }
+      if (hitTree || hitCabin || clamped) { velocity.x = (position.x - px) / dt; velocity.z = (position.z - pz) / dt }
     }
     group.current.position.copy(position)
     if (Math.hypot(velocity.x, velocity.z) > 0.2) group.current.rotation.y = dampAngle(group.current.rotation.y, Math.atan2(velocity.x, velocity.z), TURN_RATE, dt)

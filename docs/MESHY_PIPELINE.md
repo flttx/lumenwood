@@ -9,6 +9,8 @@
 - 2026-11-10 首次实际生成：VEG-001 走通第 2、3 步（codex-cli 参考图 → image-to-3d → 下载 → 台账），消耗 30 积分，详见清单。同日用户采用该结果，第 5、6 步由 `scripts/blender/optimize_tree.py`（Blender 后台）与 `world/zones/Forest.tsx`（实例化 + 两级 LOD）完成，VEG-001 经用户确认为 `可用`。
 - 2026-11-10 用户表示第一批其余资产不需要逐项授权。INT-001（image-to-3d，meshy-6 以取得 Emission 贴图）、ARC-001 与 CHR-001（multi-image-to-3d），以及 CHR-001 的绑骨与待机动画都一次成功，共 98 积分；优化脚本为 `scripts/blender/optimize_static.py`（静态资产）与 `scripts/blender/assemble_character.py`（角色与动作）。三者为 `已集成`，待用户确认。
 
+- 2026-11-11 P3：INT-002 灯笼柱经用户授权（约 30–40 积分）走完全部六步：codex-cli 参考图 1 张 → image-to-3d（meshy-6）1 次、30 积分 → Claude 初检 → `optimize_static.py` → 集成，详见清单。
+
 ## 总则
 - **付费调用须事先授权**：每次调用 Meshy 或其他付费生成服务（包括用 codex-cli 生成参考图），都要经用户明确授权；授权写明资产、次数上限和积分上限。超出上限须重新授权。
 - **可追溯**：每次生成都登记任务 ID、日期、模型版本、参数、积分和产出文件。失败或废弃的尝试同样登记，原始文件不删除。

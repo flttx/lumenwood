@@ -9,7 +9,6 @@ export function movementAxis(keys: Set<string>) {
   if (length) { x /= length; z /= length }
   return { x, z }
 }
-export function clampPosition(value: number) { return Math.max(-WORLD_LIMIT, Math.min(WORLD_LIMIT, value)) }
 /** Frame-rate independent exponential smoothing factor. */
 export function dampFactor(rate: number, dt: number) { return 1 - Math.exp(-rate * dt) }
 export function wrapAngle(angle: number) { return Math.atan2(Math.sin(angle), Math.cos(angle)) }
