@@ -8,7 +8,8 @@ export function SoundscapeDriver() {
   useEffect(() => {
     const apply = ({ volume, phase }: { volume: number; phase: string }) => { soundscape.setVolume(volume); soundscape.setActive(phase === 'playing') }
     apply(useGameStore.getState())
-    return useGameStore.subscribe(apply)
+    const unsubscribe = useGameStore.subscribe(apply)
+    return () => { unsubscribe(); soundscape.setActive(false) } // back on the title screen the forest falls silent
   }, [])
   useFrame(({ camera }, delta) => soundscape.update(Math.min(delta, 0.1), atmosphere.blend, camera))
   return null

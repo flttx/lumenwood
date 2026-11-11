@@ -94,3 +94,23 @@ test('forest trees render from the VEG-001 model', async ({ page }) => {
   // Greybox ground alone is 2 triangles; 48 instanced trees add far more once the GLB loads.
   await expect.poll(async () => (await snapshot(page)).triangles, { timeout: 10_000 }).toBeGreaterThan(20_000)
 })
+
+test('soundscape starts with the game and suspends while paused', async ({ page }) => {
+  await expect.poll(async () => (await snapshot(page)).sound).toBe('running')
+  await page.keyboard.press('Escape')
+  await expectPhase(page, 'paused')
+  await expect.poll(async () => (await snapshot(page)).sound).toBe('suspended')
+  await page.getByRole('button', { name: /继续探索/ }).click()
+  await expect.poll(async () => (await snapshot(page)).sound).toBe('running')
+})
+
+test('a flower wakes once when approached and again after walking away', async ({ page }) => {
+  // INT-001 flower 0 stands at (2.5, -3); waking needs < 1.6 m, re-arming > 3.2 m.
+  await teleport(page, 2.5, -2)
+  await expect.poll(async () => (await snapshot(page)).chimes, { timeout: 10_000 }).toBe(1)
+  await teleport(page, 2.5, -1.7); await frames(page) // still close: no repeat
+  expect((await snapshot(page)).chimes).toBe(1)
+  await teleport(page, 2.5, 1); await frames(page) // 4 m away re-arms
+  await teleport(page, 2.5, -2.2)
+  await expect.poll(async () => (await snapshot(page)).chimes).toBe(2)
+})

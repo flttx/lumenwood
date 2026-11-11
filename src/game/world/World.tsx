@@ -10,6 +10,7 @@ import { Forest } from './zones/Forest'
 import { GlowFlowers } from '../features/flora/GlowFlowers'
 import { Atmosphere } from '../rendering/Atmosphere'
 import { Fireflies } from '../features/firefly/Fireflies'
+import { SoundscapeDriver } from '../audio/SoundscapeDriver'
 import { useGameStore } from '../../state/gameStore'
 export function World() {
   const input = useMemo(() => createInput(), [])
@@ -22,6 +23,6 @@ export function World() {
   useEffect(() => attachFocusGuards(element), [element])
   useEffect(() => installDebugApi({ input, position, velocity, rig, gl }), [input, position, velocity, rig, gl])
   return <><Atmosphere player={position}/>
-    <Forest/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/>
+    <Forest/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/>
   </>
 }

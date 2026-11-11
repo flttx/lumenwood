@@ -8,4 +8,4 @@
 测试分两层：Vitest 覆盖纯函数（`src/**/*.test.ts`）；Playwright（`e2e/*.e2e.ts`）对生产构建做浏览器交互与性能基线，通过 `?debug` 钩子读取状态和摆放场景。
 
 ## 计划
-按实际功能增设 `interaction`、`features/firefly`、`audio`、`shared`，不提前创建空壳；`features/flora` 已用于发光植物。碰撞与遮挡继续使用代码维护的代理体，不对渲染网格做逐帧射线检测。四种模型目前经 drei `useGLTF` 加载，树木已有实例化和 LOD；按区域加载与释放、纹理及网格压缩仍需随真实资源制定。Low/Medium/High 将扩展为经测量的完整渲染预算，音量对接 Web Audio。部署使用 Vite 相对 base 与静态文件，无后端。
+按实际功能增设模块，不提前创建空壳：`features/flora`（发光植物、唤醒光波）、`features/firefly`（萤火粒子）、`audio`（Web Audio 实时合成的环境声与植物空间音符，单例引擎 + 场景内 `SoundscapeDriver` 桥接设置与帧循环）已存在；`interaction`、`shared` 仍按需再建。碰撞与遮挡继续使用代码维护的代理体，不对渲染网格做逐帧射线检测。四种模型目前经 drei `useGLTF` 加载，树木已有实例化和 LOD；按区域加载与释放、纹理及网格压缩仍需随真实资源制定。Low/Medium/High 将扩展为经测量的完整渲染预算。部署使用 Vite 相对 base 与静态文件，无后端。
