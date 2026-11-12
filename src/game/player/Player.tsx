@@ -5,8 +5,8 @@ import type { InputState } from '../input/input'
 import { dampAngle, dampFactor, movementAxis, PLAYER_RADIUS, RUN_SPEED, WALK_SPEED } from './movement'
 import { pushOutOfBox, resolveCollisions } from './collision'
 import { rockColliders, treeColliders } from '../world/zones/forestLayout'
-import { cabinCollider } from '../world/zones/campLayout'
-import { deckHeight, fenceColliders, logColliders, stoneColliders } from '../world/zones/sceneryLayout'
+import { cabinCollider, campBoxColliders, campCircleColliders } from '../world/zones/campLayout'
+import { deckHeight, fenceColliders, logColliders, shrubColliders, signpostColliders, stoneColliders, stumpColliders } from '../world/zones/sceneryLayout'
 import { clampToRegions, onBridge, walkableRegions } from '../world/regions'
 import { deepPoolColliders } from '../world/zones/wetlandLayout'
 import { treeCollider } from '../world/zones/highlandLayout'
@@ -19,8 +19,8 @@ import { useGameStore } from '../../state/gameStore'
 const ACCELERATION = 12, DECELERATION = 9, TURN_RATE = 14
 // Footstep cadence (s per step) and the speed below which no steps sound; wading steps are the water's own splashes.
 const WALK_STEP = 0.42, RUN_STEP = 0.3, STEP_MIN_SPEED = 0.6
-const circleColliders = [...treeColliders, ...lanternColliders, ...deepPoolColliders, ...rockColliders, ...stoneColliders, treeCollider]
-const boxColliders = [cabinCollider, ...logColliders, ...fenceColliders]
+const circleColliders = [...treeColliders, ...lanternColliders, ...deepPoolColliders, ...rockColliders, ...stoneColliders, ...shrubColliders, ...stumpColliders, ...signpostColliders, ...campCircleColliders, treeCollider]
+const boxColliders = [cabinCollider, ...campBoxColliders, ...logColliders, ...fenceColliders]
 export function Player({ input, position, velocity }: { input: InputState; position: Vector3; velocity: Vector3 }) {
   const group = useRef<Group>(null!)
   const stepTimer = useRef(0)

@@ -172,5 +172,28 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 - **优化**：两种大树、蕨类和蘑菇用 `optimize_tree.py`（生成 LOD1）；其余用 `optimize_static.py`。`optimize_tree.py` 修了一处问题：高树的某些高度段没有顶点时，半径统计会对空序列取最大值而报错，现改为默认 0。
 - **集成**：树木由 `forestLayout.ts` 按树种生成（营地 300 棵：红杉约 22%、冷杉约 38%、VEG-001 幼树其余；湿地 40 棵；高地 60 棵；2026-11-12 布局第二版起这些数量为上限，按密林与空地分布，当前实际共 391 棵；远景改用冷杉与红杉），碰撞半径与遮挡高度按树种取实测值。蕨类、苔石、蘑菇、倒木、芦苇、脚踏石、栅栏、木桥由 `sceneryLayout.ts` 生成，经 `rendering/Scatter.tsx` 分块实例化。倒木与栅栏有旋转盒碰撞；较大的苔石有圆形碰撞；木桥架在湿地林径的两条小溪上，角色走在桥面上。
 
+## 场景丰富资产（2026-11-12）
+
+| ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数 | 贴图规格 | GLB 与尺寸 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| VEG-009 | 白桦 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1ceff-b16c-7371-b6e4-bfbc2b618a11` | 30 | LOD0 3,266 / LOD1 1,176 | 1024² | `public/assets/models/vegetation/VEG-009.glb`（1.14 MB，`36717b7b…67f3ed9d`），尺寸 高 11 m（树干半径约 0.3 m，树冠半径约 2.9 m） |
+| VEG-010 | 开花灌木 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf02-880f-76d0-8ac0-9fc4e567740f` | 30 | LOD0 1,497 / LOD1 588 | 512² | `public/assets/models/vegetation/VEG-010.glb`（0.29 MB，`8e7cb66d…b27f7b0c`），尺寸 高 1.4 m、半径约 0.78 m |
+| VEG-011 | 野花丛 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf07-f292-723d-a622-968aa8a67512` | 30 | LOD0 1,316 / LOD1 392 | 512² | `public/assets/models/vegetation/VEG-011.glb`（0.34 MB，`3002ac79…ade2f5fe`），尺寸 高 0.5 m |
+| VEG-012 | 苔藓树桩 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf0a-92fb-72f7-ba3b-f0dc3720b8f6` | 30 | 2,450 | 512² | `public/assets/models/vegetation/VEG-012.glb`（0.36 MB，`f3a8a581…b099f489`），尺寸 2.12 × 0.9 × 1.99 m（含外展根系） |
+| PRP-004 | 篝火 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf0c-838f-769e-b617-e61f8879204a` | 30 | 2,994 | 1024² | `public/assets/models/props/PRP-004.glb`（0.87 MB，`22599edf…daec6b55`），尺寸 1.56 × 0.55 × 1.58 m |
+| PRP-005 | 木箱木桶组 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf0e-fd99-70b8-90fd-784fcecf58b2` | 30 | 2,948 | 1024² | `public/assets/models/props/PRP-005.glb`（0.83 MB，`38c5fd8c…e12f50bf`），尺寸 1.64 × 1.25 × 1.08 m |
+| PRP-006 | 林径路标 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf10-e3c9-77b5-ba80-e2afa84f926c` | 30 | 1,993 | 512² | `public/assets/models/props/PRP-006.glb`（0.32 MB，`dd813454…f70bcecc`），尺寸 1.07 × 2.0 × 0.5 m |
+| PRP-007 | 柴堆 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf12-392f-7072-8914-a692da780364` | 30 | 2,989 | 1024² | `public/assets/models/props/PRP-007.glb`（0.78 MB，`43d9b0e8…b4cc7a3f`），尺寸 1.94 × 1.1 × 1.2 m |
+| CRT-001 | 林兔 | Creature | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf13-fe88-757b-ae9b-47e224f761f5` | 30 | 2,940 | 512² | `public/assets/models/creatures/CRT-001.glb`（0.41 MB，`67fb5e09…a346edd9`），尺寸 0.21 × 0.42 × 0.40 m |
+| CRT-002 | 林鸟 | Creature | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf15-d9c8-74bc-9489-243650b52562` | 30 | 1,960 | 512² | `public/assets/models/creatures/CRT-002.glb`（0.33 MB，`c1815631…0660cb77`），尺寸 翼展 0.42 m（Meshy 建成竖立姿态，加载时转为水平） |
+
+累计积分：848（此前 548 + 本批 300）。生成前余额 672，生成后脚本查询余额 372。
+
+授权：2026-11-12 用户要求“再丰富场景中的模型或者别的元素”，选择植被多样性、环境动态粒子、营地与生活痕迹、小动物四个方向，Meshy 预算“约 10 件，≤ 300 积分”。脚本上限每件 1 次 / 30 积分，十件都一次成功，没有重试余量；参考图各用 codex-cli 生成 1 张，提示词与检查见 `assets/reference/<ID>/`。CRT 为新的“生物”类别（脚本已支持该前缀），产物放在 `public/assets/models/creatures/`。
+
+- **初检（Claude，非用户验收）**：看了 Meshy 缩略图和游戏内截图，未在 Blender 中逐项检查法线和接缝。VEG-010 偏差：参考图上的奶油色与浅粉色花簇几乎没被 Meshy 保留（贴图里只有零星粉色碎片），叶片偏尖碎；因预算用满未重生成，改由着色器在朝上的叶面上程序化点缀花斑（`Scenery.tsx` 的 `useShrubBlossoms`），待用户确认是否可接受。VEG-009 树冠较稀疏。CRT-002 按参考图（正俯视）被建成竖立、腹部朝前，`Wildlife.tsx` 加载时绕 X 轴转 90° 并居中。
+- **优化**：白桦、灌木、野花用 `optimize_tree.py`（生成 LOD1）；其余用 `optimize_static.py`。`.blend` 存于各原始任务目录（不纳入版本管理）。
+- **集成**：白桦是 `forestLayout.ts` 的第四种树（只种在林缘与空地边，上限 80 棵），有碰撞与遮挡。灌木（约 170 丛，有圆形碰撞）、野花（成片分布在空地与林径边）、树桩（约 46 个，有碰撞）、路标（3 个林径分岔口）在 `sceneryLayout.ts`；篝火、木箱木桶、柴堆在 `campLayout.ts`（木屋局部坐标），篝火旁 3 个小树桩（VEG-012 缩放 0.5）作座位。兔子 16 只、鸟群 3 群 × 7 只，见 `features/ambient/Wildlife.tsx`；二者都是静态网格，动作由代码驱动。
+
 ## 后续类别（未规划具体资产）
 Props、Creatures 暂无条目。新增资产时先在本表登记为 `规划`，再进入流程。

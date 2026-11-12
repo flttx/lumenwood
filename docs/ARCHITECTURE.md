@@ -13,6 +13,8 @@ P3 起：`world/regions.ts` 用矩形并集（营地、北侧走廊、湿地）�
 
 灯光与森林（2026-11-12）：`rendering/LocalLights.tsx` 持有固定数量的点光源（按画质 2–4 盏，`config.localLights`），灯笼、灯座与花把自己登记为 `lightSources` 并每帧写入亮度；按到镜头的距离加权选出最近的几个，换源时先淡出再淡入，远处按距离淡出，因此光源总数不变、不重编译、不跳变。`forestLayout.ts` 的树木布局改为：`standDensity()`（低频噪声）决定密林与空地，各树种按密度取不同的扎根概率（幼树偏向林缘与林径旁），大红杉带出一圈子树，`sentinels()` 沿林径不规则地放大树；数量常量现在是上限，用固定尝试次数，使空地不会被补满。幼树之间允许较小间距（`THICKET_GAP` 1.4 m），其他树之间仍保留 2.6 m 可通行间隙。
 
+场景丰富（2026-11-12）：`features/ambient/AmbientLife.tsx` 是一组代码粒子，路径、翻转与扇翅全在顶点着色器里按时间计算，每种一次绘制、无逐帧 CPU 循环。飘叶与尘埃像草一样在玩家周围的方块内循环平铺，蝴蝶与蜻蜓的栖息点由 `ambientLayout.ts` 给出。`features/ambient/Wildlife.tsx` 渲染野兔与鸟群（实例化）：兔子行为是纯状态机 `rabbits.ts`（吃草、绕家小跳、玩家 4.5 m 内受惊逃跑、10 m 外平静），鸟群是时间的纯函数 `birds.ts`（每 26 s 一群从玩家附近掠过），扇翅由材质 `onBeforeCompile` 按实例序号错开。`world/zones/Campfire.tsx` 生成火焰（三片交叉面片加噪声着色器）、火星与烟，并把篝火登记为 `LocalLights` 光源。白桦作为第四种树进入 `forestLayout.ts`（只种在林缘与空地边，常两三棵一起）；灌木、野花、树桩、路标在 `sceneryLayout.ts`，营地摆设在 `campLayout.ts`（以木屋为参照的局部坐标），都有对应的碰撞。
+
 `rendering/Precompile.tsx` 在场景挂载后预编译全部材质（包括隐藏的萤火流、光桥和光柱），避免着色器在游玩中途首次编译造成卡顿。
 
 每帧通过共享可变向量和 R3F 帧循环协调，不逐帧 setState；时间步长有限制。指针锁状态和暂停是低频事件才写入 store。设置使用 localStorage，进度存档尚未实现。

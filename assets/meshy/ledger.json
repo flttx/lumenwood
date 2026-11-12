@@ -549,5 +549,285 @@
       "sha256": "d4a9d969180640f4c5427a423a7f29c2e45b1c20bcc8595dfd57c5ab76efda6b"
     },
     "outputDir": "assets/meshy/raw/ARC-003/01a1ce05-177b-7288-b481-ada57aac9f36"
+  },
+  {
+    "asset": "VEG-009",
+    "taskId": "01a1ceff-b16c-7371-b6e4-bfbc2b618a11",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:03:42.607Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 5000
+    },
+    "input": {
+      "file": "assets/reference/VEG-009-silver-birch/front.png",
+      "sha256": "73a0d47ae4f66552d707f26fc16bbf029ca4889bc8e94c06d6a443d1476cf724"
+    },
+    "outputDir": "assets/meshy/raw/VEG-009/01a1ceff-b16c-7371-b6e4-bfbc2b618a11"
+  },
+  {
+    "asset": "VEG-010",
+    "taskId": "01a1cf02-880f-76d0-8ac0-9fc4e567740f",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:06:48.484Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 2500
+    },
+    "input": {
+      "file": "assets/reference/VEG-010-flowering-shrub/front.png",
+      "sha256": "4e7b9d711f0aa0dc0573f2750f4d2b3f967fd29df8b544eb874e03f628c9095f"
+    },
+    "outputDir": "assets/meshy/raw/VEG-010/01a1cf02-880f-76d0-8ac0-9fc4e567740f"
+  },
+  {
+    "asset": "VEG-011",
+    "taskId": "01a1cf07-f292-723d-a622-968aa8a67512",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:12:43.058Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 1500
+    },
+    "input": {
+      "file": "assets/reference/VEG-011-wildflower-clump/front.png",
+      "sha256": "38e3daee6187abc1f5662a092b0667dd39451e161d98e28d152fb49a34c45590"
+    },
+    "outputDir": "assets/meshy/raw/VEG-011/01a1cf07-f292-723d-a622-968aa8a67512"
+  },
+  {
+    "asset": "VEG-012",
+    "taskId": "01a1cf0a-92fb-72f7-ba3b-f0dc3720b8f6",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:15:35.515Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 2500
+    },
+    "input": {
+      "file": "assets/reference/VEG-012-mossy-stump/front.png",
+      "sha256": "36efba4a89bbbf6c85c67aa33024b5b945f9ca3ac6db6c3877e437aa657117cd"
+    },
+    "outputDir": "assets/meshy/raw/VEG-012/01a1cf0a-92fb-72f7-ba3b-f0dc3720b8f6"
+  },
+  {
+    "asset": "PRP-004",
+    "taskId": "01a1cf0c-838f-769e-b617-e61f8879204a",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:17:42.533Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 3000
+    },
+    "input": {
+      "file": "assets/reference/PRP-004-campfire/front.png",
+      "sha256": "7092444e1ce08f87c37589d4e6a2fc3471368c97698b79f6eca92b6570a46e5d"
+    },
+    "outputDir": "assets/meshy/raw/PRP-004/01a1cf0c-838f-769e-b617-e61f8879204a"
+  },
+  {
+    "asset": "PRP-005",
+    "taskId": "01a1cf0e-fd99-70b8-90fd-784fcecf58b2",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:20:24.771Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 3000
+    },
+    "input": {
+      "file": "assets/reference/PRP-005-crates-barrel/front.png",
+      "sha256": "e5835721a67ee1dc18a2676f1d29a9b93023f94cd03903e6aa2af5519ffc4146"
+    },
+    "outputDir": "assets/meshy/raw/PRP-005/01a1cf0e-fd99-70b8-90fd-784fcecf58b2"
+  },
+  {
+    "asset": "PRP-006",
+    "taskId": "01a1cf10-e3c9-77b5-ba80-e2afa84f926c",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:22:29.161Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 2000
+    },
+    "input": {
+      "file": "assets/reference/PRP-006-trail-signpost/front.png",
+      "sha256": "af0e298f9e6f45dc16c59bfa62798e91ed05812ceb2e2b79f86e91d0b35fdacc"
+    },
+    "outputDir": "assets/meshy/raw/PRP-006/01a1cf10-e3c9-77b5-ba80-e2afa84f926c"
+  },
+  {
+    "asset": "PRP-007",
+    "taskId": "01a1cf12-392f-7072-8914-a692da780364",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:23:56.665Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 3000
+    },
+    "input": {
+      "file": "assets/reference/PRP-007-woodpile/front.png",
+      "sha256": "fb1c56186a4e603eab984a37a5e4e968550122d5b062f03f6ca204de9cb1455e"
+    },
+    "outputDir": "assets/meshy/raw/PRP-007/01a1cf12-392f-7072-8914-a692da780364"
+  },
+  {
+    "asset": "CRT-001",
+    "taskId": "01a1cf13-fe88-757b-ae9b-47e224f761f5",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:25:53.272Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 3000
+    },
+    "input": {
+      "file": "assets/reference/CRT-001-forest-rabbit/front.png",
+      "sha256": "57bb10dbc964a3ca4297d5d904d2c77782390dd3e22a9ea868d0347ec5d6c54c"
+    },
+    "outputDir": "assets/meshy/raw/CRT-001/01a1cf13-fe88-757b-ae9b-47e224f761f5"
+  },
+  {
+    "asset": "CRT-002",
+    "taskId": "01a1cf15-d9c8-74bc-9489-243650b52562",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T09:27:54.205Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 2000
+    },
+    "input": {
+      "file": "assets/reference/CRT-002-songbird/front.png",
+      "sha256": "307502eed9802760d2d7bc32890f8d29c54580370b1103ff813e258c91f121ff"
+    },
+    "outputDir": "assets/meshy/raw/CRT-002/01a1cf15-d9c8-74bc-9489-243650b52562"
   }
 ]

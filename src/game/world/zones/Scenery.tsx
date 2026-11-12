@@ -1,12 +1,14 @@
 import { useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
-import { Mesh, MeshStandardMaterial } from 'three'
+import { Mesh, MeshStandardMaterial, type WebGLProgramParametersWithUniforms } from 'three'
 import { assetConfig } from '../../assets/config'
 import { Scatter } from '../../rendering/Scatter'
 import { atmosphere } from '../../rendering/timeOfDay'
 import type { ScatterItem } from '../../rendering/scatterChunks'
-import { fences, ferns, footbridges, logs, mossStones, mushrooms, reeds, steppingStones } from './sceneryLayout'
+import { fences, ferns, footbridges, logs, mossStones, mushrooms, reeds, shrubs, signposts, steppingStones, stumps, wildflowers } from './sceneryLayout'
+import { campCrates, campSeats, campfire, woodpile } from './campLayout'
+import { CampfireEffects } from './Campfire'
 import { heightAt } from '../terrain/terrain'
 // Scenery from the scene-upgrade Meshy batch (docs/ASSET_MANIFEST.md): undergrowth, props and small structures, each a
 // chunked instanced layer (rendering/Scatter) drawn only near the camera. Layouts live in sceneryLayout.ts.
@@ -15,6 +17,9 @@ interface Layer { id: string; folder: string; items: readonly ScatterItem[]; max
 // Ferns and mushrooms carry a decimated LOD1 (scripts/blender/optimize_tree.py) used beyond NEAR_DETAIL metres.
 const NEAR_DETAIL = 12
 const bridgeItems = footbridges.map(b => ({ x: b.x, y: heightAt(b.x, b.z), z: b.z, angle: b.angle, scale: 1 }))
+const placed = (p: { x: number; z: number; angle: number }, scale = 1): ScatterItem => ({ x: p.x, y: heightAt(p.x, p.z), z: p.z, angle: p.angle, scale })
+// Seats round the fire are small VEG-012 stumps.
+const stumpItems = [...stumps, ...campSeats.map(s => placed(s, 0.5))]
 const layers: Layer[] = [
   { id: 'VEG-006', folder: 'vegetation', items: ferns, maxDistance: 40, lods: ['VEG-006_LOD0', 'VEG-006_LOD1'] },
   { id: 'PRP-002', folder: 'props', items: mossStones, maxDistance: 55 },
@@ -23,6 +28,14 @@ const layers: Layer[] = [
   { id: 'PRP-003', folder: 'props', items: steppingStones, maxDistance: 55 },
   { id: 'ARC-003', folder: 'architecture', items: fences, maxDistance: 80, castShadow: true },
   { id: 'ARC-002', folder: 'architecture', items: bridgeItems, maxDistance: 160, castShadow: true },
+  // Scene enrichment (2026-11-12).
+  { id: 'VEG-010', folder: 'vegetation', items: shrubs, maxDistance: 60, castShadow: true, lods: ['VEG-010_LOD0', 'VEG-010_LOD1'] },
+  { id: 'VEG-011', folder: 'vegetation', items: wildflowers, maxDistance: 38, lods: ['VEG-011_LOD0', 'VEG-011_LOD1'] },
+  { id: 'VEG-012', folder: 'vegetation', items: stumpItems, maxDistance: 70, castShadow: true },
+  { id: 'PRP-004', folder: 'props', items: [placed(campfire)], maxDistance: 90, castShadow: true },
+  { id: 'PRP-005', folder: 'props', items: [placed(campCrates)], maxDistance: 90, castShadow: true },
+  { id: 'PRP-006', folder: 'props', items: signposts, maxDistance: 90, castShadow: true },
+  { id: 'PRP-007', folder: 'props', items: [placed(woodpile)], maxDistance: 90, castShadow: true },
 ]
 const MUSHROOM_URL = url('vegetation', 'VEG-007')
 for (const l of layers) useGLTF.preload(url(l.folder, l.id), false, false)
@@ -40,9 +53,43 @@ function Mushrooms() {
   return <Scatter url={MUSHROOM_URL} lods={['VEG-007_LOD0', 'VEG-007_LOD1']} items={mushrooms} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={40}/>
 }
 
+/**
+ * VEG-010 lost its blossoms in Meshy (only green leaves came back, see ASSET_MANIFEST), so they are painted back on in
+ * the shader: small cream and blush-pink flower spots on the upward-facing leaves, placed by a hash of the model-space
+ * position plus the instance's offset, so neighbouring shrubs do not flower alike.
+ */
+function useShrubBlossoms() {
+  const { scene } = useGLTF(url('vegetation', 'VEG-010'), false, false)
+  useMemo(() => {
+    const mesh = scene.getObjectByName('VEG-010_LOD0')
+    if (!(mesh instanceof Mesh) || !(mesh.material instanceof MeshStandardMaterial)) throw new Error('VEG-010 has no standard mesh named VEG-010_LOD0')
+    mesh.material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
+      shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>
+varying vec3 vBloom; varying float vUp;`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+  vBloom = position;
+  #ifdef USE_INSTANCING
+    vBloom += instanceMatrix[3].xyz * 0.37;
+  #endif
+  vUp = normal.y;`)
+      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
+varying vec3 vBloom; varying float vUp;`)
+        .replace('#include <map_fragment>', `#include <map_fragment>
+  vec3 cell = floor(vBloom * 11.0), f = fract(vBloom * 11.0) - 0.5;
+  float h = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  float spot = step(0.78, h) * smoothstep(0.34, 0.18, length(f)) * smoothstep(0.1, 0.5, vUp);
+  vec3 petal = mix(vec3(0.98, 0.93, 0.8), vec3(0.96, 0.7, 0.72), step(0.9, h));
+  diffuseColor.rgb = mix(diffuseColor.rgb, petal, spot);`)
+    }
+    mesh.material.customProgramCacheKey = () => 'lumenwood-shrub-blossoms'
+  }, [scene])
+}
+
 export function Scenery() {
+  useShrubBlossoms()
   return <>
     {layers.map(l => <Scatter key={l.id} url={url(l.folder, l.id)} lods={l.lods ?? [l.id]} items={l.items} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={l.maxDistance} castShadow={l.castShadow}/>)}
     <Mushrooms/>
+    <CampfireEffects x={campfire.x} y={heightAt(campfire.x, campfire.z)} z={campfire.z}/>
   </>
 }

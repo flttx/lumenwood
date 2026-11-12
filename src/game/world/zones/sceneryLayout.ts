@@ -3,11 +3,11 @@ import type { ScatterItem } from '../../rendering/scatterChunks'
 import { random } from '../../shared/random'
 import { CAMP, HIGHLAND, WETLAND } from '../regions'
 import { heightAt, nearestPathPoint, paths, pathWeight } from '../terrain/terrain'
-import { cabin } from './campLayout'
+import { cabin, campClearings } from './campLayout'
 import { flowers } from './floraLayout'
-import { ANCIENT_TREE, TREE_ROOT_RADIUS } from './highlandLayout'
+import { ANCIENT_TREE, TREE_ROOT_RADIUS, highlandPath } from './highlandLayout'
 import { basinDepth, brookSegments, channelBanks, CHANNEL, pools, shoreScale, wetlandPath, WATER_LEVEL } from './wetlandLayout'
-import { forestTrees, trunkRadius } from './forestLayout'
+import { forestTrees, standDensity, trunkRadius } from './forestLayout'
 import { lanterns } from '../../features/route/routeLayout'
 // Scenery dressing (scene upgrade, 2026-11-12): undergrowth, props and small structures from the second Meshy batch,
 // placed deterministically. Everything keeps clear of trails, water (except reeds), route nodes, flowers and trunks.
@@ -16,12 +16,14 @@ export const grassClearings: { x: number; z: number; r: number }[] = [
   { x: cabin.x, z: cabin.z, r: 3.6 },
   ...lanterns.map(l => ({ x: l.x, z: l.z, r: 0.8 })),
   { x: ANCIENT_TREE[0], z: ANCIENT_TREE[1], r: TREE_ROOT_RADIUS + 1 },
+  ...campClearings,
 ]
 const spots = [...flowers, ...lanterns]
 function clear(x: number, z: number, room: number) {
   if (basinDepth(x, z) < 0 || pathWeight(x, z) > 0.25 || Math.hypot(x - cabin.x, z - cabin.z) < 6 + room) return false
   if (Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) < TREE_ROOT_RADIUS + 3 + room) return false
   if (spots.some(s => Math.hypot(s.x - x, s.z - z) < 1.4 + room)) return false
+  if (campClearings.some(c => Math.hypot(c.x - x, c.z - z) < c.r + room)) return false
   return forestTrees.every(t => Math.hypot(t.x - x, t.z - z) > trunkRadius(t) + 0.4 + room)
 }
 const item = (x: number, z: number, angle: number, scale: number, lift = 0): ScatterItem => ({ x, y: heightAt(x, z) + lift, z, angle, scale })
@@ -127,3 +129,44 @@ export function deckHeight(x: number, z: number) {
   }
   return -Infinity
 }
+
+// ---- Scene enrichment (2026-11-12): flowering shrubs, wildflowers, stumps and trail signposts ----------------------
+/** VEG-010 flowering shrubs (about 1.4 m) round tree feet and glade edges; solid, like the larger stones. */
+export const shrubs = undergrowth(211, 170, [CAMP, WETLAND, HIGHLAND], 0.8, [0.75, 1.15], 0.55).filter(s => standDensity(s.x, s.z) < 0.75)
+export const shrubColliders: CircleCollider[] = shrubs.map(s => ({ x: s.x, z: s.z, radius: 0.5 * s.scale }))
+/** VEG-012 mossy stumps (about 0.9 m tall): scattered in the stands, where trees once fell. */
+export const stumps = undergrowth(215, 46, [CAMP, HIGHLAND, WETLAND], 1.0, [0.75, 1.15], 0.35)
+export const STUMP_RADIUS = 0.55
+export const stumpColliders: CircleCollider[] = stumps.map(s => ({ x: s.x, z: s.z, radius: STUMP_RADIUS * s.scale }))
+/** VEG-011 wildflower clumps gather in drifts in the glades and along the trail edges, where the sun reaches the ground. */
+export const wildflowers = (() => {
+  const rand = random(213), out: ScatterItem[] = []
+  for (let tries = 0, drifts = 0; drifts < 150 && tries < 20000; tries++) {
+    const area = [CAMP, CAMP, CAMP, HIGHLAND, WETLAND][Math.floor(rand() * 5)]
+    const cx = area.minX + rand() * (area.maxX - area.minX), cz = area.minZ + rand() * (area.maxZ - area.minZ)
+    const trail = nearestPathPoint(cx, cz).distance
+    if (standDensity(cx, cz) > 0.35 && (trail < 2.2 || trail > 5)) continue
+    drifts++
+    for (let n = 6 + Math.floor(rand() * 8); n > 0; n--) {
+      const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * 2.8, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d
+      if (clear(x, z, 0.1)) out.push(item(x, z, rand() * Math.PI * 2, 0.7 + rand() * 0.6))
+    }
+  }
+  return out
+})()
+/** PRP-006 signposts at the trail junctions: the spawn fork, the corridor's far end, the ramp foot. */
+export const SIGNPOST_RADIUS = 0.2
+export const signposts = (() => {
+  const spot = (x: number, z: number, dx: number, dz: number) => {
+    const d = Math.hypot(dx, dz), sx = x + (dx / d) * 2.6, sz = z + (dz / d) * 2.6
+    return { ...item(sx, sz, Math.atan2(x - sx, z - sz), 1) } // the boards face the junction
+  }
+  const [a0, a1] = paths[0], [b0, b1] = paths[1], [w0] = wetlandPath, [h0, h1] = highlandPath
+  return [
+    spot(0, 0, -((a1[0] - a0[0]) / Math.hypot(a1[0] - a0[0], a1[1] - a0[1]) + (b1[0] - b0[0]) / Math.hypot(b1[0] - b0[0], b1[1] - b0[1])),
+      -((a1[1] - a0[1]) / Math.hypot(a1[0] - a0[0], a1[1] - a0[1]) + (b1[1] - b0[1]) / Math.hypot(b1[0] - b0[0], b1[1] - b0[1]))),
+    spot(w0[0], w0[1], 1, 0),
+    spot(h0[0], h0[1], -(h1[1] - h0[1]), h1[0] - h0[0]),
+  ].filter(s => clear(s.x, s.z, -1.2))
+})()
+export const signpostColliders: CircleCollider[] = signposts.map(s => ({ x: s.x, z: s.z, radius: SIGNPOST_RADIUS }))

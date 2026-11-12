@@ -9,13 +9,14 @@ import { LOD1_DISTANCE } from './treeLod'
 import { Cabin } from './Cabin'
 import { Highland } from './Highland'
 import { Scenery } from './Scenery'
-// Tree species (docs/ASSET_MANIFEST.md): VEG-001 young conifers, VEG-003 giant redwoods, VEG-004 tall firs. Each GLB holds
+// Tree species (docs/ASSET_MANIFEST.md): VEG-001 young conifers, VEG-003 giant redwoods, VEG-004 tall firs, VEG-009 birches. Each GLB holds
 // LOD0 and LOD1 meshes sharing one material. Trees are chunked (rendering/Scatter): whole chunks are frustum-culled and
 // switch LOD by distance; collision and occlusion stay on code proxies (forestLayout).
 const MODELS: Record<TreeKind, { url: string; lods: string[]; lodDistance: number }> = {
   conifer: { url: `${assetConfig.baseUrl}models/vegetation/VEG-001.glb`, lods: ['VEG-001_LOD0', 'VEG-001_LOD1'], lodDistance: LOD1_DISTANCE },
   redwood: { url: `${assetConfig.baseUrl}models/vegetation/VEG-003.glb`, lods: ['VEG-003_LOD0', 'VEG-003_LOD1'], lodDistance: 26 },
   fir: { url: `${assetConfig.baseUrl}models/vegetation/VEG-004.glb`, lods: ['VEG-004_LOD0', 'VEG-004_LOD1'], lodDistance: 20 },
+  birch: { url: `${assetConfig.baseUrl}models/vegetation/VEG-009.glb`, lods: ['VEG-009_LOD0', 'VEG-009_LOD1'], lodDistance: 22 },
 }
 const KINDS = Object.keys(MODELS) as TreeKind[]
 const VIEW_DISTANCE = 190, TREE_CHUNK = 20

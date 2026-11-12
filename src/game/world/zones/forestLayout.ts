@@ -15,17 +15,19 @@ import { smoothstep } from '../../shared/math'
 // Layout pass 2 (2026-11-12, the even scatter read as a plantation): low-frequency noise splits the land into dense stands
 // and open, sunlit glades; redwoods grow in rings around a parent tree, as they do in nature; young conifers gather at
 // stand edges and in the light along trails; and big "sentinel" trunks flank the trails at irregular intervals.
-export type TreeKind = 'conifer' | 'redwood' | 'fir'
+export type TreeKind = 'conifer' | 'redwood' | 'fir' | 'birch'
 export const species: Record<TreeKind, { trunk: number; height: number; scale: [number, number] }> = {
   conifer: { trunk: 0.4, height: 4.8, scale: [1.3, 2.4] },
   redwood: { trunk: 2.2, height: 28, scale: [0.72, 1.12] },
   fir: { trunk: 0.75, height: 18, scale: [0.8, 1.25] },
+  birch: { trunk: 0.3, height: 11, scale: [0.8, 1.2] },
 }
 export interface TreeSpot { x: number; z: number; scale: number; kind: TreeKind }
 export const trunkRadius = (t: TreeSpot) => species[t.kind].trunk * t.scale
 /** Walkable gap kept between neighbouring trunks (beyond both radii); young conifers may crowd each other into thickets. */
 export const TREE_GAP = 2.6, THICKET_GAP = 1.4
-const gapBetween = (a: TreeKind, b: TreeKind) => (a === 'conifer' && b === 'conifer' ? THICKET_GAP : TREE_GAP)
+const small = (k: TreeKind) => k === 'conifer' || k === 'birch'
+const gapBetween = (a: TreeKind, b: TreeKind) => (small(a) && small(b) ? THICKET_GAP : TREE_GAP)
 /** 0 in open glades, 1 in the densest stands; features tens of metres across. */
 export function standDensity(x: number, z: number) {
   return smoothstep(0.3, 0.72, valueNoise(x * 0.028 + 3.7, z * 0.028 - 8.1) * 0.8 + valueNoise(x * 0.09 - 2.3, z * 0.09 + 6.1) * 0.2)
@@ -102,18 +104,34 @@ function plant(seed: number, count: number, area: Area, mix: [number, number], o
 }
 /** The camp is a dense, tall forest with a clearing at the spawn point and around the cabin. Counts are caps (see plant). */
 export const CAMP_TREE_COUNT = 300
-const campTrees = plant(11, CAMP_TREE_COUNT, CAMP, [0.22, 0.38],
-  (x, z, r) => Math.hypot(x, z) > SPAWN_CLEARING + r && Math.hypot(x - cabin.x, z - cabin.z) > CABIN_CLEARING + r)
+const campGround: Ok = (x, z, r) => Math.hypot(x, z) > SPAWN_CLEARING + r && Math.hypot(x - cabin.x, z - cabin.z) > CABIN_CLEARING + r
+const campTrees = plant(11, CAMP_TREE_COUNT, CAMP, [0.22, 0.38], campGround)
 /** Sparser firs and young conifers on the wetland's dry ground, clear of water. */
 export const WETLAND_TREE_COUNT = 40
-export const wetlandTrees = plant(61, WETLAND_TREE_COUNT, WETLAND, [0.05, 0.4], (x, z, r) =>
-  [[0, 0], [r + 1, 0], [-r - 1, 0], [0, r + 1], [0, -r - 1]].every(([dx, dz]) => basinDepth(x + dx, z + dz) === 0))
+const wetlandGround: Ok = (x, z, r) => [[0, 0], [r + 1, 0], [-r - 1, 0], [0, r + 1], [0, -r - 1]].every(([dx, dz]) => basinDepth(x + dx, z + dz) === 0)
+export const wetlandTrees = plant(61, WETLAND_TREE_COUNT, WETLAND, [0.05, 0.4], wetlandGround)
 /** Plateau trees keep a wide ring of open ground around the ancient tree so it stands alone as the landmark. */
 export const HIGHLAND_TREE_COUNT = 60
 const cradles = cradleSpots.map(([x, z]) => ({ x, z }))
-const highlandTrees = plant(83, HIGHLAND_TREE_COUNT, HIGHLAND, [0.3, 0.45], (x, z, r) =>
-  Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) > 22 + r && cradles.every(c => Math.hypot(c.x - x, c.z - z) > 4 + r))
-export const forestTrees: TreeSpot[] = [...campTrees, ...wetlandTrees, ...highlandTrees]
+const highlandGround: Ok = (x, z, r) => Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) > 22 + r && cradles.every(c => Math.hypot(c.x - x, c.z - z) > 4 + r)
+const highlandTrees = plant(83, HIGHLAND_TREE_COUNT, HIGHLAND, [0.3, 0.45], highlandGround)
+/** VEG-009 birches (scene enrichment): pale trunks and airy crowns where the canopy opens, at stand edges and glade
+ *  margins, never deep in a stand; often two or three together. Planted after the conifers, around them. */
+export const BIRCH_COUNT = 80
+export const birches = (() => {
+  const rand = random(91), zones: [Area, Ok][] = [[CAMP, campGround], [CAMP, campGround], [CAMP, campGround], [WETLAND, wetlandGround], [HIGHLAND, highlandGround]]
+  const others = [...campTrees, ...wetlandTrees, ...highlandTrees], out: TreeSpot[] = []
+  for (let tries = 0; out.length < BIRCH_COUNT && tries < BIRCH_COUNT * 120; tries++) {
+    const [area, ok] = zones[Math.floor(rand() * zones.length)], near = out.length && rand() < 0.4 ? out[Math.floor(rand() * out.length)] : null
+    const x = near ? near.x + (rand() - 0.5) * 7 : area.minX + rand() * (area.maxX - area.minX), z = near ? near.z + (rand() - 0.5) * 7 : area.minZ + rand() * (area.maxZ - area.minZ)
+    const d = standDensity(x, z)
+    if (d < 0.08 || d > 0.55) continue
+    const tree: TreeSpot = { x, z, kind: 'birch', scale: scaleFor('birch', rand()) }
+    if (fits(tree, area, ok, [...others, ...out])) out.push(tree)
+  }
+  return out
+})()
+export const forestTrees: TreeSpot[] = [...campTrees, ...wetlandTrees, ...highlandTrees, ...birches]
 /** PRP-001 clusters scattered on the plateau, clear of the tree, trail, flowers, cradles and trees; plus the ramp shoulders. */
 export const ROCK_RADIUS = 0.95
 export const highlandRocks = (() => {
