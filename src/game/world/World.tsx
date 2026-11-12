@@ -16,8 +16,9 @@ import { Water } from './zones/Water'
 import { wetlandFireflyHomes } from '../features/firefly/swarm'
 import { useGameStore } from '../../state/gameStore'
 import { Precompile } from '../rendering/Precompile'
-import { Grass } from '../rendering/Grass'
+import { Grass, trailTarget } from '../rendering/Grass'
 import { AirEffects } from '../rendering/AirEffects'
+import { PostFX } from '../rendering/PostFX'
 import { spawnPoint } from '../features/route/save'
 export function World() {
   const input = useMemo(() => createInput(), [])
@@ -25,12 +26,14 @@ export function World() {
   const position = useMemo(() => { const at = spawnPoint.position; spawnPoint.position = null; return at ? new Vector3(at[0], 0, at[1]) : new Vector3() }, [])
   const velocity = useMemo(() => new Vector3(), [])
   const rig = useMemo<CameraRig>(() => ({ distance: CAMERA_DISTANCE }), [])
+  // The grass tramples around the player; share the same position vector (updated in place by Player).
+  trailTarget.position = position
   const gl = useThree(s => s.gl)
   const element = gl.domElement
   useEffect(() => attachInput(input, element, () => useGameStore.getState().phase === 'playing'), [element, input])
   useEffect(() => attachFocusGuards(element), [element])
   useEffect(() => installDebugApi({ input, position, velocity, rig, gl }), [input, position, velocity, rig, gl])
   return <><Atmosphere player={position}/>
-    <Forest/><Grass/><AirEffects/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Fireflies homes={wetlandFireflyHomes} seed={13}/><Water player={position} velocity={velocity}/><FireflyRoute player={position}/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/><Precompile/>
+    <Forest/><Grass/><AirEffects/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Fireflies homes={wetlandFireflyHomes} seed={13}/><Water player={position} velocity={velocity}/><FireflyRoute player={position}/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/><Precompile/><PostFX/>
   </>
 }

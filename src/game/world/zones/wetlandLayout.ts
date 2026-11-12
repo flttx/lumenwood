@@ -50,3 +50,8 @@ export function basinDepth(x: number, z: number) {
   }
   return depth
 }
+/** True where the player's feet are in water: the ground there is a pool or the channel (rolling dry ground elsewhere can
+ *  dip below the waterline without being wet) and the feet are below the surface (not up on a bridge deck). */
+export function wading(x: number, footY: number, z: number, depth = 0.04) {
+  return footY < WATER_LEVEL - depth && basinDepth(x, z) < WATER_LEVEL - depth
+}

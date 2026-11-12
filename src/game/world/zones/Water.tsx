@@ -4,7 +4,7 @@ import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vecto
 import { atmosphere } from '../../rendering/timeOfDay'
 import { soundscape } from '../../audio/engine'
 import { useGameStore } from '../../../state/gameStore'
-import { CHANNEL, CHANNEL_SHORE, DEEP_DEPTH, SHALLOW_DEPTH, WATER_LEVEL, pools } from './wetlandLayout'
+import { CHANNEL, CHANNEL_SHORE, DEEP_DEPTH, SHALLOW_DEPTH, WATER_LEVEL, pools, wading } from './wetlandLayout'
 import { WETLAND } from '../regions'
 import { sz } from '../scale'
 // Wetland water: one transparent plane at the waterline over every pool and the channel; dry ground pokes through it.
@@ -87,7 +87,7 @@ export function Water({ player, velocity }: { player: Vector3; velocity: Vector3
     material.uniforms.uWater.value.copy(DAY_WATER).lerp(TWILIGHT_WATER, atmosphere.blend)
     material.uniforms.uSky.value.setHex(atmosphere.preset.skyHorizon)
     // A ring and a splash per step while wading; steps come faster when running.
-    const speed = Math.hypot(velocity.x, velocity.z), inWater = player.y < WATER_LEVEL - WADE_DEPTH
+    const speed = Math.hypot(velocity.x, velocity.z), inWater = wading(player.x, player.y, player.z, WADE_DEPTH)
     if (useGameStore.getState().phase !== 'playing' || !inWater || speed < 0.5) { wade.timer = 0; return }
     if ((wade.timer -= Math.min(delta, 0.1)) > 0) return
     wade.timer = speed > 5 ? 0.28 : 0.42

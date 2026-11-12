@@ -122,3 +122,12 @@ test('a flower wakes once when approached and again after walking away', async (
   await teleport(page, f.x, f.z + 0.8)
   await expect.poll(async () => (await snapshot(page)).chimes).toBe(2)
 })
+
+test('walking makes footsteps; standing still does not', async ({ page }) => {
+  await teleport(page, 0, 0); await setView(page, Math.PI * 0.75, 0.28)
+  const before = (await snapshot(page)).footsteps
+  await page.waitForTimeout(600)
+  expect((await snapshot(page)).footsteps).toBe(before)
+  await hold(page, 'KeyW', 1500)
+  expect((await snapshot(page)).footsteps).toBeGreaterThanOrEqual(before + 3) // ~0.42 s per walking step
+})

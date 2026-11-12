@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHANNEL, DEEP_DEPTH, SHALLOW_DEPTH, deepPoolColliders, pools, wetlandPath } from './wetlandLayout'
+import { CHANNEL, DEEP_DEPTH, SHALLOW_DEPTH, deepPoolColliders, pools, wading, wetlandPath } from './wetlandLayout'
 import { flowers } from './floraLayout'
 import { WETLAND_TREE_COUNT, treeColliders, wetlandTrees } from './forestLayout'
 import { BRIDGE, GLADE, WETLAND, clampToRegions, rectDistance, walkableRegions } from '../regions'
@@ -42,5 +42,11 @@ describe('wetland layout', () => {
   it('places every wetland tree on dry ground', () => {
     expect(wetlandTrees.length).toBe(WETLAND_TREE_COUNT)
     for (const t of wetlandTrees) { expect(rectDistance(t.x, t.z, WETLAND)).toBe(0); expect(heightAt(t.x, t.z)).toBe(0); expect(nearestPathPoint(t.x, t.z).distance).toBeGreaterThan(2) }
+  })
+  it('wading means feet in a pool, not merely low ground', () => {
+    const pool = pools.find(p => !p.deep)!
+    expect(wading(pool.x, SHALLOW_DEPTH, pool.z)).toBe(true)
+    expect(wading(0, -0.6, 0)).toBe(false) // a hollow in the camp dips below the waterline but is dry
+    expect(wading(pool.x, 0.4, pool.z)).toBe(false) // up on a bridge deck
   })
 })

@@ -9,6 +9,8 @@ P3 起：`world/regions.ts` 用矩形并集（营地、北侧走廊、湿地）�
 
 场景升级（2026-11-12）：`world/scale.ts` 的 `WORLD_SCALE` 统一放大区域、林径、水塘、花与关口（资产尺寸、角色可达距离和林径宽度不放大）；地形加入 `rolling()` 起伏，`rollWeight()` 在湿地、空地和木屋、古树处为 0。`rendering/scatterChunks.ts` + `Scatter.tsx` 是通用的分块实例化：每个约 20–32 m 的块是一个带包围球的 InstancedMesh，整块视锥剔除，按块到相机的距离切换 LOD 或隐藏；树木、地表植被与配景都用它。`rendering/grassField.ts` 把地面高度和草密度烘焙成浮点纹理，`Grass.tsx` 用一组跟随相机平铺换位的实例化草片绘制（数量随画质）。`rendering/AirEffects.tsx` 是光束与低雾（各一次绘制）。`world/zones/sceneryLayout.ts` 生成全部布景并导出碰撞（倒木、栅栏为盒体，大苔石为圆）、草地避让区和木桥桥面高度 `deckHeight()`；`Player` 取地面与桥面中较高者为脚下高度，`Water` 按角色实际脚下高度判断是否涉水。
 
+视觉升级（2026-11-12）：`rendering/PostFX.tsx` 用 Three.js 自带的 EffectComposer（4× MSAA 半浮点目标）→ UnrealBloom → OutputPass（色调映射与 sRGB）→ 调色 ShaderPass；它以优先级 1 的 useFrame 接管渲染，并手动清零 `gl.info`，使调试统计覆盖整帧（含阴影与后期）。天空着色器加入太阳光盘与光晕，`atmosphere.sunDirection` 供草地等读取；`Atmosphere` 另有一盏跟随相机的补光，太阳阴影覆盖 ±40 m（高画质 4096²）。`Grass.tsx` 改用 `MeshLambertMaterial` + `onBeforeCompile`（受光、接收阴影、雾），背面不翻转法线；踩踏用 8 个足迹点（玩家当前位置 + 最近脚印，衰减约 1.8 s）把草推开压低。`soundscape.footstep()` 按地面（草、土路、木桥）合成空间脚步声；`wetlandLayout.wading()` 以“脚低于水面且脚下是水塘或水渠”判断涉水（地形起伏后，营地低洼处也可能低于水面，但不算水里）。
+
 `rendering/Precompile.tsx` 在场景挂载后预编译全部材质（包括隐藏的萤火流、光桥和光柱），避免着色器在游玩中途首次编译造成卡顿。
 
 每帧通过共享可变向量和 R3F 帧循环协调，不逐帧 setState；时间步长有限制。指针锁状态和暂停是低频事件才写入 store。设置使用 localStorage，进度存档尚未实现。

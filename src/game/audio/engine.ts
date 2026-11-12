@@ -85,6 +85,38 @@ class Soundscape {
     }
   }
 
+  /** Footsteps requested so far (read by the debug hook). */
+  footsteps = 0
+  /** One footstep on `surface` at (x, y, z), placed in 3D; `strength` in [0, 1] (running steps are firmer). */
+  footstep(surface: 'grass' | 'dirt' | 'wood', x: number, y: number, z: number, strength: number) {
+    const ctx = this.ctx
+    this.footsteps++
+    if (!ctx || ctx.state !== 'running') return
+    const now = ctx.currentTime, out = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 1.5, positionX: x, positionY: y, positionZ: z })
+    out.connect(this.master)
+    const burst = (filter: BiquadFilterOptions, level: number, length: number, delay = 0, rate = 1) => {
+      const source = new AudioBufferSourceNode(ctx, { buffer: this.noise, playbackRate: rate * (0.85 + Math.random() * 0.3) }), gain = new GainNode(ctx, { gain: 0 }), t = now + delay
+      gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(level, t + 0.008); gain.gain.exponentialRampToValueAtTime(0.0001, t + length)
+      source.connect(new BiquadFilterNode(ctx, filter)).connect(gain).connect(out)
+      source.start(t, Math.random() * 2.5, length + 0.05)
+    }
+    const s = 0.6 + 0.4 * strength
+    if (surface === 'grass') {
+      // Two quick brushes of high, airy noise: blades parting around the foot.
+      burst({ type: 'highpass', frequency: 2600 + Math.random() * 900, Q: 0.6 }, 0.05 * s, 0.11)
+      burst({ type: 'bandpass', frequency: 4200, Q: 0.8 }, 0.03 * s, 0.09, 0.045)
+    } else if (surface === 'dirt') {
+      burst({ type: 'lowpass', frequency: 520 + Math.random() * 160, Q: 0.9 }, 0.13 * s, 0.09, 0, 0.6)
+      burst({ type: 'bandpass', frequency: 1800, Q: 1.2 }, 0.02 * s, 0.06, 0.01)
+    } else {
+      // Wood: a hollow knock on the planks.
+      const osc = new OscillatorNode(ctx, { type: 'triangle', frequency: 150 + Math.random() * 40 }), gain = new GainNode(ctx, { gain: 0 })
+      gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.12 * s, now + 0.005); gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14)
+      osc.connect(gain).connect(out); osc.start(now); osc.stop(now + 0.16)
+      burst({ type: 'bandpass', frequency: 900, Q: 1.5 }, 0.05 * s, 0.07)
+    }
+  }
+
   /** Short filtered splash from a wading step at (x, y, z); `strength` in [0, 1]. */
   splash(x: number, y: number, z: number, strength: number) {
     const ctx = this.ctx
