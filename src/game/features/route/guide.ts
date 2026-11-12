@@ -1,6 +1,7 @@
 import { flowers } from '../../world/zones/floraLayout'
 import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
 import { highlandPath } from '../../world/zones/highlandLayout'
+import { sz } from '../../world/scale'
 import { LANTERN_COST, lanterns, routeEnds, zoneLanterns, type Zone } from './routeLayout'
 import type { RouteProgress } from './progress'
 // World guidance (P4): one-line captions at first-time moments, and a gentle pulse on the next thing to do when the player
@@ -23,7 +24,7 @@ export type CaptionId = keyof typeof captions
 export const HINT_AFTER = 40
 
 /** Which route zone the player is in, by how far north they are (the glade counts as the wetlands). */
-export function zoneAt(z: number): Zone { return z < 22 ? 'camp' : z < 75 ? 'wetland' : 'highland' }
+export function zoneAt(z: number): Zone { return z < sz(22) ? 'camp' : z < sz(75) ? 'wetland' : 'highland' }
 
 const nearest = <T extends { x: number; z: number }>(items: T[], x: number, z: number) =>
   items.reduce<T | null>((best, s) => (!best || Math.hypot(s.x - x, s.z - z) < Math.hypot(best.x - x, best.z - z) ? s : best), null)

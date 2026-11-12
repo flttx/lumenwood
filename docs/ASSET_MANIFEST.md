@@ -5,6 +5,7 @@
 - 第一批四种资产全部生成并集成（2026-11-10）。VEG-001 针叶树经用户确认为 `可用`；CHR-001 松果拾光者、INT-001 发光植物、ARC-001 森林木屋为 `已集成`，待用户在游戏内确认视觉后改为 `可用`。地面仍是灰盒几何体，不登记为正式美术资产。
 - P3 新增 INT-002 灯笼柱（2026-11-11 用户授权约 30–40 积分），一次生成成功并集成为萤火航线的灯笼，状态 `已集成`，待用户游戏内确认。
 - P4 新增 VEG-002 古树、PRP-001 高地岩石、INT-003 苔石灯座（2026-11-12 用户授权总上限 120 积分），各一次生成成功并集成，状态 `已集成`，待用户游戏内确认。
+- 场景升级新增 10 件（2026-11-12 用户授权约 10 件、≤ 360 积分）：两种高大树木、倒木、蕨类、发光蘑菇、芦苇、苔石、脚踏石、木桥、栅栏，全部一次生成成功并集成，状态 `已集成`，待用户游戏内确认。
 - 参考图均入库于 `assets/reference/<ID>/`（PNG 不纳入版本管理，README 记录来源与 SHA-256）。
 
 流程见 `docs/MESHY_PIPELINE.md`，风格依据见 `docs/ART_DIRECTION.md`。禁止使用 Aholo Forest Moments 的任何资产，禁止在此记录密钥。
@@ -147,6 +148,29 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 - **用途**：古树高地的萤火节点（高地版灯笼），规则与灯笼柱相同。
 - **生成与优化**：image-to-3d，meshy-6（带 Emission），30 积分；优化为高 1.3 m（0.77 × 1.3 × 0.77 m）、3,130 三角形、0.67 MB。Emission 覆盖顶部凹槽。立石倾斜，凹槽中心在模型空间 (0.03, 1.2, −0.18)，光点随朝向旋转。
 - **集成**：与灯笼柱共用 `features/route/Lanterns.tsx`（按种类配置模型、发光强度与光晕颜色），3 座围绕古树、距树约 12.5 m，正面朝向古树；碰撞半径 0.42 m。
+
+## 场景升级资产（2026-11-12）
+
+| ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数 | 贴图规格 | GLB 与尺寸 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| VEG-003 | 红杉巨木 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdee-2723-75c2-aa3b-7614355ad181` | 30 | LOD0 7,355 / LOD1 1,568 | 1024² | `public/assets/models/vegetation/VEG-003.glb`（1.49 MB，`0411ddba…8ce02691`），尺寸 28 m（树干半径约 2.2 m，板根约 5 m） |
+| VEG-004 | 高冷杉 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdf1-9691-7640-b297-df8d76915b8f` | 30 | LOD0 6,030 / LOD1 1,372 | 1024² | `public/assets/models/vegetation/VEG-004.glb`（1.34 MB，`c06ed718…a77a5918`），尺寸 18 m（树干半径约 0.75 m） |
+| VEG-005 | 倒木 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdf4-4c6a-76f8-8891-4c998be27aa5` | 30 | 4,058 | 1024² | `public/assets/models/vegetation/VEG-005.glb`（1.03 MB，`35df5825…f251e4aa`），尺寸 5.4 × 2.6 × 2.5 m |
+| VEG-006 | 蕨类丛 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdf6-1f7a-7156-a4c8-743624571506` | 30 | LOD0 2,197 / LOD1 509 | 512² | `public/assets/models/vegetation/VEG-006.glb`（0.41 MB，`e15d8fce…e4108169`），尺寸 0.9 m |
+| VEG-007 | 发光蘑菇丛 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdf8-4522-7004-a8df-5a2403fd5aae` | 30 | LOD0 2,600 / LOD1 607 | 512²（含 Emissive） | `public/assets/models/vegetation/VEG-007.glb`（0.46 MB，`a4921897…2b9f31f4`），尺寸 0.55 m |
+| VEG-008 | 芦苇香蒲 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdfd-1e67-718b-b6bf-d9020164cc0f` | 30 | 1,776 | 512² | `public/assets/models/vegetation/VEG-008.glb`（0.34 MB，`e58e98a5…b081f810`），尺寸 1.7 m |
+| PRP-002 | 苔石小组 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdff-e533-7033-9148-42eedd1e1545` | 30 | 1,516 | 512² | `public/assets/models/props/PRP-002.glb`（0.26 MB，`de75b483…a0b44bc8`），尺寸 1.3 × 0.9 × 1.2 m |
+| PRP-003 | 脚踏石 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1ce02-28fd-7606-85b3-f9bc1ae3fc4b` | 30 | 1,480 | 512² | `public/assets/models/props/PRP-003.glb`（0.29 MB，`2d5d73b6…fab9684b`），尺寸 2.26 × 0.18 × 0.81 m |
+| ARC-002 | 木桥 | Architecture | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1ce03-6a25-7128-ac4d-b12416f26910` | 30 | 6,156 | 1024² | `public/assets/models/architecture/ARC-002.glb`（1.05 MB，`6e7ddf52…7145745f`），尺寸 6.96 × 2.43 × 1.44 m |
+| ARC-003 | 栅栏段 | Architecture | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1ce05-177b-7288-b481-ada57aac9f36` | 30 | 2,582 | 512² | `public/assets/models/architecture/ARC-003.glb`（0.37 MB，`091235e6…e2b4c6e9`），尺寸 2.61 × 1.28 × 0.45 m |
+
+累计积分：548（此前 248 + 本批 300）。生成前余额 972，生成后按脚本输出推算 672。
+
+授权：2026-11-12 用户反馈场景偏离设计图后，选择“约 10 件，≤ 360 积分（每件 1 次，失败可重试 1 次）”。脚本上限每件 1 次 / 30 积分，十件都一次成功；参考图各用 codex-cli 生成 1 张，提示词与检查见 `assets/reference/<ID>/`。
+
+- **初检（Claude，非用户验收）**：Meshy 缩略图与参考图一致，无明显破面或漂浮碎片；未在 Blender 中逐项检查法线和接缝。VEG-007 的 Emission 覆盖菌褶（与 VEG-002 不同，本次可用）。
+- **优化**：两种大树、蕨类和蘑菇用 `optimize_tree.py`（生成 LOD1）；其余用 `optimize_static.py`。`optimize_tree.py` 修了一处问题：高树的某些高度段没有顶点时，半径统计会对空序列取最大值而报错，现改为默认 0。
+- **集成**：树木由 `forestLayout.ts` 按树种生成（营地 300 棵：红杉约 22%、冷杉约 38%、VEG-001 幼树其余；湿地 40 棵；高地 60 棵；远景改用冷杉与红杉），碰撞半径与遮挡高度按树种取实测值。蕨类、苔石、蘑菇、倒木、芦苇、脚踏石、栅栏、木桥由 `sceneryLayout.ts` 生成，经 `rendering/Scatter.tsx` 分块实例化。倒木与栅栏有旋转盒碰撞；较大的苔石有圆形碰撞；木桥架在湿地林径的两条小溪上，角色走在桥面上。
 
 ## 后续类别（未规划具体资产）
 Props、Creatures 暂无条目。新增资产时先在本表登记为 `规划`，再进入流程。

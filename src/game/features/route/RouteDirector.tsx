@@ -7,6 +7,7 @@ import { musicLayers } from '../../audio/music'
 import { GLADE, gates, rectDistance } from '../../world/regions'
 import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
 import { PLATEAU_HEIGHT } from '../../world/zones/highlandLayout'
+import { sz } from '../../world/scale'
 import { flock } from './flock'
 import { ascentOpen, gateOpen, reachFinale, route, routeClock, tryLight } from './progress'
 import { LANTERN_COST, LANTERN_RANGE, lanternPlacements, routeEnds, zoneLanterns } from './routeLayout'
@@ -79,10 +80,10 @@ export function RouteDirector({ player }: { player: Vector3 }) {
     }
     // First-time captions for places and gates.
     if (now > CAPTION_START && route.released.size === 0) say('start')
-    if (gates.north && player.z > 18) say('campDone')
-    if (player.z > 38 && player.z < 62) say('wetland')
+    if (gates.north && player.z > sz(18)) say('campDone')
+    if (player.z > sz(38) && player.z < sz(62)) say('wetland')
     if (gates.bridge) say('bridge')
-    if (player.z > 100) say('highland')
+    if (player.z > sz(100)) say('highland')
     // Ending: once the crown has gathered its light, the ending card (the game continues afterwards).
     const done = route.completedAt.highland
     if (done !== null && !route.endingSeen && now - done > ENDING_CARD) {
@@ -95,7 +96,7 @@ export function RouteDirector({ player }: { player: Vector3 }) {
       memory.lastProgress = now
       const target = hintTarget(route, player.x, player.z)
       if (target) {
-        const lifted = target.z > 99 ? PLATEAU_HEIGHT : 0
+        const lifted = target.z > sz(99) ? PLATEAU_HEIGHT : 0
         Object.assign(hint, { x: target.x, y: lifted, z: target.z, at: now })
         soundscape.chime(4, target.x, lifted + 1.5, target.z)
       }

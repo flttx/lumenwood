@@ -1,0 +1,129 @@
+import type { BoxCollider, CircleCollider } from '../../player/collision'
+import type { ScatterItem } from '../../rendering/scatterChunks'
+import { random } from '../../shared/random'
+import { CAMP, HIGHLAND, WETLAND } from '../regions'
+import { heightAt, nearestPathPoint, paths, pathWeight } from '../terrain/terrain'
+import { cabin } from './campLayout'
+import { flowers } from './floraLayout'
+import { ANCIENT_TREE, TREE_ROOT_RADIUS } from './highlandLayout'
+import { basinDepth, brookSegments, channelBanks, CHANNEL, pools, shoreScale, wetlandPath, WATER_LEVEL } from './wetlandLayout'
+import { forestTrees, trunkRadius } from './forestLayout'
+import { lanterns } from '../../features/route/routeLayout'
+// Scenery dressing (scene upgrade, 2026-11-12): undergrowth, props and small structures from the second Meshy batch,
+// placed deterministically. Everything keeps clear of trails, water (except reeds), route nodes, flowers and trunks.
+// Grass is kept off the ground under structures and nodes so they sit cleanly.
+export const grassClearings: { x: number; z: number; r: number }[] = [
+  { x: cabin.x, z: cabin.z, r: 3.6 },
+  ...lanterns.map(l => ({ x: l.x, z: l.z, r: 0.8 })),
+  { x: ANCIENT_TREE[0], z: ANCIENT_TREE[1], r: TREE_ROOT_RADIUS + 1 },
+]
+const spots = [...flowers, ...lanterns]
+function clear(x: number, z: number, room: number) {
+  if (basinDepth(x, z) < 0 || pathWeight(x, z) > 0.25 || Math.hypot(x - cabin.x, z - cabin.z) < 6 + room) return false
+  if (Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) < TREE_ROOT_RADIUS + 3 + room) return false
+  if (spots.some(s => Math.hypot(s.x - x, s.z - z) < 1.4 + room)) return false
+  return forestTrees.every(t => Math.hypot(t.x - x, t.z - z) > trunkRadius(t) + 0.4 + room)
+}
+const item = (x: number, z: number, angle: number, scale: number, lift = 0): ScatterItem => ({ x, y: heightAt(x, z) + lift, z, angle, scale })
+type Area = { minX: number; maxX: number; minZ: number; maxZ: number }
+/** Mostly around tree feet (clumped, as in the concept art), the rest scattered across `area`. */
+function undergrowth(seed: number, count: number, areas: Area[], room: number, scale: [number, number], nearTrees = 0.7) {
+  const rand = random(seed), out: ScatterItem[] = []
+  const inAreas = (x: number, z: number) => areas.some(a => x > a.minX && x < a.maxX && z > a.minZ && z < a.maxZ)
+  const anchors = forestTrees.filter(t => inAreas(t.x, t.z))
+  for (let tries = 0; out.length < count && tries < count * 40; tries++) {
+    let x: number, z: number
+    if (anchors.length && rand() < nearTrees) {
+      const t = anchors[Math.floor(rand() * anchors.length)], a = rand() * Math.PI * 2, d = trunkRadius(t) + 0.8 + rand() * 3.5
+      x = t.x + Math.cos(a) * d; z = t.z + Math.sin(a) * d
+    } else {
+      const area = areas[Math.floor(rand() * areas.length)]
+      x = area.minX + rand() * (area.maxX - area.minX); z = area.minZ + rand() * (area.maxZ - area.minZ)
+    }
+    if (!inAreas(x, z) || !clear(x, z, room)) continue
+    out.push(item(x, z, rand() * Math.PI * 2, scale[0] + rand() * (scale[1] - scale[0])))
+  }
+  return out
+}
+export const ferns = undergrowth(201, 1100, [CAMP, HIGHLAND, WETLAND], 0.2, [0.8, 1.5])
+export const mossStones = undergrowth(203, 260, [CAMP, HIGHLAND, WETLAND], 0.6, [0.6, 1.4], 0.4)
+export const mushrooms = undergrowth(205, 220, [CAMP, WETLAND, HIGHLAND], 0.1, [0.8, 1.6], 0.9)
+
+/** VEG-005 fallen logs (5.4 × 2.6 × 2.5 m at scale 1) lie off the trails; each gets an oriented box collider. */
+export const LOG_HALF: [number, number] = [2.5, 0.75]
+export const logs = (() => {
+  const rand = random(207), out: ScatterItem[] = []
+  for (let tries = 0; out.length < 26 && tries < 4000; tries++) {
+    const area = [CAMP, CAMP, HIGHLAND][Math.floor(rand() * 3)]
+    const x = area.minX + 4 + rand() * (area.maxX - area.minX - 8), z = area.minZ + 4 + rand() * (area.maxZ - area.minZ - 8)
+    if (!clear(x, z, 3) || nearestPathPoint(x, z).distance < 5 || out.some(l => Math.hypot(l.x - x, l.z - z) < 12)) continue
+    out.push(item(x, z, rand() * Math.PI * 2, 0.8 + rand() * 0.4, -0.15))
+  }
+  return out
+})()
+export const logColliders: BoxCollider[] = logs.map(l => ({ x: l.x, z: l.z, halfX: LOG_HALF[0] * l.scale, halfZ: LOG_HALF[1] * l.scale, angle: l.angle }))
+
+/** VEG-008 reeds ring the wetland pools' shores and both banks of the channel. */
+export const reeds = (() => {
+  const rand = random(209), out: ScatterItem[] = []
+  pools.forEach((p, i) => {
+    for (let n = 0; n < Math.round(p.r * 2.2); n++) {
+      const a = rand() * Math.PI * 2, d = p.r * shoreScale(i, a) * (0.62 + rand() * 0.3)
+      const x = p.x + Math.cos(a) * d, z = p.z + Math.sin(a) * d
+      if (pathWeight(x, z) < 0.2) out.push(item(x, z, rand() * 6.28, 0.7 + rand() * 0.6, -0.1))
+    }
+  })
+  for (let x = WETLAND.minX; x < WETLAND.maxX; x += 2.2) for (const bank of [0, 1]) {
+    if (rand() < 0.35) continue
+    const z = channelBanks(x)[bank] + (bank ? 1 : -1) * (0.3 + rand() * 1.2)
+    if (pathWeight(x, z) < 0.2 && Math.abs(x - (CHANNEL.minX + CHANNEL.maxX) / 2) < 1e9) out.push(item(x, z, rand() * 6.28, 0.7 + rand() * 0.6, -0.1))
+  }
+  return out.filter(r => r.y > WATER_LEVEL - 1)
+})()
+
+/** PRP-003 stepping-stone runs laid along the wetland trail, a few metres apart, following its direction. */
+export const steppingStones = (() => {
+  const out: ScatterItem[] = []
+  for (let i = 1; i < wetlandPath.length; i++) {
+    const [ax, az] = wetlandPath[i - 1], [bx, bz] = wetlandPath[i], length = Math.hypot(bx - ax, bz - az), angle = Math.atan2(-(bz - az), bx - ax)
+    for (let s = 3; s < length - 3; s += 7) { const t = s / length; out.push(item(ax + (bx - ax) * t, az + (bz - az) * t, angle, 1.2, 0.02)) }
+  }
+  return out
+})()
+
+/** ARC-003 fence runs: along the cabin trail near the spawn and around the cabin clearing, each 2.6 m segment end to end. */
+export const FENCE_LENGTH = 2.6
+export const fences = (() => {
+  const out: ScatterItem[] = [], trail = paths[0]
+  for (let i = 1; i < trail.length - 1; i++) {
+    const [ax, az] = trail[i - 1], [bx, bz] = trail[i], dx = bx - ax, dz = bz - az, length = Math.hypot(dx, dz), ux = dx / length, uz = dz / length
+    for (let s = FENCE_LENGTH / 2; s < length - FENCE_LENGTH / 2; s += FENCE_LENGTH) {
+      if (i === 1 && s < 10) continue // the spawn clearing stays open
+      const x = ax + ux * s - uz * 2.1, z = az + uz * s + ux * 2.1 // 2.1 m to the trail's left
+      if (clear(x, z, -0.3)) out.push(item(x, z, Math.atan2(-uz, ux), 1))
+    }
+  }
+  return out
+})()
+export const fenceColliders: BoxCollider[] = fences.map(f => ({ x: f.x, z: f.z, halfX: FENCE_LENGTH / 2, halfZ: 0.18, angle: f.angle }))
+
+/** Mushrooms and stones are small enough to walk over; only logs and fences collide. Rocks of PRP-002 are knee-high. */
+export const stoneColliders: CircleCollider[] = mossStones.filter(s => s.scale > 1.1).map(s => ({ x: s.x, z: s.z, radius: 0.45 * s.scale }))
+
+/**
+ * ARC-002 footbridges (6.96 m × 1.44 m, arched deck) over the brooks, aligned with the trail. The player walks on the deck:
+ * `deckHeight` gives its surface where the player stands on one, or -Infinity elsewhere.
+ */
+export const BRIDGE_HALF: [number, number] = [3.4, 0.7]
+export const footbridges = brookSegments.map(i => {
+  const [ax, az] = wetlandPath[i], [bx, bz] = wetlandPath[i + 1]
+  return { x: (ax + bx) / 2, z: (az + bz) / 2, angle: Math.atan2(-(bz - az), bx - ax) }
+})
+export function deckHeight(x: number, z: number) {
+  for (const b of footbridges) {
+    const cos = Math.cos(b.angle), sin = Math.sin(b.angle), dx = x - b.x, dz = z - b.z
+    const along = dx * cos - dz * sin, across = dx * sin + dz * cos
+    if (Math.abs(along) <= BRIDGE_HALF[0] && Math.abs(across) <= BRIDGE_HALF[1]) return 0.12 + 0.42 * Math.cos((along / BRIDGE_HALF[0]) * Math.PI / 2)
+  }
+  return -Infinity
+}

@@ -3,7 +3,7 @@ import { BufferAttribute, Color, PlaneGeometry } from 'three'
 import { groundColor, heightAt, HILL_FULL } from './terrain'
 import { worldBounds } from '../regions'
 // Covers every region plus its hills with roughly 0.7 m quads.
-const MARGIN = HILL_FULL + 30, QUAD = 0.7
+const MARGIN = HILL_FULL + 40, QUAD = 1
 const WIDTH = worldBounds.maxX - worldBounds.minX + 2 * MARGIN, DEPTH = worldBounds.maxZ - worldBounds.minZ + 2 * MARGIN
 const CENTER_X = (worldBounds.minX + worldBounds.maxX) / 2, CENTER_Z = (worldBounds.minZ + worldBounds.maxZ) / 2
 /** Code-generated ground carrier: flat play area, hills beyond the boundary, paths in vertex colour. */

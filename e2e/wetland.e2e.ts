@@ -2,7 +2,9 @@ import { expect, test } from '@playwright/test'
 import { enterForest, hold, setView, snapshot, teleport } from './helpers'
 import { flowers } from '../src/game/world/zones/floraLayout'
 import { lanterns } from '../src/game/features/route/routeLayout'
-import { SHALLOW_DEPTH, pools } from '../src/game/world/zones/wetlandLayout'
+import { SHALLOW_DEPTH, pools, wetlandPath } from '../src/game/world/zones/wetlandLayout'
+import { BRIDGE, GLADE, WETLAND } from '../src/game/world/regions'
+const bridgeX = (BRIDGE.minX + BRIDGE.maxX) / 2, entrance = wetlandPath[0]
 test.beforeEach(async ({ page }) => { await enterForest(page); await setView(page, 0, 0.28) })
 
 test('wading: the player sinks into shallow pools and splashes while walking', async ({ page }) => {
@@ -12,7 +14,7 @@ test('wading: the player sinks into shallow pools and splashes while walking', a
   const before = (await snapshot(page)).splashes
   await hold(page, 'KeyA', 900)
   expect((await snapshot(page)).splashes).toBeGreaterThan(before)
-  await teleport(page, -3.3, 38)
+  await teleport(page, entrance[0], entrance[1] + 3)
   await expect.poll(async () => (await snapshot(page)).height).toBe(0) // dry trail
 })
 
@@ -28,23 +30,23 @@ test('deep water blocks the player', async ({ page }) => {
 test('wetland route: flowers and lanterns raise the light bridge to the glade, where the finale plays', async ({ page }) => {
   test.setTimeout(60_000)
   // Before the route the channel holds: walking north from the bridge foot stops at the wetland's edge.
-  await teleport(page, -3.5, 61); await hold(page, 'KeyS', 1200)
-  expect((await snapshot(page)).position[1]).toBeLessThanOrEqual(62.001)
+  await teleport(page, bridgeX, WETLAND.maxZ - 1); await hold(page, 'KeyS', 1200)
+  expect((await snapshot(page)).position[1]).toBeLessThanOrEqual(WETLAND.maxZ + 0.001)
   const wetland = flowers.filter(f => f.zone === 'wetland')
   for (const [i, f] of wetland.entries()) {
     await teleport(page, f.x, f.z - 0.8)
     await expect.poll(async () => (await snapshot(page)).route.carried, { timeout: 10_000 }).toBe(i + 1)
-    await teleport(page, -3.3, 37) // wetland entrance: no flower or lantern within reach
+    await teleport(page, entrance[0], entrance[1] + 3) // wetland entrance: no flower or lantern within reach
   }
   for (const [n, l] of lanterns.filter(l => l.zone === 'wetland').entries()) {
-    await teleport(page, l.x - 1, l.z)
+    await teleport(page, l.x + (l.x > -10 ? -1 : 1), l.z)
     await expect.poll(async () => (await snapshot(page)).route.lit).toBe(n + 1)
   }
   await expect.poll(async () => (await snapshot(page)).route.bridge, { timeout: 10_000 }).toBe(true)
   expect((await snapshot(page)).route.northGate).toBe(false) // zones are independent
-  await teleport(page, -3.5, 61); await hold(page, 'KeyS', 1800)
+  await teleport(page, bridgeX, WETLAND.maxZ - 1); await hold(page, 'KeyS', 3600)
   const s = await snapshot(page)
-  expect(s.position[1]).toBeGreaterThan(66) // crossed the channel
+  expect(s.position[1]).toBeGreaterThan(GLADE.minZ) // crossed the channel
   expect(s.height).toBe(0) // carried by the bridge, never sank into the deep channel
   await expect.poll(async () => (await snapshot(page)).route.finale).toBe(true)
 })

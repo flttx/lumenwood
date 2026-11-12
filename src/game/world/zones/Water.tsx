@@ -4,9 +4,9 @@ import { Color, PlaneGeometry, ShaderMaterial, UniformsLib, UniformsUtils, Vecto
 import { atmosphere } from '../../rendering/timeOfDay'
 import { soundscape } from '../../audio/engine'
 import { useGameStore } from '../../../state/gameStore'
-import { heightAt } from '../terrain/terrain'
 import { CHANNEL, CHANNEL_SHORE, DEEP_DEPTH, SHALLOW_DEPTH, WATER_LEVEL, pools } from './wetlandLayout'
 import { WETLAND } from '../regions'
+import { sz } from '../scale'
 // Wetland water: one transparent plane at the waterline over every pool and the channel; dry ground pokes through it.
 // Code-generated surface (no texture assets): reflects the horizon at grazing angles, shimmers slightly, and shows ripple
 // rings where the player wades. Ripples and splashes are spawned here from the player's position and speed. The shader
@@ -39,7 +39,7 @@ float basin(vec2 p) {
     depth = min(depth, POOLS[i].w * (1.0 - smoothstep(POOLS[i].z * 0.55, POOLS[i].z, d)));
   }
   if (p.x > ${f(CHANNEL.minX)} && p.x < ${f(CHANNEL.maxX)}) {
-    float south = ${f(CHANNEL.minZ)} + 0.4 * (1.0 + sin(p.x * 0.45)), north = ${f(CHANNEL.maxZ)} - 0.4 * (1.0 + sin(p.x * 0.37 + 1.3)); // channelBanks()
+    float south = ${f(CHANNEL.minZ)} + ${f(sz(0.4))} * (1.0 + sin(p.x * 0.18)), north = ${f(CHANNEL.maxZ)} - ${f(sz(0.4))} * (1.0 + sin(p.x * 0.15 + 1.3)); // channelBanks()
     float outside = max(max(south - p.y, p.y - north), 0.0);
     float fade = min(min(p.x - ${f(CHANNEL.minX)}, ${f(CHANNEL.maxX)} - p.x), 6.0) / 6.0;
     depth = min(depth, ${f(DEEP_DEPTH)} * (1.0 - smoothstep(0.0, ${f(CHANNEL_SHORE)}, outside)) * fade);
@@ -87,7 +87,7 @@ export function Water({ player, velocity }: { player: Vector3; velocity: Vector3
     material.uniforms.uWater.value.copy(DAY_WATER).lerp(TWILIGHT_WATER, atmosphere.blend)
     material.uniforms.uSky.value.setHex(atmosphere.preset.skyHorizon)
     // A ring and a splash per step while wading; steps come faster when running.
-    const speed = Math.hypot(velocity.x, velocity.z), inWater = heightAt(player.x, player.z) < WATER_LEVEL - WADE_DEPTH
+    const speed = Math.hypot(velocity.x, velocity.z), inWater = player.y < WATER_LEVEL - WADE_DEPTH
     if (useGameStore.getState().phase !== 'playing' || !inWater || speed < 0.5) { wade.timer = 0; return }
     if ((wade.timer -= Math.min(delta, 0.1)) > 0) return
     wade.timer = speed > 5 ? 0.28 : 0.42

@@ -16,6 +16,8 @@ import { Water } from './zones/Water'
 import { wetlandFireflyHomes } from '../features/firefly/swarm'
 import { useGameStore } from '../../state/gameStore'
 import { Precompile } from '../rendering/Precompile'
+import { Grass } from '../rendering/Grass'
+import { AirEffects } from '../rendering/AirEffects'
 import { spawnPoint } from '../features/route/save'
 export function World() {
   const input = useMemo(() => createInput(), [])
@@ -29,6 +31,6 @@ export function World() {
   useEffect(() => attachFocusGuards(element), [element])
   useEffect(() => installDebugApi({ input, position, velocity, rig, gl }), [input, position, velocity, rig, gl])
   return <><Atmosphere player={position}/>
-    <Forest/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Fireflies homes={wetlandFireflyHomes} seed={13}/><Water player={position} velocity={velocity}/><FireflyRoute player={position}/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/><Precompile/>
+    <Forest/><Grass/><AirEffects/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Fireflies homes={wetlandFireflyHomes} seed={13}/><Water player={position} velocity={velocity}/><FireflyRoute player={position}/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/><Precompile/>
   </>
 }

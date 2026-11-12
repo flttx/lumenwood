@@ -1,6 +1,7 @@
 import type { CircleCollider } from '../../player/collision'
 import { heightAt, nearestPathPoint } from '../../world/terrain/terrain'
 import { ANCIENT_TREE, cradleSpots } from '../../world/zones/highlandLayout'
+import { at } from '../../world/scale'
 // Firefly route layout (docs/GAMEPLAY.md). Each zone has light nodes: INT-002 lantern posts beside the camp and wetland
 // trails, INT-003 moss-stone cradles around the ancient tree. A zone's route runs through its nodes in order and ends at
 // the gate it opens (the highland route ends at the tree itself). Values are provisional, tune by playtesting.
@@ -15,14 +16,20 @@ export const LANTERN_ARM = 0.19, LANTERN_HEIGHT = 1.3, POST_RADIUS = 0.18
 // INT-003 (0.77 × 1.3 × 0.77 m) leans, so its glowing hollow sits off-centre: (0.03, 1.2, -0.18) in model space,
 // measured from the optimised mesh (see ASSET_MANIFEST).
 export const CRADLE_HOLLOW: [number, number, number] = [0.03, 1.2, -0.18], CRADLE_RADIUS = 0.42
+/** Posts are authored near the trail at the original size; after scaling they are pulled back to TRAIL_OFFSET from it. */
+export const TRAIL_OFFSET = 1.7
+function besideTrail([x, z]: [number, number]) {
+  const { point: [px, pz], distance } = nearestPathPoint(x, z)
+  return { x: px + ((x - px) / distance) * TRAIL_OFFSET, z: pz + ((z - pz) / distance) * TRAIL_OFFSET }
+}
 /** Nodes stand beside the trails (posts) or around the tree (cradles), clear of trunks, pools and flowers (see tests). */
 export const lanterns: LanternSpot[] = [
-  { zone: 'camp', x: -2.0, z: 7.2, kind: 'post' }, { zone: 'camp', x: -4.0, z: 13.0, kind: 'post' }, { zone: 'camp', x: -1.9, z: 19.4, kind: 'post' },
-  { zone: 'wetland', x: -3.6, z: 42.6, kind: 'post' }, { zone: 'wetland', x: -7.4, z: 49.6, kind: 'post' }, { zone: 'wetland', x: -2.1, z: 59.4, kind: 'post' },
+  ...(([['camp', -2.0, 7.2], ['camp', -4.0, 13.0], ['camp', -1.9, 19.4], ['wetland', -3.6, 42.6], ['wetland', -7.4, 49.6], ['wetland', -2.1, 59.4]] as const)
+    .map(([zone, x, z]) => ({ zone, kind: 'post' as const, ...besideTrail(at([x, z])) }))),
   ...cradleSpots.map(([x, z]) => ({ zone: 'highland' as const, x, z, kind: 'cradle' as const })),
 ]
 /** Where each zone's route ends: the corridor mouth, the bridge foot, and the ancient tree's trunk. */
-export const routeEnds: Record<Zone, [number, number]> = { camp: [-3.4, 24.5], wetland: [-3.5, 62.2], highland: ANCIENT_TREE }
+export const routeEnds: Record<Zone, [number, number]> = { camp: at([-3.4, 24.5]), wetland: at([-3.5, 62.2]), highland: ANCIENT_TREE }
 /** Posts turn their arm toward the nearest trail point so the lantern hangs over the path; cradles face the tree. */
 export const lanternPlacements = lanterns.map(spot => {
   const ground = heightAt(spot.x, spot.z)

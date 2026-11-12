@@ -1,4 +1,6 @@
-export const WORLD_LIMIT = 22
+import { WORLD_SCALE } from '../world/scale'
+/** Half-size of the camp square (authored 22 m, scaled with the world). */
+export const WORLD_LIMIT = 22 * WORLD_SCALE
 export const WALK_SPEED = 3.8
 export const RUN_SPEED = 7
 export const PLAYER_RADIUS = 0.35

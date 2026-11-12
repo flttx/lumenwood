@@ -1,7 +1,9 @@
-import { regionDistance } from '../regions'
+import { BRIDGE, GLADE, WETLAND, regionDistance } from '../regions'
+import { cabin } from '../zones/campLayout'
 import { smoothstep } from '../../shared/math'
 import { WATER_LEVEL, basinDepth, wetlandPath } from '../zones/wetlandLayout'
-import { elevation, highlandPath } from '../zones/highlandLayout'
+import { ANCIENT_TREE, elevation, highlandPath } from '../zones/highlandLayout'
+import { at } from '../scale'
 // Code-built ground (terrain is allowed as code per AGENTS.md). The camp and corridor stay exactly flat at y = 0; in the
 // wetlands the ground sinks into pools (the player wades, their height follows the ground) and a deep channel; north of
 // the glade the whole land rises up a ramp to the highland plateau. Hills rise
@@ -23,17 +25,28 @@ export function valueNoise(x: number, z: number) {
 
 /** 0 on and near the walkable area, rising to 1 where the hills reach full height. */
 export function hillWeight(x: number, z: number) { return smoothstep(FLAT_EDGE, HILL_FULL, regionDistance(x, z)) }
-/** Ground height: hills outside the regions, wetland pools and channel below 0, the highland rise, 0 elsewhere. */
+/** Rolling ground (scene upgrade): two octaves of gentle swells, about ±1.4 m over tens of metres. */
+export const ROLL_HEIGHT = 2.8
+const waterZones = [WETLAND, BRIDGE, GLADE]
+/** Where the ground may roll: not in the flat wetlands (the water surface is level) nor on the cabin and ancient-tree pads. */
+export function rollWeight(x: number, z: number) {
+  return smoothstep(4, 18, regionDistance(x, z, waterZones)) * smoothstep(9, 17, Math.hypot(x - cabin.x, z - cabin.z))
+    * smoothstep(15, 24, Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]))
+}
+export function rolling(x: number, z: number) {
+  return ROLL_HEIGHT * ((valueNoise(x * 0.022 + 7, z * 0.022 - 3) - 0.5) * 0.8 + (valueNoise(x * 0.07 - 11, z * 0.07 + 5) - 0.5) * 0.2) * rollWeight(x, z)
+}
+/** Ground height: hills outside the regions, rolling swells on land, wetland pools and channel below 0, the highland rise. */
 export function heightAt(x: number, z: number) {
   const rim = hillWeight(x, z), basin = basinDepth(x, z)
-  return (rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))) + basin + elevation(z)
+  return (rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))) + basin + elevation(z) + rolling(x, z)
 }
 
 // Footpaths drawn into the ground colour: spawn → cabin door, and a trail north through the corridor into the wetlands.
 // Routed so every trunk is at least 1.3 m from a centreline.
 export const paths: [number, number][][] = [
-  [[0, 0], [3.5, -1.5], [8, -3], [10.5, -7], [11.3, -11.3]],
-  [[0, 0], [-1.6, 4], [-4.6, 9.5], [-5.6, 14], [-3.6, 17], [-3.4, 21.5], [-3.7, 29], [-3.3, 37]],
+  ([[0, 0], [3.5, -1.5], [8, -3], [10.5, -7], [13.08, -13.08]] as const).map(at),
+  ([[0, 0], [-1.6, 4], [-4.6, 9.5], [-5.6, 14], [-3.6, 17], [-3.4, 21.5], [-3.7, 29], [-3.3, 37]] as const).map(at),
   wetlandPath,
   highlandPath,
 ]
@@ -58,7 +71,7 @@ export function nearestPathPoint(x: number, z: number) {
 export function pathWeight(x: number, z: number) {
   let d = Infinity
   for (const path of paths) for (let i = 1; i < path.length; i++) d = Math.min(d, segmentDistance(x, z, path[i - 1], path[i]))
-  const halfWidth = 0.75 + 0.35 * valueNoise(x * 0.7, z * 0.7)
+  const halfWidth = 1.05 + 0.4 * valueNoise(x * 0.5, z * 0.5)
   return 1 - smoothstep(halfWidth * 0.6, halfWidth * 1.4, d)
 }
 

@@ -8,9 +8,9 @@ import { GATE_DELAY, route, routeClock } from './progress'
 // The light bridge over the wetland channel (a code effect, not a model): two staggered rows of glowing pads that settle
 // onto the water one after another as the wetland stream arrives, finished exactly when the bridge gate opens. One draw call.
 const PAD_STEP = 0.55, PAD_SIZE = 1.15, PAD_Y = 0.03
-const xs = [BRIDGE.minX + 0.75, BRIDGE.maxX - 0.75]
+const xs = [BRIDGE.minX + 1.2, (BRIDGE.minX + BRIDGE.maxX) / 2, BRIDGE.maxX - 1.2]
 const pads = Array.from({ length: Math.floor((BRIDGE.maxZ - BRIDGE.minZ) / PAD_STEP) }, (_, i) => ({
-  x: xs[i % 2] + Math.sin(i * 2.1) * 0.12, z: BRIDGE.minZ + 0.3 + i * PAD_STEP, order: i,
+  x: xs[i % 3] + Math.sin(i * 2.1) * 0.25, z: BRIDGE.minZ + 0.3 + i * PAD_STEP, order: i,
 }))
 
 export function LightBridge() {

@@ -4,7 +4,7 @@ import { random } from '../../shared/random'
 import { pools, wetlandFlowers } from '../../world/zones/wetlandLayout'
 import { WETLAND } from '../../world/regions'
 export { random }
-export const FIREFLY_COUNT = 160
+export const FIREFLY_COUNT = 420
 /** Home positions: most hover around the glowing flowers, the rest drift over the whole camp. Flat xyz array. */
 export function fireflyHomes(count = FIREFLY_COUNT, seed = 7) {
   const rand = random(seed), out = new Float32Array(count * 3)
@@ -20,7 +20,7 @@ export function fireflyHomes(count = FIREFLY_COUNT, seed = 7) {
   }
   return out
 }
-export const WETLAND_FIREFLY_COUNT = 240
+export const WETLAND_FIREFLY_COUNT = 700
 /** The Firefly Wetlands live up to their name: dense low swarms over every pool, more around flowers, a thin scatter above. */
 export function wetlandFireflyHomes(count = WETLAND_FIREFLY_COUNT, seed = 17) {
   const rand = random(seed), out = new Float32Array(count * 3)

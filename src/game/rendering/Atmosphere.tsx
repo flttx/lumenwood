@@ -5,14 +5,15 @@ import { useGameStore } from '../../state/gameStore'
 import { qualitySettings } from './config'
 import { applyZoneTint, atmosphere, blendPresets, highlandTints, wetlandTints } from './timeOfDay'
 import { smoothstep } from '../shared/math'
+import { sz } from '../world/scale'
 import { dampFactor } from '../player/movement'
 // Sky, fog and lights for the current time of day. Switching eases over a few seconds; all updates happen in the frame
 // loop on Three.js objects, never through React state.
 const TRANSITION_RATE = 1.2, SUN_DISTANCE = 40, SHADOW_EXTENT = 20
 // The wetland look fades in along the corridor (z 30 → 40) and eases, so teleports and the gate do not pop.
-const WETLAND_FROM = 30, WETLAND_FULL = 40, ZONE_RATE = 1.5
+const WETLAND_FROM = sz(30), WETLAND_FULL = sz(40), ZONE_RATE = 1.5
 // The highland look takes over up the ramp (z 84 → 100); the wetland look fades out first so they never stack.
-const HIGHLAND_FROM = 84, HIGHLAND_FULL = 100
+const HIGHLAND_FROM = sz(84), HIGHLAND_FULL = sz(100)
 const skyVertex = 'varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'
 const skyFragment = `uniform vec3 top; uniform vec3 horizon; varying vec3 vDir;
 void main() {
@@ -54,7 +55,7 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     }
   })
   return <>
-    <mesh ref={dome} material={sky} renderOrder={-1} frustumCulled={false}><sphereGeometry args={[190, 32, 16]}/></mesh>
+    <mesh ref={dome} material={sky} renderOrder={-1} frustumCulled={false}><sphereGeometry args={[290, 32, 16]}/></mesh>
     <hemisphereLight ref={hemi}/>
     {/* Keyed on the shadow setting so a quality change rebuilds the shadow map at the new size. */}
     <directionalLight key={shadowMapSize} ref={sun} castShadow={shadowMapSize > 0} shadow-mapSize={[shadowMapSize || 1, shadowMapSize || 1]}

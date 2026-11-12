@@ -10,18 +10,19 @@ import { GATE_DELAY, routeClock } from './progress'
 // model). It hides what lies beyond; the walkable-region clamp is what actually stops the player. One instanced mesh of camera-facing puffs
 // (a single draw call). Scene fog is not applied: seen from the trail the puffs sit beyond the fog's near distance and
 // would fade into it.
-const PUFFS = 42, OPACITY = 0.95, CLEAR_TIME = 2.5
-const vertexShader = `varying vec2 vUv;
+const PUFFS = 80, OPACITY = 0.95, CLEAR_TIME = 2.5
+const vertexShader = `varying vec2 vUv; varying float vFar;
 void main() {
   vUv = uv;
   vec4 centre = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  vFar = smoothstep(45.0, 90.0, -centre.z); // no scene fog on the puffs, so they fade out with distance themselves
   vec2 size = vec2(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz));
   gl_Position = projectionMatrix * (centre + vec4(position.xy * size, 0.0, 0.0));
 }`
-const fragmentShader = `uniform vec3 uColor; uniform float uOpacity; varying vec2 vUv;
+const fragmentShader = `uniform vec3 uColor; uniform float uOpacity; varying vec2 vUv; varying float vFar;
 void main() {
   float t = max(0.0, 1.0 - length(vUv - 0.5) * 2.0);
-  gl_FragColor = vec4(uColor, uOpacity * t * t * (0.35 + 0.65 * t * t));
+  gl_FragColor = vec4(uColor, uOpacity * t * t * (0.35 + 0.65 * t * t) * (1.0 - vFar));
   #include <colorspace_fragment>
 }`
 
@@ -35,9 +36,9 @@ export function GateMist({ area, clearsFrom }: { area: MistArea; clearsFrom: () 
     mesh.frustumCulled = false
     const { minX, maxX, minZ, maxZ } = area
     const puffs = Array.from({ length: PUFFS }, () => {
-      const size = 2.6 + rand() * 2
+      const size = 4 + rand() * 3.5
       const x = minX - 1.2 + rand() * (maxX - minX + 2.4), z = minZ + rand() * (maxZ - minZ)
-      return { home: [x, heightAt(x, z) + 0.3 + rand() * 2.4, z], scale: new Vector3(size, size * 0.8, 1), phase: rand() * 6.28 }
+      return { home: [x, heightAt(x, z) + 0.5 + rand() * 4, z], scale: new Vector3(size, size * 0.8, 1), phase: rand() * 6.28 }
     })
     return { mesh, material, puffs }
   }, [area])

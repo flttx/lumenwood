@@ -269,5 +269,285 @@
       "sha256": "0063a4436e0a67d24ca1af1cc4dc6906d68e372327945a76a81f459f18141edd"
     },
     "outputDir": "assets/meshy/raw/INT-003/01a1cd60-e54f-7787-803c-75a3e8813430"
+  },
+  {
+    "asset": "VEG-003",
+    "taskId": "01a1cdee-2723-75c2-aa3b-7614355ad181",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:04:56.829Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 8000
+    },
+    "input": {
+      "file": "assets/reference/VEG-003-giant-redwood/front.png",
+      "sha256": "d8fe0aa4fecd70a63bd786f3de322ae2bea9ce829f5c02a797b4b8a6526d3513"
+    },
+    "outputDir": "assets/meshy/raw/VEG-003/01a1cdee-2723-75c2-aa3b-7614355ad181"
+  },
+  {
+    "asset": "VEG-004",
+    "taskId": "01a1cdf1-9691-7640-b297-df8d76915b8f",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:08:42.100Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 6000
+    },
+    "input": {
+      "file": "assets/reference/VEG-004-tall-fir/front.png",
+      "sha256": "179a5f08ccb5f13d144c987591cd165c03d2fc77fde1749f692e1a03c94dca3d"
+    },
+    "outputDir": "assets/meshy/raw/VEG-004/01a1cdf1-9691-7640-b297-df8d76915b8f"
+  },
+  {
+    "asset": "VEG-005",
+    "taskId": "01a1cdf4-4c6a-76f8-8891-4c998be27aa5",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:11:39.536Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 4000
+    },
+    "input": {
+      "file": "assets/reference/VEG-005-fallen-log/front.png",
+      "sha256": "072b41327c75e6a1191b4c876ef564c982254dc799b24ddcfe7080f8bb7aaf2c"
+    },
+    "outputDir": "assets/meshy/raw/VEG-005/01a1cdf4-4c6a-76f8-8891-4c998be27aa5"
+  },
+  {
+    "asset": "VEG-006",
+    "taskId": "01a1cdf6-1f7a-7156-a4c8-743624571506",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:13:39.678Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 2500
+    },
+    "input": {
+      "file": "assets/reference/VEG-006-fern-clump/front.png",
+      "sha256": "6860a35f8c1094d2af2dc9a651aa318c8ee4ba69a326843e6435ebc1b93d0ca2"
+    },
+    "outputDir": "assets/meshy/raw/VEG-006/01a1cdf6-1f7a-7156-a4c8-743624571506"
+  },
+  {
+    "asset": "VEG-007",
+    "taskId": "01a1cdf8-4522-7004-a8df-5a2403fd5aae",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:15:59.887Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-6",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 2500
+    },
+    "input": {
+      "file": "assets/reference/VEG-007-glow-mushrooms/front.png",
+      "sha256": "f1c147c559c6c5e12d49e8e24248d1ecd6d1884d902ac2b0aec8a46152c542c0"
+    },
+    "outputDir": "assets/meshy/raw/VEG-007/01a1cdf8-4522-7004-a8df-5a2403fd5aae"
+  },
+  {
+    "asset": "VEG-008",
+    "taskId": "01a1cdfd-1e67-718b-b6bf-d9020164cc0f",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:21:17.718Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 2500
+    },
+    "input": {
+      "file": "assets/reference/VEG-008-reeds-cattails/front.png",
+      "sha256": "9911d7c2c8c7cf2bd378844de8be577eb0964d0ada5a00a7347de9010a3bbdc5"
+    },
+    "outputDir": "assets/meshy/raw/VEG-008/01a1cdfd-1e67-718b-b6bf-d9020164cc0f"
+  },
+  {
+    "asset": "PRP-002",
+    "taskId": "01a1cdff-e533-7033-9148-42eedd1e1545",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:24:19.688Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 1500
+    },
+    "input": {
+      "file": "assets/reference/PRP-002-mossy-stones/front.png",
+      "sha256": "624b00ff5eeded8701031573e81705db76799ebd0a73537a8ffad13607db4c47"
+    },
+    "outputDir": "assets/meshy/raw/PRP-002/01a1cdff-e533-7033-9148-42eedd1e1545"
+  },
+  {
+    "asset": "PRP-003",
+    "taskId": "01a1ce02-28fd-7606-85b3-f9bc1ae3fc4b",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:26:47.983Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 1500
+    },
+    "input": {
+      "file": "assets/reference/PRP-003-stepping-stones/front.png",
+      "sha256": "51ddfe1b327d82e53bdf4683708b3b6d2f05b94eaa6d12c88f942da053d6e724"
+    },
+    "outputDir": "assets/meshy/raw/PRP-003/01a1ce02-28fd-7606-85b3-f9bc1ae3fc4b"
+  },
+  {
+    "asset": "ARC-002",
+    "taskId": "01a1ce03-6a25-7128-ac4d-b12416f26910",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:28:10.694Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 6000
+    },
+    "input": {
+      "file": "assets/reference/ARC-002-wooden-footbridge/front.png",
+      "sha256": "3a501ce64b2a14106dd35c782700b61252e4ce68f0265ba650d1f823c7649586"
+    },
+    "outputDir": "assets/meshy/raw/ARC-002/01a1ce03-6a25-7128-ac4d-b12416f26910"
+  },
+  {
+    "asset": "ARC-003",
+    "taskId": "01a1ce05-177b-7288-b481-ada57aac9f36",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T04:29:59.911Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 2500
+    },
+    "input": {
+      "file": "assets/reference/ARC-003-rustic-fence/front.png",
+      "sha256": "d4a9d969180640f4c5427a423a7f29c2e45b1c20bcc8595dfd57c5ab76efda6b"
+    },
+    "outputDir": "assets/meshy/raw/ARC-003/01a1ce05-177b-7288-b481-ada57aac9f36"
   }
 ]

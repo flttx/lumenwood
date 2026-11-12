@@ -1,5 +1,5 @@
 import type { Quality } from '../../state/gameStore'
-// shadowMapSize 0 turns sun shadows off.
-export const qualitySettings: Record<Quality, { dpr: [number, number]; shadowMapSize: number }> = {
-  low: { dpr: [1, 1], shadowMapSize: 0 }, medium: { dpr: [1, 1.5], shadowMapSize: 1024 }, high: { dpr: [1, 2], shadowMapSize: 2048 },
+// shadowMapSize 0 turns sun shadows off; grassBlades is the size of the code grass patch around the camera.
+export const qualitySettings: Record<Quality, { dpr: [number, number]; shadowMapSize: number; grassBlades: number }> = {
+  low: { dpr: [1, 1], shadowMapSize: 0, grassBlades: 15000 }, medium: { dpr: [1, 1.5], shadowMapSize: 1024, grassBlades: 35000 }, high: { dpr: [1, 2], shadowMapSize: 2048, grassBlades: 45000 },
 }

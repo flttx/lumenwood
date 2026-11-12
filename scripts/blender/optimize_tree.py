@@ -43,7 +43,7 @@ lod0.data.update()
 
 
 def radius_between(low, high):
-    return max((v.co.x ** 2 + v.co.y ** 2) ** 0.5 for v in verts if low <= v.co.z <= high)
+    return max(((v.co.x ** 2 + v.co.y ** 2) ** 0.5 for v in verts if low <= v.co.z <= high), default=0)
 
 
 report = {

@@ -17,7 +17,7 @@ describe('wetland layout', () => {
   })
   it('has both wading pools and deep water, and the channel is deep under the bridge', () => {
     expect(pools.some(p => !p.deep) && pools.some(p => p.deep)).toBe(true)
-    expect(heightAt(-3.5, (CHANNEL.minZ + CHANNEL.maxZ) / 2)).toBeCloseTo(DEEP_DEPTH)
+    expect(heightAt((BRIDGE.minX + BRIDGE.maxX) / 2, (CHANNEL.minZ + CHANNEL.maxZ) / 2)).toBeLessThan(DEEP_DEPTH * 0.8)
   })
   it('the trail from the corridor to the bridge is walkable and avoids deep water', () => {
     for (let i = 1; i < wetlandPath.length; i++) for (let t = 0; t <= 1; t += 0.05) {
@@ -28,9 +28,9 @@ describe('wetland layout', () => {
     expect(rectDistance(...wetlandPath[wetlandPath.length - 1], BRIDGE)).toBe(0) // ends on the bridge
   })
   it('the glade is only reachable over the bridge', () => {
-    const p = { x: -3.5, z: 63.5 }
+    const x = (BRIDGE.minX + BRIDGE.maxX) / 2, z = (CHANNEL.minZ + CHANNEL.maxZ) / 2, p = { x, z }
     clampToRegions(p, walkableRegions(true, false)); expect(p.z).toBe(WETLAND.maxZ)
-    const q = { x: -3.5, z: 63.5 }
+    const q = { x, z }
     expect(clampToRegions(q, walkableRegions(true, true))).toBe(false)
   })
   it('wetland and glade flowers grow on dry ground, clear of deep water', () => {

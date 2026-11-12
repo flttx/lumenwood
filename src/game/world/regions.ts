@@ -1,4 +1,5 @@
 import { WORLD_LIMIT } from '../player/movement'
+import { sz } from './scale'
 // Walkable area: a union of axis-aligned rectangles. The camp is the original square; a corridor leads north from the end
 // of the camp trail to the wetlands, and a light bridge crosses the wetlands' deep channel to a hidden glade. Gated
 // regions are shaped into the terrain from the start but only become walkable once their gate opens (firefly routes).
@@ -8,14 +9,14 @@ export interface Rect { minX: number; maxX: number; minZ: number; maxZ: number }
 export interface PlanarPoint { x: number; z: number }
 export const CAMP: Rect = { minX: -WORLD_LIMIT, maxX: WORLD_LIMIT, minZ: -WORLD_LIMIT, maxZ: WORLD_LIMIT }
 /** Overlaps the camp and the wetlands by half a metre so the union has no seam. */
-export const NORTH_CORRIDOR: Rect = { minX: -5.6, maxX: -1.4, minZ: WORLD_LIMIT - 0.5, maxZ: 36.5 }
-export const WETLAND: Rect = { minX: -26, maxX: 12, minZ: 36, maxZ: 62 }
+export const NORTH_CORRIDOR: Rect = { minX: sz(-5.6), maxX: sz(-1.4), minZ: WORLD_LIMIT - 0.5, maxZ: sz(36.5) }
+export const WETLAND: Rect = { minX: sz(-26), maxX: sz(12), minZ: sz(36), maxZ: sz(62) }
 /** Spans the channel between the wetlands and the glade; overlaps both by half a metre. */
-export const BRIDGE: Rect = { minX: -4.6, maxX: -2.4, minZ: 61.5, maxZ: 66.5 }
-export const GLADE: Rect = { minX: -11, maxX: 3, minZ: 66, maxZ: 75 }
+export const BRIDGE: Rect = { minX: sz(-4.6), maxX: sz(-2.4), minZ: sz(62) - 0.5, maxZ: sz(66) + 0.5 }
+export const GLADE: Rect = { minX: sz(-11), maxX: sz(3), minZ: sz(66), maxZ: sz(75) }
 /** Ramp from the glade up to the plateau; gated until the glade's finale has played. */
-export const ASCENT: Rect = { minX: -6, maxX: -2, minZ: 74.5, maxZ: 100.5 }
-export const HIGHLAND: Rect = { minX: -26, maxX: 18, minZ: 100, maxZ: 134 }
+export const ASCENT: Rect = { minX: sz(-6), maxX: sz(-2), minZ: sz(75) - 0.5, maxZ: sz(100) + 0.5 }
+export const HIGHLAND: Rect = { minX: sz(-26), maxX: sz(18), minZ: sz(100), maxZ: sz(134) }
 /** Every region that shapes the terrain, gated or not. */
 export const allRegions: readonly Rect[] = [CAMP, NORTH_CORRIDOR, WETLAND, BRIDGE, GLADE, ASCENT, HIGHLAND]
 /** Frame-loop-owned gate state (not React state); the route system opens gates, the player reads them. */
