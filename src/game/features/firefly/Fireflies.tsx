@@ -2,7 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, ShaderMaterial, type Points } from 'three'
 import { atmosphere } from '../../rendering/timeOfDay'
-import { FIREFLY_COUNT, fireflyHomes, random } from './swarm'
+import { fireflyHomes, random } from './swarm'
 // Procedural twilight fireflies (code particles, not a visible model asset). Drift and blink run in the vertex shader;
 // the CPU only updates a few uniforms per frame. Hidden by day.
 const vertexShader = `uniform float uTime; uniform float uSize; attribute vec3 aPhase; varying float vBlink;
@@ -21,20 +21,21 @@ void main() {
   #include <colorspace_fragment>
 }`
 
-export function Fireflies() {
+/** One swarm; `homes` is a flat xyz array (defaults to the camp swarm). */
+export function Fireflies({ homes = fireflyHomes, seed = 11 }: { homes?: () => Float32Array; seed?: number }) {
   const dpr = useThree(s => s.viewport.dpr)
   const points = useRef<Points>(null)
   const { geometry, material } = useMemo(() => {
-    const geometry = new BufferGeometry(), rand = random(11), phase = new Float32Array(FIREFLY_COUNT * 3)
+    const positions = homes(), geometry = new BufferGeometry(), rand = random(seed), phase = new Float32Array(positions.length)
     for (let i = 0; i < phase.length; i++) phase[i] = rand()
-    geometry.setAttribute('position', new BufferAttribute(fireflyHomes(), 3))
+    geometry.setAttribute('position', new BufferAttribute(positions, 3))
     geometry.setAttribute('aPhase', new BufferAttribute(phase, 3))
     const material = new ShaderMaterial({
       uniforms: { uTime: { value: 0 }, uSize: { value: 0 }, uOpacity: { value: 0 }, uColor: { value: new Color(0xffd98a) } },
       vertexShader, fragmentShader, blending: AdditiveBlending, transparent: true, depthWrite: false,
     })
     return { geometry, material }
-  }, [])
+  }, [homes, seed])
   useFrame(({ clock }) => {
     const opacity = atmosphere.preset.fireflies
     if (points.current) points.current.visible = opacity > 0.01 // no draw call by day

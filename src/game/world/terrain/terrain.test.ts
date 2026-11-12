@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { FLAT_EDGE, HILL_HEIGHT, groundColor, heightAt, pathWeight, paths, valueNoise } from './terrain'
 import { OUTER_CLEARANCE, forestTrees, outerTrees } from '../zones/forestLayout'
-import { allRegions, regionDistance } from '../regions'
+import { CAMP, GLADE, NORTH_CORRIDOR, regionDistance } from '../regions'
 import { cabin } from '../zones/campLayout'
 describe('terrain', () => {
-  it('is exactly flat everywhere the player can stand, in every region', () => {
-    for (const r of allRegions) for (let x = r.minX - 1; x <= r.maxX + 1; x += 0.5) for (let z = r.minZ - 1; z <= r.maxZ + 1; z += 3) expect(heightAt(x, z)).toBe(0)
+  it('is exactly flat in the camp, the corridor and the glade', () => {
+    for (const r of [CAMP, NORTH_CORRIDOR, GLADE]) for (let x = r.minX; x <= r.maxX; x += 0.5) for (let z = r.minZ; z <= r.maxZ; z += 1.5) expect(heightAt(x, z)).toBe(0)
   })
   it('rises into bounded hills away from the regions, including the ridges beside the corridor', () => {
     expect(heightAt(22 + FLAT_EDGE + 20, 0)).toBeGreaterThan(1)

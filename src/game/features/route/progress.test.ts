@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { GATE_DELAY, createProgress, gateOpen, releaseFirefly, tryLight } from './progress'
+import { GATE_DELAY, createProgress, gateOpen, reachFinale, releaseFirefly, tryLight } from './progress'
 import { LANTERN_COST, LANTERN_RANGE, lanternPlacements, lanterns, zoneLanterns } from './routeLayout'
 import { glowFlowers } from '../../world/zones/campLayout'
+import { flowers } from '../../world/zones/floraLayout'
+import { heightAt } from '../../world/terrain/terrain'
 import { treeColliders } from '../../world/zones/forestLayout'
 import { pathWeight } from '../../world/terrain/terrain'
 import { PLAYER_RADIUS } from '../../player/movement'
@@ -28,15 +30,18 @@ describe('route progress', () => {
     ;[...camp].reverse().forEach((i, n) => { expect(p.completedAt.camp).toBeNull(); expect(tryLight(p, i, 0.5, n)).toBe('lit') })
     expect(p.completedAt.camp).toBe(camp.length - 1)
   })
-  it('the camp has exactly enough flowers for its lanterns', () => {
+  it('each zone has exactly enough flowers for its lanterns', () => {
     expect(glowFlowers.length).toBe(zoneLanterns('camp').length * LANTERN_COST)
+    expect(flowers.filter(f => f.zone === 'wetland').length).toBe(zoneLanterns('wetland').length * LANTERN_COST)
   })
 })
 
 describe('route layout', () => {
-  it('lanterns stand beside the trail, clear of trunks', () => {
-    for (const l of lanterns.filter(l => l.zone === 'camp')) {
+  it('lanterns stand on dry ground beside the trail, clear of trunks and flowers', () => {
+    for (const l of lanterns) {
       expect(pathWeight(l.x, l.z)).toBeLessThan(0.5) // not on the trail itself
+      expect(heightAt(l.x, l.z)).toBe(0)
+      for (const f of flowers) expect(Math.hypot(l.x - f.x, l.z - f.z)).toBeGreaterThan(LANTERN_RANGE) // a flower itself is never within a lantern's reach
       for (const t of treeColliders) expect(Math.hypot(l.x - t.x, l.z - t.z) - t.radius).toBeGreaterThan(1.2 + PLAYER_RADIUS)
     }
   })
@@ -53,5 +58,13 @@ describe('gate timing', () => {
     expect(gateOpen(p, 'camp', 100)).toBe(false)
     p.completedAt.camp = 10
     expect(gateOpen(p, 'camp', 10 + GATE_DELAY - 0.01)).toBe(false); expect(gateOpen(p, 'camp', 10 + GATE_DELAY)).toBe(true)
+  })
+})
+describe('finale', () => {
+  it('fires once, the first time the player stands in the glade', () => {
+    const p = createProgress()
+    expect(reachFinale(p, false, 1)).toBe(false)
+    expect(reachFinale(p, true, 2)).toBe(true); expect(p.finaleAt).toBe(2)
+    expect(reachFinale(p, true, 3)).toBe(false)
   })
 })

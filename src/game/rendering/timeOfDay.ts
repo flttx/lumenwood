@@ -36,5 +36,21 @@ export function blendPresets(t: number, out: LightingPreset = { ...presets.day }
   for (const key of Object.keys(a) as (keyof LightingPreset)[]) out[key] = COLOR_KEYS.has(key) ? lerpHex(a[key], b[key], k) : a[key] + (b[key] - a[key]) * k
   return out
 }
+/** The wetlands are cooler and mistier than the camp (ART_DIRECTION: twilight blue, low-density mist). */
+export const wetlandTints: Record<TimeOfDay, { fog: number; skyHorizon: number; fogNear: number; fogFar: number }> = {
+  day: { fog: 0xaebfbf, skyHorizon: 0xcbd8d4, fogNear: 18, fogFar: 72 },
+  twilight: { fog: 0x33466a, skyHorizon: 0x7e81a0, fogNear: 9, fogFar: 46 },
+}
+/** Pulls `out` toward the wetland look by `k` (0 camp, 1 wetland), for the time-of-day blend `t`. Mutates and returns `out`. */
+export function applyWetlandTint(out: LightingPreset, k: number, t: number) {
+  const w = Math.max(0, Math.min(1, k)), b = Math.max(0, Math.min(1, t))
+  if (w === 0) return out
+  const a = wetlandTints.day, c = wetlandTints.twilight
+  out.fog = lerpHex(out.fog, lerpHex(a.fog, c.fog, b), w)
+  out.skyHorizon = lerpHex(out.skyHorizon, lerpHex(a.skyHorizon, c.skyHorizon, b), w)
+  out.fogNear += (a.fogNear + (c.fogNear - a.fogNear) * b - out.fogNear) * w
+  out.fogFar += (a.fogFar + (c.fogFar - a.fogFar) * b - out.fogFar) * w
+  return out
+}
 /** Shared, frame-loop-owned state other systems read (fireflies, flowers, audio, debug). Not React state. */
-export const atmosphere = { blend: 0, preset: blendPresets(0) }
+export const atmosphere = { blend: 0, wetland: 0, preset: blendPresets(0) }

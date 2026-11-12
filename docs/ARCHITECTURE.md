@@ -5,9 +5,11 @@
 
 P3 起：`world/regions.ts` 用矩形并集（营地、北侧走廊、湿地）定义可行走区域，`clampToRegions` 取代原来的方形边界，`gates` 是帧循环拥有的关口状态（走廊关闭时不计入可行走区）；地形起伏与远景树按到区域并集的距离生成，天空球跟随相机。`features/route` 实现萤火航线：`routeLayout.ts`（灯笼位置、朝向、碰撞圆、各区域终点）、`progress.ts`（纯函数规则：放出萤火、点灯、区域完成、关口计时，以及只在游玩时推进的 `routeClock`）、`flock.ts`（跟随角色与飞向灯笼的萤火模拟），`RouteDirector.tsx` 每帧应用规则并播放和弦，`Lanterns.tsx`（INT-002）、`RouteParticles.tsx`（引路萤火与萤火流的点精灵）和 `GateMist.tsx`（单次绘制的实例化迷雾）负责表现。`shared/` 放跨模块的纯工具（确定性随机数、smoothstep）。
 
+湿地：`world/zones/wetlandLayout.ts` 定义水塘（浅/深）、深水渠、林径、花与空地，`basinDepth()` 让地形在水下下沉；角色高度在湿地跟随地面（涉水），光桥上固定为 0。`world/zones/floraLayout.ts` 汇总三处的花（营地在前，索引不变），`forestLayout.ts` 在湿地干地上追加 16 棵树（拒绝采样，自动避开水、林径、花和灯笼）。`world/zones/Water.tsx` 是一块覆盖湿地与水渠的透明水面，着色器用与 `basinDepth()` 相同的水塘公式在浅处淡出，使岸线圆润，并显示涉水涟漪；涉水时 `soundscape.splash()` 发出空间水声。`rendering/timeOfDay.ts` 的 `applyWetlandTint()` 按 `atmosphere.wetland`（由角色位置平滑得到）调冷雾色与雾距，音频随之切换湿地层。`features/route/LightBridge.tsx`（实例化光垫）与 `RouteParticles.tsx` 中的空地光柱负责湿地航线的结尾表现。`rendering/Precompile.tsx` 在场景挂载后预编译全部材质（包括隐藏的萤火流、光桥和光柱），避免着色器在游玩中途首次编译造成卡顿。
+
 每帧通过共享可变向量和 R3F 帧循环协调，不逐帧 setState；时间步长有限制。指针锁状态和暂停是低频事件才写入 store。设置使用 localStorage，进度存档尚未实现。
 
 测试分两层：Vitest 覆盖纯函数（`src/**/*.test.ts`）；Playwright（`e2e/*.e2e.ts`）对生产构建做浏览器交互与性能基线，通过 `?debug` 钩子读取状态和摆放场景。
 
 ## 计划
-按实际功能增设模块，不提前创建空壳：`features/flora`（发光植物、唤醒光波）、`features/firefly`（萤火粒子）、`features/route`（萤火航线）、`audio`（Web Audio 实时合成的环境声与空间音符，单例引擎 + 场景内 `SoundscapeDriver` 桥接设置与帧循环）、`shared` 已存在；湿地区域预计新增 `world/zones` 下的湿地布局与水面模块。碰撞与遮挡继续使用代码维护的代理体，不对渲染网格做逐帧射线检测。四种模型目前经 drei `useGLTF` 加载，树木已有实例化和 LOD；按区域加载与释放、纹理及网格压缩仍需随真实资源制定。Low/Medium/High 将扩展为经测量的完整渲染预算。部署使用 Vite 相对 base 与静态文件，无后端。
+按实际功能增设模块，不提前创建空壳：`features/flora`（发光植物、唤醒光波）、`features/firefly`（萤火粒子）、`features/route`（萤火航线）、`audio`（Web Audio 实时合成的环境声与空间音符，单例引擎 + 场景内 `SoundscapeDriver` 桥接设置与帧循环）、`shared` 已存在；古树高地将沿用区域并集与航线模块扩展。碰撞与遮挡继续使用代码维护的代理体，不对渲染网格做逐帧射线检测。四种模型目前经 drei `useGLTF` 加载，树木已有实例化和 LOD；按区域加载与释放、纹理及网格压缩仍需随真实资源制定。Low/Medium/High 将扩展为经测量的完整渲染预算。部署使用 Vite 相对 base 与静态文件，无后端。

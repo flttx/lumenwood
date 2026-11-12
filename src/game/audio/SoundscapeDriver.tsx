@@ -11,6 +11,6 @@ export function SoundscapeDriver() {
     const unsubscribe = useGameStore.subscribe(apply)
     return () => { unsubscribe(); soundscape.setActive(false) } // back on the title screen the forest falls silent
   }, [])
-  useFrame(({ camera }, delta) => soundscape.update(Math.min(delta, 0.1), atmosphere.blend, camera))
+  useFrame(({ camera }, delta) => soundscape.update(Math.min(delta, 0.1), atmosphere.blend, camera, atmosphere.wetland))
   return null
 }

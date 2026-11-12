@@ -6,12 +6,14 @@ import { dampAngle, dampFactor, movementAxis, PLAYER_RADIUS, RUN_SPEED, WALK_SPE
 import { pushOutOfBox, resolveCollisions } from './collision'
 import { treeColliders } from '../world/zones/forestLayout'
 import { cabinCollider } from '../world/zones/campLayout'
-import { clampToRegions, walkableRegions } from '../world/regions'
+import { clampToRegions, onBridge, walkableRegions } from '../world/regions'
+import { deepPoolColliders } from '../world/zones/wetlandLayout'
+import { heightAt } from '../world/terrain/terrain'
 import { lanternColliders } from '../features/route/routeLayout'
 import { Character } from './Character'
 import { useGameStore } from '../../state/gameStore'
 const ACCELERATION = 12, DECELERATION = 9, TURN_RATE = 14
-const circleColliders = [...treeColliders, ...lanternColliders]
+const circleColliders = [...treeColliders, ...lanternColliders, ...deepPoolColliders]
 export function Player({ input, position, velocity }: { input: InputState; position: Vector3; velocity: Vector3 }) {
   const group = useRef<Group>(null!)
   useFrame((_, delta) => {
@@ -33,6 +35,8 @@ export function Player({ input, position, velocity }: { input: InputState; posit
       // Keep only the motion that actually happened so speed does not build up against obstacles.
       if (hitTree || hitCabin || clamped) { velocity.x = (position.x - px) / dt; velocity.z = (position.z - pz) / dt }
     }
+    // Wading: the feet follow the pool floor; the light bridge carries the player level over the channel.
+    position.y = onBridge(position.x, position.z) ? 0 : heightAt(position.x, position.z)
     group.current.position.copy(position)
     if (Math.hypot(velocity.x, velocity.z) > 0.2) group.current.rotation.y = dampAngle(group.current.rotation.y, Math.atan2(velocity.x, velocity.z), TURN_RATE, dt)
   }, -1)

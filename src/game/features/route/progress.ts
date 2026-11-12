@@ -12,9 +12,11 @@ export interface RouteProgress {
   completedAt: Record<Zone, number | null>
   /** Last time (s) the player reached each dark lantern without enough fireflies, for its flicker hint. */
   shortAt: (number | null)[]
+  /** Time (s) the player first stood in the hidden glade, or null. */
+  finaleAt: number | null
 }
 export function createProgress(): RouteProgress {
-  return { released: new Set(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null }, shortAt: lanterns.map(() => null) }
+  return { released: new Set(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null }, shortAt: lanterns.map(() => null), finaleAt: null }
 }
 /** A flower woke: it releases one follower the first time only. Returns true when a firefly was released. */
 export function releaseFirefly(p: RouteProgress, flower: number) {
@@ -46,3 +48,9 @@ export function gateOpen(p: RouteProgress, zone: Zone, now: number) {
 }
 /** Play time in seconds; advances only while the game is playing, so pausing never skips route animations. */
 export const routeClock = { now: 0 }
+/** The first time the player stands in the glade the route's finale plays; returns true on that frame only. */
+export function reachFinale(p: RouteProgress, inGlade: boolean, now: number) {
+  if (!inGlade || p.finaleAt !== null) return false
+  p.finaleAt = now
+  return true
+}

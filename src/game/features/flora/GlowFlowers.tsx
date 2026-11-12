@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import { AdditiveBlending, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, Sprite, SpriteMaterial, type Vector3 } from 'three'
 import { assetConfig } from '../../assets/config'
-import { glowFlowers } from '../../world/zones/campLayout'
+import { flowers as flowerSpots } from '../../world/zones/floraLayout'
 import { dampFactor } from '../../player/movement'
 import { GLOW_BASE, GLOW_PEAK, WAVE_FLASH, glowTarget, lightWave, nextAwake } from './glow'
 import { radialGlowTexture, softRing } from './glowSprites'
@@ -11,6 +11,7 @@ import { atmosphere } from '../../rendering/timeOfDay'
 import { soundscape } from '../../audio/engine'
 import { releaseFirefly, route } from '../route/progress'
 import { flock } from '../route/flock'
+import { heightAt } from '../../world/terrain/terrain'
 // INT-001 interactive flowers. Each copy owns its material so its glow can react on its own; the geometry is shared.
 // Waking a flower sends a procedural light ring across the ground and plays a spatial chime from its position.
 // After dusk a halo at the flower head and a pool of light on the ground stand in for bloom and real light spill.
@@ -29,8 +30,9 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
     if (!(source instanceof Mesh) || !(source.material instanceof MeshStandardMaterial)) throw new Error(`${FLOWER_URL} has no standard mesh named INT-001`)
     const geometry = source.geometry, base = source.material
     const ringGeometry = softRing(), poolGeometry = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2), glowMap = radialGlowTexture()
-    const additive = { transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending } as const
-    return glowFlowers.map((spot, index) => {
+    // No scene fog on additive glows: fog would add fog colour across the whole quad and show its edges in thick mist.
+    const additive = { transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending, fog: false } as const
+    return flowerSpots.map((spot, index) => {
       const material = base.clone()
       material.emissiveIntensity = GLOW_BASE
       const ringMaterial = new MeshBasicMaterial({ ...additive, color: WAVE_COLOR, vertexColors: true }), ring = new Mesh(ringGeometry, ringMaterial)
@@ -38,7 +40,7 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
       const poolMaterial = new MeshBasicMaterial({ ...additive, color: POOL_COLOR, map: glowMap }), pool = new Mesh(poolGeometry, poolMaterial)
       ring.visible = halo.visible = pool.visible = false
       halo.scale.setScalar(HALO_SIZE); pool.scale.setScalar(POOL_SIZE)
-      return { ...spot, index, mesh: new Mesh(geometry, material), material, ring, ringMaterial, halo, haloMaterial, pool, poolMaterial, awake: false, age: Infinity, level: GLOW_BASE }
+      return { ...spot, y: heightAt(spot.x, spot.z), index, mesh: new Mesh(geometry, material), material, ring, ringMaterial, halo, haloMaterial, pool, poolMaterial, awake: false, age: Infinity, level: GLOW_BASE }
     })
   }, [scene])
   useFrame((_, delta) => {
@@ -66,7 +68,7 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
     }
   })
   return <>{flowers.map(f => <group key={`${f.x},${f.z}`} position={[f.x, 0, f.z]}>
-    <primitive object={f.mesh} rotation={[0, f.angle, 0]}/><primitive object={f.ring} position={[0, 0.04, 0]}/>
+    <primitive object={f.mesh} position={[0, f.y, 0]} rotation={[0, f.angle, 0]}/><primitive object={f.ring} position={[0, 0.04, 0]}/>
     <primitive object={f.pool} position={[0, 0.03, 0]}/><primitive object={f.halo} position={[0, HALO_HEIGHT, 0]}/>
   </group>)}</>
 }

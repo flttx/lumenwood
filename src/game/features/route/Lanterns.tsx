@@ -24,7 +24,7 @@ export function Lanterns() {
     const source = scene.getObjectByName('INT-002')
     if (!(source instanceof Mesh) || !(source.material instanceof MeshStandardMaterial)) throw new Error(`${LANTERN_URL} has no standard mesh named INT-002`)
     const glow = radialGlowTexture(), pool = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2)
-    const additive = { transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending } as const
+    const additive = { transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending, fog: false } as const
     return lanternPlacements.map(placement => {
       const material = source.material.clone()
       material.emissiveIntensity = 0

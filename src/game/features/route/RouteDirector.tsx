@@ -3,9 +3,10 @@ import { useFrame } from '@react-three/fiber'
 import type { Vector3 } from 'three'
 import { useGameStore } from '../../../state/gameStore'
 import { soundscape } from '../../audio/engine'
-import { gates } from '../../world/regions'
+import { GLADE, gates, rectDistance } from '../../world/regions'
+import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
 import { flock } from './flock'
-import { gateOpen, route, routeClock, tryLight } from './progress'
+import { gateOpen, reachFinale, route, routeClock, tryLight } from './progress'
 import { LANTERN_COST, LANTERN_RANGE, lanternPlacements, routeEnds } from './routeLayout'
 // Applies the route rules each frame: advances play time and the flock, lights lanterns the player reaches with enough
 // fireflies, and opens gates once a zone's stream has arrived. Rendering lives in the sibling components.
@@ -35,6 +36,12 @@ export function RouteDirector({ player }: { player: Vector3 }) {
       }
     })
     gates.north = gateOpen(route, 'camp', now)
+    gates.bridge = gateOpen(route, 'wetland', now)
+    // Finale: two rising octaves of the pentatonic from the glade centre as the firefly column lifts.
+    if (reachFinale(route, rectDistance(player.x, player.z, GLADE) === 0, now)) {
+      for (let n = 0; n < 10; n++) soundscape.chime(n, GLADE_CENTRE[0], 2, GLADE_CENTRE[1], 0.3 + n * 0.28)
+      ;[0, 2, 4].forEach((note, n) => soundscape.chime(note, GLADE_CENTRE[0], 3, GLADE_CENTRE[1], 3.4 + n * 0.04))
+    }
   })
   return null
 }

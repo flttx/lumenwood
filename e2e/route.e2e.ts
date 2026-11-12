@@ -18,7 +18,7 @@ test('camp route: flowers give fireflies, lanterns light, the north corridor ope
   }
   await expect.poll(async () => (await snapshot(page)).route.following).toBe(glowFlowers.length)
   // Light the three lanterns by standing 1 m from each post.
-  for (const [i, l] of lanterns.entries()) {
+  for (const [i, l] of lanterns.filter(l => l.zone === 'camp').entries()) {
     await teleport(page, l.x - 1, l.z)
     await expect.poll(async () => (await snapshot(page)).route.lit).toBe(i + 1)
   }

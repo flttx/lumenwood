@@ -1,5 +1,5 @@
 import { Vector3, type Camera } from 'three'
-import { ambienceMix, chimeFrequency, nextChirpDelay } from './soundscape'
+import { ambienceMix, chimeFrequency, nextChirpDelay, nextCroakDelay } from './soundscape'
 // Web Audio soundscape synthesised at runtime, so there are no audio files to source or license. The context is created on
 // the first user gesture (browser autoplay policy) and suspended whenever the game is not playing.
 const SMOOTHING = 0.4
@@ -12,11 +12,17 @@ class Soundscape {
   private wind!: GainNode
   private birds!: GainNode
   private crickets!: GainNode
+  private water!: GainNode
+  private frogs!: GainNode
+  private noise!: AudioBuffer
   private birdTimer = 1
+  private croakTimer = 1
   private volume = 0.7
   private readonly forward = new Vector3()
   /** Flower chimes requested so far (counted even while silent; read by the debug hook). */
   chimes = 0
+  /** Wading splashes requested so far (also read by the debug hook). */
+  splashes = 0
 
   get state(): SoundState { return this.failed ? 'unavailable' : this.ctx?.state ?? 'off' }
 
@@ -42,11 +48,13 @@ class Soundscape {
     change.catch(() => { this.failed = true })
   }
 
-  /** Per frame: ambience levels follow the time of day, the listener follows the camera, birds are scheduled. */
-  update(dt: number, blend: number, camera: Camera) {
+  /** Per frame: ambience follows the time of day and the zone, the listener follows the camera, birds and frogs are scheduled. */
+  update(dt: number, blend: number, camera: Camera, wetland = 0) {
     const ctx = this.ctx
     if (!ctx || ctx.state !== 'running') return
-    const mix = ambienceMix(blend), now = ctx.currentTime
+    const mix = ambienceMix(blend, wetland), now = ctx.currentTime
+    this.water.gain.setTargetAtTime(mix.water, now, SMOOTHING)
+    this.frogs.gain.setTargetAtTime(mix.frogs, now, SMOOTHING)
     this.wind.gain.setTargetAtTime(mix.wind, now, SMOOTHING)
     this.birds.gain.setTargetAtTime(mix.birds, now, SMOOTHING)
     this.crickets.gain.setTargetAtTime(mix.crickets * 0.5, now, SMOOTHING)
@@ -60,6 +68,23 @@ class Soundscape {
       this.birdTimer = nextChirpDelay(Math.random())
       if (mix.birds > 0.05) this.birdPhrase(ctx)
     }
+    if ((this.croakTimer -= dt) <= 0) {
+      this.croakTimer = nextCroakDelay(Math.random())
+      if (mix.frogs > 0.05) this.croak(ctx)
+    }
+  }
+
+  /** Short filtered splash from a wading step at (x, y, z); `strength` in [0, 1]. */
+  splash(x: number, y: number, z: number, strength: number) {
+    const ctx = this.ctx
+    this.splashes++
+    if (!ctx || ctx.state !== 'running') return
+    const now = ctx.currentTime, source = new AudioBufferSourceNode(ctx, { buffer: this.noise, playbackRate: 0.8 + Math.random() * 0.5 })
+    const band = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 900 + Math.random() * 700, Q: 1.1 }), gain = new GainNode(ctx, { gain: 0 })
+    const panner = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 2, positionX: x, positionY: y, positionZ: z })
+    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.18 + 0.22 * strength, now + 0.012); gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28)
+    source.connect(band).connect(gain).connect(panner).connect(this.master)
+    source.start(now, Math.random() * 2, 0.32)
   }
 
   /** Bell-like note placed in 3D so it comes from its source's direction; `delay` (s) staggers notes into chords. */
@@ -83,6 +108,7 @@ class Soundscape {
     // Wind: looping noise through a slowly swaying low-pass.
     const noise = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate), data = noise.getChannelData(0)
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
+    this.noise = noise
     const source = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true })
     const filter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 420, Q: 0.6 })
     const sway = new OscillatorNode(ctx, { frequency: 0.09 }), swayDepth = new GainNode(ctx, { gain: 220 })
@@ -103,6 +129,27 @@ class Soundscape {
       tone.start(); trillLfo.start(); chirpLfo.start()
     }
     this.birds = new GainNode(ctx, { gain: 0 }); this.birds.connect(this.master)
+    // Wetland water: the same noise, darker, with a slow irregular lapping swell.
+    const lap = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true, playbackRate: 0.7 })
+    const lapFilter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 520, Q: 0.8 }), swell = new GainNode(ctx, { gain: 0.6 })
+    for (const [rate, depth] of [[0.31, 0.25], [0.17, 0.15]]) { const lfo = new OscillatorNode(ctx, { frequency: rate }); lfo.connect(new GainNode(ctx, { gain: depth })).connect(swell.gain); lfo.start() }
+    this.water = new GainNode(ctx, { gain: 0 })
+    lap.connect(lapFilter).connect(swell).connect(this.water).connect(this.master)
+    lap.start(1.3)
+    this.frogs = new GainNode(ctx, { gain: 0 }); this.frogs.connect(this.master)
+  }
+
+  /** A frog call: two or three low, buzzy pulses from a random direction. */
+  private croak(ctx: AudioContext) {
+    const start = ctx.currentTime + 0.05, base = 95 + Math.random() * 70, pulses = 2 + Math.floor(Math.random() * 2)
+    const pan = new StereoPannerNode(ctx, { pan: Math.random() * 1.6 - 0.8 }), tone = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 900 })
+    tone.connect(pan).connect(this.frogs)
+    for (let i = 0; i < pulses; i++) {
+      const t = start + i * 0.22, osc = new OscillatorNode(ctx, { type: 'sawtooth', frequency: base }), gain = new GainNode(ctx, { gain: 0 })
+      osc.frequency.setValueAtTime(base * 1.08, t); osc.frequency.exponentialRampToValueAtTime(base * 0.92, t + 0.14)
+      gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.12, t + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16)
+      osc.connect(gain).connect(tone); osc.start(t); osc.stop(t + 0.18)
+    }
   }
 
   /** Two to four quick rising whistles from a random direction. */
