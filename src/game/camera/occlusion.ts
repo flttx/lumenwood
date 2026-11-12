@@ -1,4 +1,5 @@
-export interface CylinderOccluder { x: number; z: number; radius: number; height: number }
+/** Vertical cylinder from `base` (default 0) up to `base + height`. */
+export interface CylinderOccluder { x: number; z: number; radius: number; height: number; base?: number }
 export interface Vec3Like { x: number; y: number; z: number }
 /** Distance along a unit ray to the first vertical cylinder hit, or `maxDistance` when clear. Origins inside a cylinder are ignored. */
 export function occludedDistance(origin: Vec3Like, dir: Vec3Like, maxDistance: number, occluders: readonly CylinderOccluder[], padding = 0) {
@@ -14,7 +15,8 @@ export function occludedDistance(origin: Vec3Like, dir: Vec3Like, maxDistance: n
     const t = (-b - Math.sqrt(disc)) / (2 * a)
     if (t >= best) continue
     const y = origin.y + dir.y * t
-    if (y >= 0 && y <= o.height) best = t
+    const base = o.base ?? 0
+    if (y >= base && y <= base + o.height) best = t
   }
   return best
 }

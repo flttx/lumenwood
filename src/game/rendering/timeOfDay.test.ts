@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyWetlandTint, blendPresets, presets, wetlandTints } from './timeOfDay'
+import { applyZoneTint, blendPresets, highlandTints, presets, wetlandTints } from './timeOfDay'
 describe('blendPresets', () => {
   it('returns the presets at the ends and clamps outside', () => {
     expect(blendPresets(0)).toEqual(presets.day)
@@ -14,11 +14,14 @@ describe('blendPresets', () => {
     expect(r(mid.skyTop)).toBe(Math.round((r(presets.day.skyTop) + r(presets.twilight.skyTop)) / 2))
   })
 })
-describe('applyWetlandTint', () => {
+describe('applyZoneTint', () => {
   it('leaves the camp untouched and fully adopts the wetland look at k = 1', () => {
-    expect(applyWetlandTint(blendPresets(1), 0, 1)).toEqual(presets.twilight)
-    const full = applyWetlandTint(blendPresets(1), 1, 1)
+    expect(applyZoneTint(blendPresets(1), wetlandTints, 0, 1)).toEqual(presets.twilight)
+    const full = applyZoneTint(blendPresets(1), wetlandTints, 1, 1)
     expect(full.fog).toBe(wetlandTints.twilight.fog); expect(full.fogFar).toBeCloseTo(wetlandTints.twilight.fogFar)
     expect(full.sunIntensity).toBe(presets.twilight.sunIntensity) // only fog and horizon change
+  })
+  it('the highlands see further than the camp', () => {
+    expect(applyZoneTint(blendPresets(0), highlandTints, 1, 0).fogFar).toBeGreaterThan(presets.day.fogFar)
   })
 })

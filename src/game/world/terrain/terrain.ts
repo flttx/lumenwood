@@ -1,8 +1,10 @@
 import { regionDistance } from '../regions'
 import { smoothstep } from '../../shared/math'
 import { WATER_LEVEL, basinDepth, wetlandPath } from '../zones/wetlandLayout'
+import { elevation, highlandPath } from '../zones/highlandLayout'
 // Code-built ground (terrain is allowed as code per AGENTS.md). The camp and corridor stay exactly flat at y = 0; in the
-// wetlands the ground sinks into pools (the player wades, their height follows the ground) and a deep channel. Hills rise
+// wetlands the ground sinks into pools (the player wades, their height follows the ground) and a deep channel; north of
+// the glade the whole land rises up a ramp to the highland plateau. Hills rise
 // with the distance from the walkable area, which also turns the corridor into a valley between ridges.
 /** Hills start this far outside the walkable area and reach full height at HILL_FULL metres. */
 export const FLAT_EDGE = 1.5, HILL_FULL = 14, HILL_HEIGHT = 7
@@ -21,10 +23,10 @@ export function valueNoise(x: number, z: number) {
 
 /** 0 on and near the walkable area, rising to 1 where the hills reach full height. */
 export function hillWeight(x: number, z: number) { return smoothstep(FLAT_EDGE, HILL_FULL, regionDistance(x, z)) }
-/** Ground height: hills outside the regions, wetland pools and channel below 0, 0 elsewhere. */
+/** Ground height: hills outside the regions, wetland pools and channel below 0, the highland rise, 0 elsewhere. */
 export function heightAt(x: number, z: number) {
   const rim = hillWeight(x, z), basin = basinDepth(x, z)
-  return (rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))) + basin
+  return (rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))) + basin + elevation(z)
 }
 
 // Footpaths drawn into the ground colour: spawn → cabin door, and a trail north through the corridor into the wetlands.
@@ -33,6 +35,7 @@ export const paths: [number, number][][] = [
   [[0, 0], [3.5, -1.5], [8, -3], [10.5, -7], [11.3, -11.3]],
   [[0, 0], [-1.6, 4], [-4.6, 9.5], [-5.6, 14], [-3.6, 17], [-3.4, 21.5], [-3.7, 29], [-3.3, 37]],
   wetlandPath,
+  highlandPath,
 ]
 function segmentPoint(px: number, pz: number, [ax, az]: [number, number], [bx, bz]: [number, number]): [number, number] {
   const dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)))

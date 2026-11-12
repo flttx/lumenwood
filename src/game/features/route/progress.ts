@@ -14,9 +14,13 @@ export interface RouteProgress {
   shortAt: (number | null)[]
   /** Time (s) the player first stood in the hidden glade, or null. */
   finaleAt: number | null
+  /** Guidance captions already shown (each plays once per journey). */
+  captions: Set<string>
+  /** Whether the ending card has been shown. */
+  endingSeen: boolean
 }
 export function createProgress(): RouteProgress {
-  return { released: new Set(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null }, shortAt: lanterns.map(() => null), finaleAt: null }
+  return { released: new Set(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null, highland: null }, shortAt: lanterns.map(() => null), finaleAt: null, captions: new Set(), endingSeen: false }
 }
 /** A flower woke: it releases one follower the first time only. Returns true when a firefly was released. */
 export function releaseFirefly(p: RouteProgress, flower: number) {
@@ -48,9 +52,13 @@ export function gateOpen(p: RouteProgress, zone: Zone, now: number) {
 }
 /** Play time in seconds; advances only while the game is playing, so pausing never skips route animations. */
 export const routeClock = { now: 0 }
+/** The ramp to the highlands opens once the glade finale's column has risen. */
+export function ascentOpen(p: RouteProgress, now: number) { return p.finaleAt !== null && now - p.finaleAt >= GATE_DELAY }
 /** The first time the player stands in the glade the route's finale plays; returns true on that frame only. */
 export function reachFinale(p: RouteProgress, inGlade: boolean, now: number) {
   if (!inGlade || p.finaleAt !== null) return false
   p.finaleAt = now
   return true
 }
+/** Starts a new journey in place (the shared `route` object is referenced everywhere, so it is never replaced). */
+export function resetProgress(p: RouteProgress) { Object.assign(p, createProgress()) }

@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { BackSide, Color, Fog, ShaderMaterial, type DirectionalLight, type HemisphereLight, type Mesh, type Vector3 } from 'three'
 import { useGameStore } from '../../state/gameStore'
 import { qualitySettings } from './config'
-import { applyWetlandTint, atmosphere, blendPresets } from './timeOfDay'
+import { applyZoneTint, atmosphere, blendPresets, highlandTints, wetlandTints } from './timeOfDay'
 import { smoothstep } from '../shared/math'
 import { dampFactor } from '../player/movement'
 // Sky, fog and lights for the current time of day. Switching eases over a few seconds; all updates happen in the frame
@@ -11,6 +11,8 @@ import { dampFactor } from '../player/movement'
 const TRANSITION_RATE = 1.2, SUN_DISTANCE = 40, SHADOW_EXTENT = 20
 // The wetland look fades in along the corridor (z 30 → 40) and eases, so teleports and the gate do not pop.
 const WETLAND_FROM = 30, WETLAND_FULL = 40, ZONE_RATE = 1.5
+// The highland look takes over up the ramp (z 84 → 100); the wetland look fades out first so they never stack.
+const HIGHLAND_FROM = 84, HIGHLAND_FULL = 100
 const skyVertex = 'varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'
 const skyFragment = `uniform vec3 top; uniform vec3 horizon; varying vec3 vDir;
 void main() {
@@ -33,8 +35,10 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     const target = useGameStore.getState().timeOfDay === 'twilight' ? 1 : 0
     atmosphere.blend += (target - atmosphere.blend) * dampFactor(TRANSITION_RATE, Math.min(delta, 0.1))
     if (Math.abs(target - atmosphere.blend) < 1e-3) atmosphere.blend = target
-    atmosphere.wetland += (smoothstep(WETLAND_FROM, WETLAND_FULL, player.z) - atmosphere.wetland) * dampFactor(ZONE_RATE, Math.min(delta, 0.1))
-    const p = applyWetlandTint(blendPresets(atmosphere.blend, atmosphere.preset), atmosphere.wetland, atmosphere.blend)
+    const zoneK = dampFactor(ZONE_RATE, Math.min(delta, 0.1)), highland = smoothstep(HIGHLAND_FROM, HIGHLAND_FULL, player.z)
+    atmosphere.highland += (highland - atmosphere.highland) * zoneK
+    atmosphere.wetland += (smoothstep(WETLAND_FROM, WETLAND_FULL, player.z) * (1 - highland) - atmosphere.wetland) * zoneK
+    const p = applyZoneTint(applyZoneTint(blendPresets(atmosphere.blend, atmosphere.preset), wetlandTints, atmosphere.wetland, atmosphere.blend), highlandTints, atmosphere.highland, atmosphere.blend)
     sky.uniforms.top.value.setHex(p.skyTop); sky.uniforms.horizon.value.setHex(p.skyHorizon)
     fog.color.setHex(p.fog); fog.near = p.fogNear; fog.far = p.fogFar
     scene.fog = fog; scene.background = background.setHex(p.fog)
@@ -50,7 +54,7 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     }
   })
   return <>
-    <mesh ref={dome} material={sky} renderOrder={-1} frustumCulled={false}><sphereGeometry args={[100, 32, 16]}/></mesh>
+    <mesh ref={dome} material={sky} renderOrder={-1} frustumCulled={false}><sphereGeometry args={[190, 32, 16]}/></mesh>
     <hemisphereLight ref={hemi}/>
     {/* Keyed on the shadow setting so a quality change rebuilds the shadow map at the new size. */}
     <directionalLight key={shadowMapSize} ref={sun} castShadow={shadowMapSize > 0} shadow-mapSize={[shadowMapSize || 1, shadowMapSize || 1]}

@@ -1,7 +1,8 @@
 import type { CircleCollider } from '../../player/collision'
 import type { CylinderOccluder } from '../../camera/occlusion'
 import { heightAt, nearestPathPoint } from '../terrain/terrain'
-import { WETLAND, regionDistance, worldBounds } from '../regions'
+import { HIGHLAND, WETLAND, regionDistance, worldBounds } from '../regions'
+import { ANCIENT_TREE, cradleSpots, rampRocks } from './highlandLayout'
 import { basinDepth } from './wetlandLayout'
 import { flowers } from './floraLayout'
 import { lanterns } from '../../features/route/routeLayout'
@@ -15,7 +16,7 @@ const campTrees = Array.from({ length: 48 }, (_, i) => {
 })
 /** Sparser, smaller trees on the wetland's dry ground: clear of water, trails, flowers, lanterns and each other. */
 export const WETLAND_TREE_COUNT = 16
-const wetlandTrees = (() => {
+export const wetlandTrees = (() => {
   const rand = random(61), out: { x: number; z: number; scale: number }[] = []
   for (let tries = 0; out.length < WETLAND_TREE_COUNT && tries < 4000; tries++) {
     const x = WETLAND.minX + 1.5 + rand() * (WETLAND.maxX - WETLAND.minX - 3), z = WETLAND.minZ + 2 + rand() * (WETLAND.maxZ - WETLAND.minZ - 3.5), scale = 0.7 + rand() * 0.45
@@ -26,9 +27,36 @@ const wetlandTrees = (() => {
   }
   return out
 })()
-export const forestTrees = [...campTrees, ...wetlandTrees]
+/** Plateau trees keep a ring of open ground around the ancient tree so it stands alone as the landmark. */
+export const HIGHLAND_TREE_COUNT = 14
+const highlandTrees = (() => {
+  const rand = random(83), out: { x: number; z: number; scale: number }[] = []
+  for (let tries = 0; out.length < HIGHLAND_TREE_COUNT && tries < 4000; tries++) {
+    const x = HIGHLAND.minX + 1.5 + rand() * (HIGHLAND.maxX - HIGHLAND.minX - 3), z = HIGHLAND.minZ + 2 + rand() * (HIGHLAND.maxZ - HIGHLAND.minZ - 3.5), scale = 0.85 + rand() * 0.5
+    if (Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) < 12 || nearestPathPoint(x, z).distance < 2.6) continue
+    const spots = [...flowers, ...cradleSpots.map(([cx, cz]) => ({ x: cx, z: cz }))]
+    if (spots.some(s => Math.hypot(s.x - x, s.z - z) < 3) || out.some(t => Math.hypot(t.x - x, t.z - z) < 4)) continue
+    out.push({ x, z, scale })
+  }
+  return out
+})()
+export const forestTrees = [...campTrees, ...wetlandTrees, ...highlandTrees]
+/** PRP-001 clusters scattered on the plateau, clear of the tree, trail, flowers, cradles and trees; plus the ramp shoulders. */
+export const ROCK_RADIUS = 0.95
+export const highlandRocks = (() => {
+  const rand = random(97), out: { x: number; z: number; scale: number; angle: number }[] = rampRocks.map(([x, z, scale], i) => ({ x, z, scale, angle: i * 1.9 }))
+  const spots = [...flowers, ...cradleSpots.map(([cx, cz]) => ({ x: cx, z: cz })), ...highlandTrees]
+  for (let tries = 0, placed = 0; placed < 12 && tries < 4000; tries++) {
+    const x = HIGHLAND.minX + 2 + rand() * (HIGHLAND.maxX - HIGHLAND.minX - 4), z = HIGHLAND.minZ + 2 + rand() * (HIGHLAND.maxZ - HIGHLAND.minZ - 4), scale = 0.8 + rand() * 0.9
+    if (Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) < 13 || nearestPathPoint(x, z).distance < 2.4) continue
+    if (spots.some(s => Math.hypot(s.x - x, s.z - z) < 3) || out.some(r => Math.hypot(r.x - x, r.z - z) < 3.5)) continue
+    out.push({ x, z, scale, angle: rand() * Math.PI * 2 }); placed++
+  }
+  return out
+})()
+export const rockColliders: CircleCollider[] = highlandRocks.map(r => ({ x: r.x, z: r.z, radius: ROCK_RADIUS * r.scale }))
 export const treeColliders: CircleCollider[] = forestTrees.map(t => ({ x: t.x, z: t.z, radius: TRUNK_BASE_RADIUS * t.scale }))
-export const treeOccluders: CylinderOccluder[] = forestTrees.map(t => ({ x: t.x, z: t.z, radius: TRUNK_BASE_RADIUS * t.scale, height: TREE_TOP * t.scale }))
+export const treeOccluders: CylinderOccluder[] = forestTrees.map(t => ({ x: t.x, z: t.z, radius: TRUNK_BASE_RADIUS * t.scale, height: TREE_TOP * t.scale, base: heightAt(t.x, t.z) }))
 /** Backdrop trees keep at least this far from any walkable region, so they never need colliders. */
 export const OUTER_CLEARANCE = 2.5
 const OUTER_STEP = 4.6, OUTER_NEAR = 8, OUTER_FAR = 17

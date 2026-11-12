@@ -4,16 +4,17 @@ import { Group, Vector3 } from 'three'
 import type { InputState } from '../input/input'
 import { dampAngle, dampFactor, movementAxis, PLAYER_RADIUS, RUN_SPEED, WALK_SPEED } from './movement'
 import { pushOutOfBox, resolveCollisions } from './collision'
-import { treeColliders } from '../world/zones/forestLayout'
+import { rockColliders, treeColliders } from '../world/zones/forestLayout'
 import { cabinCollider } from '../world/zones/campLayout'
 import { clampToRegions, onBridge, walkableRegions } from '../world/regions'
 import { deepPoolColliders } from '../world/zones/wetlandLayout'
+import { treeCollider } from '../world/zones/highlandLayout'
 import { heightAt } from '../world/terrain/terrain'
 import { lanternColliders } from '../features/route/routeLayout'
 import { Character } from './Character'
 import { useGameStore } from '../../state/gameStore'
 const ACCELERATION = 12, DECELERATION = 9, TURN_RATE = 14
-const circleColliders = [...treeColliders, ...lanternColliders, ...deepPoolColliders]
+const circleColliders = [...treeColliders, ...lanternColliders, ...deepPoolColliders, ...rockColliders, treeCollider]
 export function Player({ input, position, velocity }: { input: InputState; position: Vector3; velocity: Vector3 }) {
   const group = useRef<Group>(null!)
   useFrame((_, delta) => {

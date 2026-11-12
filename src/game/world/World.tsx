@@ -16,9 +16,11 @@ import { Water } from './zones/Water'
 import { wetlandFireflyHomes } from '../features/firefly/swarm'
 import { useGameStore } from '../../state/gameStore'
 import { Precompile } from '../rendering/Precompile'
+import { spawnPoint } from '../features/route/save'
 export function World() {
   const input = useMemo(() => createInput(), [])
-  const position = useMemo(() => new Vector3(), [])
+  // A continued journey starts where it was saved; a new one at the camp spawn.
+  const position = useMemo(() => { const at = spawnPoint.position; spawnPoint.position = null; return at ? new Vector3(at[0], 0, at[1]) : new Vector3() }, [])
   const velocity = useMemo(() => new Vector3(), [])
   const rig = useMemo<CameraRig>(() => ({ distance: CAMERA_DISTANCE }), [])
   const gl = useThree(s => s.gl)

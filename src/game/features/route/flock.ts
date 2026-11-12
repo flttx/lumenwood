@@ -18,9 +18,11 @@ export class Flock {
     for (const m of this.motes) if (sent < count && !m.target) { m.target = target; sent++ }
     return sent
   }
+  /** A new journey: no fireflies follow. */
+  clear() { this.motes.length = 0 }
   get following() { return this.motes.reduce((n, m) => n + (m.target ? 0 : 1), 0) }
   /** Advances every mote; `time` drives the orbit so followers circle the player. */
-  update(dt: number, player: { x: number; z: number }, time: number) {
+  update(dt: number, player: { x: number; y?: number; z: number }, time: number) {
     const follow = dampFactor(FOLLOW_RATE, dt), deliver = dampFactor(DELIVER_RATE, dt)
     for (let i = this.motes.length - 1; i >= 0; i--) {
       const m = this.motes[i]
@@ -32,7 +34,7 @@ export class Flock {
         continue
       }
       const angle = time * 0.9 + m.seed * Math.PI * 2, r = ORBIT_RADIUS + 0.15 * Math.sin(time * 1.3 + m.seed * 9)
-      const tx = player.x + Math.cos(angle) * r, tz = player.z + Math.sin(angle) * r, ty = ORBIT_HEIGHT + 0.25 * Math.sin(time * 1.7 + m.seed * 13)
+      const tx = player.x + Math.cos(angle) * r, tz = player.z + Math.sin(angle) * r, ty = (player.y ?? 0) + ORBIT_HEIGHT + 0.25 * Math.sin(time * 1.7 + m.seed * 13)
       m.x += (tx - m.x) * follow; m.y += (ty - m.y) * follow; m.z += (tz - m.z) * follow
     }
   }

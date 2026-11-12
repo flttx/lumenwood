@@ -23,7 +23,7 @@ export function App() {
   }, [pause])
   return <main className="app">
     {phase !== 'title' && <ErrorBoundary><Suspense fallback={<div className="loading">正在进入森林…</div>}>
-      <Canvas dpr={qualitySettings[quality].dpr} shadows={qualitySettings[quality].shadowMapSize > 0 ? 'soft' : false} camera={{ fov: 50, near: 0.1, far: 120 }}><World /></Canvas>
+      <Canvas dpr={qualitySettings[quality].dpr} shadows={qualitySettings[quality].shadowMapSize > 0 ? 'soft' : false} camera={{ fov: 50, near: 0.1, far: 220 }}><World /></Canvas>
     </Suspense></ErrorBoundary>}
     <Overlay />
   </main>

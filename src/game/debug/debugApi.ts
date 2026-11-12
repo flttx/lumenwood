@@ -12,8 +12,8 @@ export const debugEnabled = import.meta.env.DEV || new URLSearchParams(window.lo
 export interface DebugSnapshot {
   phase: string; pointerLocked: boolean; position: [number, number]; velocity: [number, number]
   yaw: number; pitch: number; cameraDistance: number; drawCalls: number; triangles: number; timeBlend: number
-  sound: SoundState; chimes: number; splashes: number; wetland: number; height: number
-  route: { carried: number; following: number; lit: number; northGate: boolean; bridge: boolean; finale: boolean }
+  sound: SoundState; chimes: number; splashes: number; wetland: number; height: number; music: number; caption: string | null; endingCard: boolean
+  route: { carried: number; following: number; lit: number; northGate: boolean; bridge: boolean; finale: boolean; ascent: boolean; highland: boolean }
 }
 export interface DebugApi {
   snapshot: () => DebugSnapshot; teleport: (x: number, z: number) => void; setView: (yaw: number, pitch: number) => void
@@ -26,8 +26,9 @@ export function installDebugApi(deps: { input: InputState; position: Vector3; ve
   window.__lumenwood = {
     snapshot: () => {
       const { phase, pointerLocked } = useGameStore.getState()
-      return { phase, pointerLocked, position: [position.x, position.z], velocity: [velocity.x, velocity.z], yaw: input.yaw, pitch: input.pitch, cameraDistance: rig.distance, drawCalls: gl.info.render.calls, triangles: gl.info.render.triangles, timeBlend: atmosphere.blend, sound: soundscape.state, chimes: soundscape.chimes, splashes: soundscape.splashes, wetland: atmosphere.wetland, height: position.y,
-        route: { carried: route.carried, following: flock.following, lit: route.litAt.filter(t => t !== null).length, northGate: gates.north, bridge: gates.bridge, finale: route.finaleAt !== null } }
+      return { phase, pointerLocked, position: [position.x, position.z], velocity: [velocity.x, velocity.z], yaw: input.yaw, pitch: input.pitch, cameraDistance: rig.distance, drawCalls: gl.info.render.calls, triangles: gl.info.render.triangles, timeBlend: atmosphere.blend, sound: soundscape.state, chimes: soundscape.chimes, splashes: soundscape.splashes, wetland: atmosphere.wetland, height: position.y, music: soundscape.layers,
+        caption: useGameStore.getState().caption?.text ?? null, endingCard: useGameStore.getState().endingCard,
+        route: { carried: route.carried, following: flock.following, lit: route.litAt.filter(t => t !== null).length, northGate: gates.north, bridge: gates.bridge, finale: route.finaleAt !== null, ascent: gates.ascent, highland: route.completedAt.highland !== null } }
     },
     teleport: (x, z) => { position.set(x, 0, z); velocity.set(0, 0, 0) },
     setView: (yaw, pitch) => { input.yaw = yaw; input.pitch = pitch },

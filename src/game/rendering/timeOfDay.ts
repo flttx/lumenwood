@@ -41,11 +41,17 @@ export const wetlandTints: Record<TimeOfDay, { fog: number; skyHorizon: number; 
   day: { fog: 0xaebfbf, skyHorizon: 0xcbd8d4, fogNear: 18, fogFar: 72 },
   twilight: { fog: 0x33466a, skyHorizon: 0x7e81a0, fogNear: 9, fogFar: 46 },
 }
-/** Pulls `out` toward the wetland look by `k` (0 camp, 1 wetland), for the time-of-day blend `t`. Mutates and returns `out`. */
-export function applyWetlandTint(out: LightingPreset, k: number, t: number) {
+/** The highland plateau has clear, warm air and a long view (ART_DIRECTION: scale and depth, overlooking the forest). */
+export const highlandTints: ZoneTints = {
+  day: { fog: 0xdcdcc8, skyHorizon: 0xeee4c6, fogNear: 45, fogFar: 160 },
+  twilight: { fog: 0x585d84, skyHorizon: 0xc69a8c, fogNear: 24, fogFar: 115 },
+}
+type ZoneTints = Record<TimeOfDay, { fog: number; skyHorizon: number; fogNear: number; fogFar: number }>
+/** Pulls `out` toward a zone's look by `k` (0 none, 1 fully), for the time-of-day blend `t`. Mutates and returns `out`. */
+export function applyZoneTint(out: LightingPreset, tints: ZoneTints, k: number, t: number) {
   const w = Math.max(0, Math.min(1, k)), b = Math.max(0, Math.min(1, t))
   if (w === 0) return out
-  const a = wetlandTints.day, c = wetlandTints.twilight
+  const a = tints.day, c = tints.twilight
   out.fog = lerpHex(out.fog, lerpHex(a.fog, c.fog, b), w)
   out.skyHorizon = lerpHex(out.skyHorizon, lerpHex(a.skyHorizon, c.skyHorizon, b), w)
   out.fogNear += (a.fogNear + (c.fogNear - a.fogNear) * b - out.fogNear) * w
@@ -53,4 +59,4 @@ export function applyWetlandTint(out: LightingPreset, k: number, t: number) {
   return out
 }
 /** Shared, frame-loop-owned state other systems read (fireflies, flowers, audio, debug). Not React state. */
-export const atmosphere = { blend: 0, wetland: 0, preset: blendPresets(0) }
+export const atmosphere = { blend: 0, wetland: 0, highland: 0, preset: blendPresets(0) }

@@ -7,12 +7,14 @@ import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
 import { flock, MAX_MOTES } from './flock'
 import { createMoteMaterial } from './moteMaterial'
 import { GATE_DELAY, route, routeClock } from './progress'
-import { lanternPlacements, routeEnds, zoneLanterns, type Zone } from './routeLayout'
+import { ZONES, lanternPlacements, routeEnds, zoneLanterns, type Zone } from './routeLayout'
+import { ANCIENT_TREE, PLATEAU_HEIGHT } from '../../world/zones/highlandLayout'
 // Code particles for the route: the guide fireflies following the player, each completed zone's stream flowing from
 // lantern to lantern toward its gate (the wetland stream carries on over the bridge into the glade), and the finale's
 // rising column in the glade. All stay visible by day (dimmer) because they carry gameplay meaning.
 const STREAM_COUNT = 56, STREAM_SPEED = 0.05, COLUMN_COUNT = 140, COLUMN_RISE = 6
-const zones: Zone[] = ['camp', 'wetland']
+// Ending: fireflies gather from the whole forest into the ancient tree's crown, then keep circling it.
+const SWARM_COUNT = 260, SWARM_GATHER = 8, CROWN_Y = PLATEAU_HEIGHT + 17
 
 function pointsGeometry(count: number) {
   const geometry = new BufferGeometry()
@@ -22,7 +24,9 @@ function pointsGeometry(count: number) {
 }
 /** Polyline through a zone's lantern lights to its gate, with cumulative lengths for sampling by fraction. */
 function routePath(zone: Zone) {
-  const points: [number, number, number][] = [...zoneLanterns(zone).map(i => lanternPlacements[i].light), [routeEnds[zone][0], 1.5, routeEnds[zone][1]]]
+  // The highland stream climbs into the ancient tree's trunk; the others run at lantern height to their gates.
+  const endY = zone === 'highland' ? PLATEAU_HEIGHT + 6 : 1.5
+  const points: [number, number, number][] = [...zoneLanterns(zone).map(i => lanternPlacements[i].light), [routeEnds[zone][0], endY, routeEnds[zone][1]]]
   if (zone === 'wetland') points.push([GLADE_CENTRE[0], 1.8, GLADE_CENTRE[1]])
   const lengths = [0]
   for (let i = 1; i < points.length; i++) lengths.push(lengths[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][2] - points[i - 1][2]))
@@ -39,21 +43,22 @@ function sample({ points, lengths, total }: ReturnType<typeof routePath>, u: num
 export function RouteParticles() {
   const dpr = useThree(s => s.viewport.dpr)
   const streamPoints = useRef<(Object3D | null)[]>([])
-  const columnPoints = useRef<Points>(null)
+  const columnPoints = useRef<Points>(null), swarmPoints = useRef<Points>(null)
   const parts = useMemo(() => {
     const rand = random(31)
     return {
       guide: { geometry: pointsGeometry(MAX_MOTES), material: createMoteMaterial(0xffe6a8) },
-      streams: zones.map(zone => ({ zone, geometry: pointsGeometry(STREAM_COUNT), material: createMoteMaterial(0xffd27d), path: routePath(zone) })),
+      streams: ZONES.map(zone => ({ zone, geometry: pointsGeometry(STREAM_COUNT), material: createMoteMaterial(0xffd27d), path: routePath(zone) })),
       seeds: Array.from({ length: STREAM_COUNT }, () => [rand(), rand() * 6.28, 0.2 + rand() * 0.35]),
       column: { geometry: pointsGeometry(COLUMN_COUNT), material: createMoteMaterial(0xfff0c4), seeds: Array.from({ length: COLUMN_COUNT }, () => [rand(), rand() * 6.28, rand()]) },
+      swarm: { geometry: pointsGeometry(SWARM_COUNT), material: createMoteMaterial(0xffe2a0), seeds: Array.from({ length: SWARM_COUNT }, () => [rand() * Math.PI * 2, 40 + rand() * 50, rand() * 25, rand(), rand()]) },
       scratch: [0, 0, 0],
     }
   }, [])
   useFrame(() => {
     const now = routeClock.now, opacity = 0.55 + 0.45 * atmosphere.preset.fireflies
-    const { guide, streams, seeds, column, scratch } = parts
-    for (const { material } of [guide, column, ...streams]) { material.uniforms.uTime.value = now; material.uniforms.uOpacity.value = opacity }
+    const { guide, streams, seeds, column, swarm, scratch } = parts
+    for (const { material } of [guide, column, swarm, ...streams]) { material.uniforms.uTime.value = now; material.uniforms.uOpacity.value = opacity }
     guide.material.uniforms.uSize.value = 120 * dpr; column.material.uniforms.uSize.value = 90 * dpr
     const gp = guide.geometry.attributes.position as BufferAttribute, ga = guide.geometry.attributes.aAlpha as BufferAttribute
     flock.motes.forEach((m, i) => { gp.setXYZ(i, m.x, m.y, m.z); ga.setX(i, 1) })
@@ -75,6 +80,21 @@ export function RouteParticles() {
       })
       sp.needsUpdate = sa.needsUpdate = true
     })
+    // Ending: each mote starts far out in a random direction, sweeps in over SWARM_GATHER seconds, then orbits the crown.
+    const ending = route.completedAt.highland
+    if (swarmPoints.current) swarmPoints.current.visible = ending !== null
+    if (ending !== null) {
+      swarm.material.uniforms.uSize.value = 110 * dpr
+      const sp = swarm.geometry.attributes.position as BufferAttribute, sa = swarm.geometry.attributes.aAlpha as BufferAttribute
+      swarm.seeds.forEach(([angle, far, height, delay, spread], i) => {
+        const t = Math.max(0, Math.min(1, (now - ending - delay * 2) / SWARM_GATHER)), ease = 1 - (1 - t) ** 3
+        const orbit = angle + now * (0.25 + spread * 0.3), r = far + (4 + spread * 9 - far) * ease
+        const y = (PLATEAU_HEIGHT + height) + (CROWN_Y - 4 + spread * 8 - PLATEAU_HEIGHT - height) * ease
+        sp.setXYZ(i, ANCIENT_TREE[0] + Math.cos(orbit) * r, y, ANCIENT_TREE[1] + Math.sin(orbit) * r)
+        sa.setX(i, Math.min(1, (now - ending - delay * 2) * 0.8))
+      })
+      sp.needsUpdate = sa.needsUpdate = true
+    }
     // Finale: fireflies spiral up out of the glade over COLUMN_RISE seconds, then keep circling as a lasting beacon.
     const finale = route.finaleAt
     if (columnPoints.current) columnPoints.current.visible = finale !== null
@@ -91,5 +111,6 @@ export function RouteParticles() {
     <points geometry={parts.guide.geometry} material={parts.guide.material} frustumCulled={false}/>
     {parts.streams.map((s, k) => <points key={s.zone} ref={(node: Object3D | null) => { streamPoints.current[k] = node }} geometry={s.geometry} material={s.material} frustumCulled={false} visible={false}/>)}
     <points ref={columnPoints} geometry={parts.column.geometry} material={parts.column.material} frustumCulled={false} visible={false}/>
+    <points ref={swarmPoints} geometry={parts.swarm.geometry} material={parts.swarm.material} frustumCulled={false} visible={false}/>
   </>
 }

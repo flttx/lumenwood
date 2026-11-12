@@ -185,5 +185,89 @@
       "sha256": "feb1f1af7b9ba586d7516202ddf0cafab34ec1d97628c55542de892df61e5d98"
     },
     "outputDir": "assets/meshy/raw/INT-002/01a1cb36-6dd4-777f-9fc8-44be45d8a29a"
+  },
+  {
+    "asset": "VEG-002",
+    "taskId": "01a1cd54-2a22-7219-a966-78cf9dd4410a",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T01:16:46.069Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-6",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 20000
+    },
+    "input": {
+      "file": "assets/reference/VEG-002-ancient-tree/front.png",
+      "sha256": "5f385179ab5acc7a52f8bb7c5a76d45bb93a4b7016b3f088a7a4be5ac7f03601"
+    },
+    "outputDir": "assets/meshy/raw/VEG-002/01a1cd54-2a22-7219-a966-78cf9dd4410a"
+  },
+  {
+    "asset": "PRP-001",
+    "taskId": "01a1cd5b-34d8-718f-ab2c-b088fbf98ab8",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T01:24:27.608Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 3000
+    },
+    "input": {
+      "file": "assets/reference/PRP-001-highland-rocks/front.png",
+      "sha256": "cd83c0a29654638adc5064fecf2d55638049e0d97376009efd0ed64693f664a0"
+    },
+    "outputDir": "assets/meshy/raw/PRP-001/01a1cd5b-34d8-718f-ab2c-b088fbf98ab8"
+  },
+  {
+    "asset": "INT-003",
+    "taskId": "01a1cd60-e54f-7787-803c-75a3e8813430",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T01:30:40.196Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-6",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 3000
+    },
+    "input": {
+      "file": "assets/reference/INT-003-moss-stone-cradle/front.png",
+      "sha256": "0063a4436e0a67d24ca1af1cc4dc6906d68e372327945a76a81f459f18141edd"
+    },
+    "outputDir": "assets/meshy/raw/INT-003/01a1cd60-e54f-7787-803c-75a3e8813430"
   }
 ]

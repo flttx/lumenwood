@@ -1,5 +1,6 @@
 import { Vector3, type Camera } from 'three'
 import { ambienceMix, chimeFrequency, nextChirpDelay, nextCroakDelay } from './soundscape'
+import { BEAT, BEATS_PER_BAR, arpNote, bellNote, chordAt, midiFreq } from './music'
 // Web Audio soundscape synthesised at runtime, so there are no audio files to source or license. The context is created on
 // the first user gesture (browser autoplay policy) and suspended whenever the game is not playing.
 const SMOOTHING = 0.4
@@ -17,12 +18,21 @@ class Soundscape {
   private noise!: AudioBuffer
   private birdTimer = 1
   private croakTimer = 1
+  private music!: GainNode
+  private musicLayers = 0
+  private nextBeat = 0
+  private beatIndex = 0
   private volume = 0.7
   private readonly forward = new Vector3()
   /** Flower chimes requested so far (counted even while silent; read by the debug hook). */
   chimes = 0
   /** Wading splashes requested so far (also read by the debug hook). */
   splashes = 0
+  /** Music voices currently playing (0–7; read by the debug hook). */
+  get layers() { return this.musicLayers }
+
+  /** How many score voices play; they join or leave on the next beat. */
+  setMusicLayers(layers: number) { this.musicLayers = layers }
 
   get state(): SoundState { return this.failed ? 'unavailable' : this.ctx?.state ?? 'off' }
 
@@ -68,6 +78,7 @@ class Soundscape {
       this.birdTimer = nextChirpDelay(Math.random())
       if (mix.birds > 0.05) this.birdPhrase(ctx)
     }
+    this.scheduleMusic(ctx)
     if ((this.croakTimer -= dt) <= 0) {
       this.croakTimer = nextCroakDelay(Math.random())
       if (mix.frogs > 0.05) this.croak(ctx)
@@ -137,6 +148,40 @@ class Soundscape {
     lap.connect(lapFilter).connect(swell).connect(this.water).connect(this.master)
     lap.start(1.3)
     this.frogs = new GainNode(ctx, { gain: 0 }); this.frogs.connect(this.master)
+    this.music = new GainNode(ctx, { gain: 1 }); this.music.connect(this.master)
+  }
+
+  /** Look-ahead scheduler: queues every beat that starts within the next 0.25 s, so timing never depends on frame rate. */
+  private scheduleMusic(ctx: AudioContext) {
+    if (this.musicLayers === 0) { this.nextBeat = 0; return }
+    if (this.nextBeat < ctx.currentTime) this.nextBeat = ctx.currentTime + 0.1 // first beat, or catching up after a pause
+    while (this.nextBeat < ctx.currentTime + 0.25) {
+      this.playBeat(ctx, this.beatIndex++, this.nextBeat)
+      this.nextBeat += BEAT
+    }
+  }
+
+  /** One beat of the score: pad, arpeggio, bass, bells and shimmer join in as more voices are allowed (see music.ts). */
+  private playBeat(ctx: AudioContext, index: number, t: number) {
+    const layers = this.musicLayers, bar = Math.floor(index / BEATS_PER_BAR), beat = index % BEATS_PER_BAR, chord = chordAt(bar)
+    if (beat === 0) for (const n of chord) this.note(ctx, midiFreq(n + 12), t, BEAT * 4.3, 0.03, 1.2, 'sine')
+    if (layers >= 2) {
+      const steps = layers >= 6 ? 4 : 2 // eighths, or sixteenths once the tree's trunk is lit
+      for (let s = 0; s < steps; s++) this.note(ctx, midiFreq(arpNote(bar, beat * steps + s)), t + (s * BEAT) / steps, 0.9, 0.028, 0.01, 'triangle', s % 2 ? 0.45 : -0.45)
+    }
+    if (layers >= 3 && beat % 2 === 0) this.note(ctx, midiFreq(chord[0] - 12), t, 2, 0.07, 0.02, 'sine')
+    if (layers >= 4 && (beat === 1 || layers >= 7)) this.note(ctx, midiFreq(bellNote(bar, Math.random())), t, 2.4, 0.025, 0.005, 'sine', Math.random() * 1.2 - 0.6)
+    if (layers >= 5 && beat === 0) this.note(ctx, midiFreq(chord[2] + 24), t, BEAT * 4.5, 0.012, 1.6, 'sine')
+  }
+
+  /** A single enveloped oscillator into the music bus. */
+  private note(ctx: AudioContext, frequency: number, t: number, duration: number, level: number, attack: number, type: OscillatorType, pan = 0) {
+    const osc = new OscillatorNode(ctx, { type, frequency }), gain = new GainNode(ctx, { gain: 0 })
+    gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(level, t + attack); gain.gain.exponentialRampToValueAtTime(0.0001, t + duration)
+    osc.connect(gain)
+    if (pan) gain.connect(new StereoPannerNode(ctx, { pan })).connect(this.music)
+    else gain.connect(this.music)
+    osc.start(t); osc.stop(t + duration + 0.05)
   }
 
   /** A frog call: two or three low, buzzy pulses from a random direction. */

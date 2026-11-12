@@ -5,8 +5,10 @@ import { Matrix4, Mesh, Quaternion, Vector3, type InstancedMesh } from 'three'
 import { assetConfig } from '../../assets/config'
 import { forestTrees, outerTrees } from './forestLayout'
 import { Ground } from '../terrain/Ground'
+import { heightAt } from '../terrain/terrain'
 import { selectLod } from './treeLod'
 import { Cabin } from './Cabin'
+import { Highland } from './Highland'
 // VEG-001 (docs/ASSET_MANIFEST.md): one GLB holding two meshes that share a material.
 const TREE_URL = `${assetConfig.baseUrl}models/vegetation/VEG-001.glb`
 const LOD_NAMES = ['VEG-001_LOD0', 'VEG-001_LOD1']
@@ -14,7 +16,7 @@ const LOD_INTERVAL = 0.2
 const up = new Vector3(0, 1, 0)
 const treeMatrix = (x: number, y: number, z: number, angle: number, scale: number) =>
   new Matrix4().compose(new Vector3(x, y, z), new Quaternion().setFromAxisAngle(up, angle), new Vector3(scale, scale, scale))
-const treeMatrices = forestTrees.map((tree, i) => treeMatrix(tree.x, 0, tree.z, i * 2.39996, tree.scale))
+const treeMatrices = forestTrees.map((tree, i) => treeMatrix(tree.x, heightAt(tree.x, tree.z), tree.z, i * 2.39996, tree.scale))
 const outerMatrices = outerTrees.map((tree, i) => treeMatrix(tree.x, tree.y, tree.z, i * 1.7, tree.scale))
 // The file uses neither Draco nor meshopt; skipping both keeps the build free of CDN decoder requests.
 useGLTF.preload(TREE_URL, false, false)
@@ -59,6 +61,6 @@ function Trees() {
 export function Forest() {
   // Trees and the cabin appear once their models have loaded.
   return <><Ground/>
-    <Suspense fallback={null}><Trees/><Cabin/></Suspense>
+    <Suspense fallback={null}><Trees/><Cabin/><Highland/></Suspense>
   </>
 }

@@ -3,7 +3,7 @@ import { GATE_DELAY, createProgress, gateOpen, reachFinale, releaseFirefly, tryL
 import { LANTERN_COST, LANTERN_RANGE, lanternPlacements, lanterns, zoneLanterns } from './routeLayout'
 import { glowFlowers } from '../../world/zones/campLayout'
 import { flowers } from '../../world/zones/floraLayout'
-import { heightAt } from '../../world/terrain/terrain'
+import { basinDepth } from '../../world/zones/wetlandLayout'
 import { treeColliders } from '../../world/zones/forestLayout'
 import { pathWeight } from '../../world/terrain/terrain'
 import { PLAYER_RADIUS } from '../../player/movement'
@@ -40,13 +40,13 @@ describe('route layout', () => {
   it('lanterns stand on dry ground beside the trail, clear of trunks and flowers', () => {
     for (const l of lanterns) {
       expect(pathWeight(l.x, l.z)).toBeLessThan(0.5) // not on the trail itself
-      expect(heightAt(l.x, l.z)).toBe(0)
+      expect(basinDepth(l.x, l.z)).toBe(0) // never in water
       for (const f of flowers) expect(Math.hypot(l.x - f.x, l.z - f.z)).toBeGreaterThan(LANTERN_RANGE) // a flower itself is never within a lantern's reach
       for (const t of treeColliders) expect(Math.hypot(l.x - t.x, l.z - t.z) - t.radius).toBeGreaterThan(1.2 + PLAYER_RADIUS)
     }
   })
   it('each lantern hangs over its trail, 0.19 m out from the post', () => {
-    for (const l of lanternPlacements) {
+    for (const l of lanternPlacements.filter(l => l.kind === 'post')) {
       expect(Math.hypot(l.light[0] - l.x, l.light[2] - l.z)).toBeCloseTo(0.19)
       expect(pathWeight(l.light[0], l.light[2])).toBeGreaterThanOrEqual(pathWeight(l.x, l.z))
     }

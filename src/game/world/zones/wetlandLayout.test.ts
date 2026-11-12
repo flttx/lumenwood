@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { CHANNEL, DEEP_DEPTH, SHALLOW_DEPTH, deepPoolColliders, pools, wetlandPath } from './wetlandLayout'
 import { flowers } from './floraLayout'
-import { WETLAND_TREE_COUNT, forestTrees, treeColliders } from './forestLayout'
+import { WETLAND_TREE_COUNT, treeColliders, wetlandTrees } from './forestLayout'
 import { BRIDGE, GLADE, WETLAND, clampToRegions, rectDistance, walkableRegions } from '../regions'
 import { heightAt, nearestPathPoint } from '../terrain/terrain'
 import { PLAYER_RADIUS } from '../../player/movement'
@@ -34,13 +34,12 @@ describe('wetland layout', () => {
     expect(clampToRegions(q, walkableRegions(true, true))).toBe(false)
   })
   it('wetland and glade flowers grow on dry ground, clear of deep water', () => {
-    for (const f of flowers.filter(f => f.zone !== 'camp')) {
+    for (const f of flowers.filter(f => f.zone === 'wetland' || f.zone === 'glade')) {
       expect(heightAt(f.x, f.z)).toBe(0); expect(blocked(f.x, f.z)).toBe(false)
       if (f.zone === 'glade') expect(rectDistance(f.x, f.z, GLADE)).toBe(0)
     }
   })
   it('places every wetland tree on dry ground', () => {
-    const wetlandTrees = forestTrees.slice(forestTrees.length - WETLAND_TREE_COUNT)
     expect(wetlandTrees.length).toBe(WETLAND_TREE_COUNT)
     for (const t of wetlandTrees) { expect(rectDistance(t.x, t.z, WETLAND)).toBe(0); expect(heightAt(t.x, t.z)).toBe(0); expect(nearestPathPoint(t.x, t.z).distance).toBeGreaterThan(2) }
   })
