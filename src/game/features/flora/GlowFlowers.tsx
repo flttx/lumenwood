@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
-import { AdditiveBlending, Mesh, MeshBasicMaterial, MeshStandardMaterial, PlaneGeometry, Sprite, SpriteMaterial, type Vector3 } from 'three'
+import { AdditiveBlending, Mesh, MeshBasicMaterial, MeshStandardMaterial, Sprite, SpriteMaterial, type Vector3 } from 'three'
 import { assetConfig } from '../../assets/config'
 import { flowers as flowerSpots } from '../../world/zones/floraLayout'
 import { dampFactor } from '../../player/movement'
@@ -12,14 +12,16 @@ import { soundscape } from '../../audio/engine'
 import { releaseFirefly, route } from '../route/progress'
 import { flock } from '../route/flock'
 import { heightAt } from '../../world/terrain/terrain'
+import { lightSource, lightSources } from '../../rendering/LocalLights'
 // INT-001 interactive flowers. Each copy owns its material so its glow can react on its own; the geometry is shared.
 // Waking a flower sends a procedural light ring across the ground and plays a spatial chime from its position.
-// After dusk a halo at the flower head and a pool of light on the ground stand in for bloom and real light spill.
+// After dusk each flower is a small real light source (LocalLights; hung above the head so the grass right beside it does not
+// blow out) with a faint halo at its head; bloom does the glare.
 const FLOWER_URL = `${assetConfig.baseUrl}models/interactive/INT-001.glb`
 const GLOW_RATE = 3
 // Provisional, tuned by eye: pale mint for the wave, warm cream (the emission map's petal colour) for the light.
-const WAVE_COLOR = 0xc6f2d6, HALO_COLOR = 0xffe7b8, POOL_COLOR = 0xffd9a0
-const HALO_HEIGHT = 0.5, HALO_SIZE = 1.5, HALO_OPACITY = 0.55, POOL_SIZE = 3.6, POOL_OPACITY = 0.5
+const WAVE_COLOR = 0xc6f2d6, HALO_COLOR = 0xffe7b8, LIGHT_COLOR = 0xffd9a0
+const HALO_HEIGHT = 0.5, HALO_SIZE = 1.1, HALO_OPACITY = 0.35, LIGHT_CANDELA = 1.6, LIGHT_RANGE = 6, LIGHT_HEIGHT = 1.1
 const CHIME_HEIGHT = 0.5
 useGLTF.preload(FLOWER_URL, false, false)
 
@@ -29,7 +31,7 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
     const source = scene.getObjectByName('INT-001')
     if (!(source instanceof Mesh) || !(source.material instanceof MeshStandardMaterial)) throw new Error(`${FLOWER_URL} has no standard mesh named INT-001`)
     const geometry = source.geometry, base = source.material
-    const ringGeometry = softRing(), poolGeometry = new PlaneGeometry(1, 1).rotateX(-Math.PI / 2), glowMap = radialGlowTexture()
+    const ringGeometry = softRing(), glowMap = radialGlowTexture()
     // No scene fog on additive glows: fog would add fog colour across the whole quad and show its edges in thick mist.
     const additive = { transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending, fog: false } as const
     return flowerSpots.map((spot, index) => {
@@ -37,12 +39,16 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
       material.emissiveIntensity = GLOW_BASE
       const ringMaterial = new MeshBasicMaterial({ ...additive, color: WAVE_COLOR, vertexColors: true }), ring = new Mesh(ringGeometry, ringMaterial)
       const haloMaterial = new SpriteMaterial({ ...additive, color: HALO_COLOR, map: glowMap }), halo = new Sprite(haloMaterial)
-      const poolMaterial = new MeshBasicMaterial({ ...additive, color: POOL_COLOR, map: glowMap }), pool = new Mesh(poolGeometry, poolMaterial)
-      ring.visible = halo.visible = pool.visible = false
-      halo.scale.setScalar(HALO_SIZE); pool.scale.setScalar(POOL_SIZE)
-      return { ...spot, y: heightAt(spot.x, spot.z), index, mesh: new Mesh(geometry, material), material, ring, ringMaterial, halo, haloMaterial, pool, poolMaterial, awake: false, age: Infinity, level: GLOW_BASE }
+      ring.visible = halo.visible = false
+      halo.scale.setScalar(HALO_SIZE)
+      const y = heightAt(spot.x, spot.z), source = lightSource([spot.x, y + LIGHT_HEIGHT, spot.z], LIGHT_COLOR, LIGHT_CANDELA, LIGHT_RANGE)
+      return { ...spot, y, index, mesh: new Mesh(geometry, material), material, ring, ringMaterial, halo, haloMaterial, source, awake: false, age: Infinity, level: GLOW_BASE }
     })
   }, [scene])
+  useEffect(() => {
+    flowers.forEach(f => lightSources.add(f.source))
+    return () => flowers.forEach(f => lightSources.delete(f.source))
+  }, [flowers])
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.1), k = dampFactor(GLOW_RATE, dt)
     // Twilight multiplies the glow so the flowers read as light sources once the sun is down.
@@ -50,9 +56,9 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
     for (const f of flowers) {
       const distance = Math.hypot(player.x - f.x, player.z - f.z), awake = nextAwake(f.awake, distance)
       if (awake && !f.awake) {
-        f.age = 0; soundscape.chime(f.index, f.x, CHIME_HEIGHT, f.z)
+        f.age = 0; soundscape.chime(f.index, f.x, f.y + CHIME_HEIGHT, f.z)
         // The first waking also frees a guide firefly that joins the player (the firefly route, P3).
-        if (releaseFirefly(route, f.index)) flock.spawn(f.x, HALO_HEIGHT, f.z)
+        if (releaseFirefly(route, f.index)) flock.spawn(f.x, f.y + HALO_HEIGHT, f.z)
       }
       f.awake = awake
       const wave = lightWave(f.age)
@@ -63,12 +69,12 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
       f.material.emissiveIntensity = f.level * flowerGlow
       // Resting flowers keep a faint light so they can be spotted from afar; approaching brightens them fully.
       const light = flowerHalo * (0.4 + 0.6 * Math.min(1, f.level / GLOW_PEAK))
-      f.halo.visible = f.pool.visible = light > 0.01
-      f.haloMaterial.opacity = light * HALO_OPACITY; f.poolMaterial.opacity = light * POOL_OPACITY
+      f.halo.visible = light > 0.01
+      f.haloMaterial.opacity = light * HALO_OPACITY; f.source.level = light
     }
   })
   return <>{flowers.map(f => <group key={`${f.x},${f.z}`} position={[f.x, 0, f.z]}>
-    <primitive object={f.mesh} position={[0, f.y, 0]} rotation={[0, f.angle, 0]}/><primitive object={f.ring} position={[0, 0.04, 0]}/>
-    <primitive object={f.pool} position={[0, 0.03, 0]}/><primitive object={f.halo} position={[0, HALO_HEIGHT, 0]}/>
+    <primitive object={f.mesh} position={[0, f.y, 0]} rotation={[0, f.angle, 0]}/><primitive object={f.ring} position={[0, f.y + 0.04, 0]}/>
+    <primitive object={f.halo} position={[0, f.y + HALO_HEIGHT, 0]}/>
   </group>)}</>
 }

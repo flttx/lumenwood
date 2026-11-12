@@ -11,6 +11,8 @@ P3 起：`world/regions.ts` 用矩形并集（营地、北侧走廊、湿地）�
 
 视觉升级（2026-11-12）：`rendering/PostFX.tsx` 用 Three.js 自带的 EffectComposer（4× MSAA 半浮点目标）→ UnrealBloom → OutputPass（色调映射与 sRGB）→ 调色 ShaderPass；它以优先级 1 的 useFrame 接管渲染，并手动清零 `gl.info`，使调试统计覆盖整帧（含阴影与后期）。天空着色器加入太阳光盘与光晕，`atmosphere.sunDirection` 供草地等读取；`Atmosphere` 另有一盏跟随相机的补光，太阳阴影覆盖 ±40 m（高画质 4096²）。`Grass.tsx` 改用 `MeshLambertMaterial` + `onBeforeCompile`（受光、接收阴影、雾），背面不翻转法线；踩踏用 8 个足迹点（玩家当前位置 + 最近脚印，衰减约 1.8 s）把草推开压低。`soundscape.footstep()` 按地面（草、土路、木桥）合成空间脚步声；`wetlandLayout.wading()` 以“脚低于水面且脚下是水塘或水渠”判断涉水（地形起伏后，营地低洼处也可能低于水面，但不算水里）。
 
+灯光与森林（2026-11-12）：`rendering/LocalLights.tsx` 持有固定数量的点光源（按画质 2–4 盏，`config.localLights`），灯笼、灯座与花把自己登记为 `lightSources` 并每帧写入亮度；按到镜头的距离加权选出最近的几个，换源时先淡出再淡入，远处按距离淡出，因此光源总数不变、不重编译、不跳变。`forestLayout.ts` 的树木布局改为：`standDensity()`（低频噪声）决定密林与空地，各树种按密度取不同的扎根概率（幼树偏向林缘与林径旁），大红杉带出一圈子树，`sentinels()` 沿林径不规则地放大树；数量常量现在是上限，用固定尝试次数，使空地不会被补满。幼树之间允许较小间距（`THICKET_GAP` 1.4 m），其他树之间仍保留 2.6 m 可通行间隙。
+
 `rendering/Precompile.tsx` 在场景挂载后预编译全部材质（包括隐藏的萤火流、光桥和光柱），避免着色器在游玩中途首次编译造成卡顿。
 
 每帧通过共享可变向量和 R3F 帧循环协调，不逐帧 setState；时间步长有限制。指针锁状态和暂停是低频事件才写入 store。设置使用 localStorage，进度存档尚未实现。

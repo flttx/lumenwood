@@ -19,6 +19,7 @@ import { Precompile } from '../rendering/Precompile'
 import { Grass, trailTarget } from '../rendering/Grass'
 import { AirEffects } from '../rendering/AirEffects'
 import { PostFX } from '../rendering/PostFX'
+import { LocalLights } from '../rendering/LocalLights'
 import { spawnPoint } from '../features/route/save'
 export function World() {
   const input = useMemo(() => createInput(), [])
@@ -33,7 +34,7 @@ export function World() {
   useEffect(() => attachInput(input, element, () => useGameStore.getState().phase === 'playing'), [element, input])
   useEffect(() => attachFocusGuards(element), [element])
   useEffect(() => installDebugApi({ input, position, velocity, rig, gl }), [input, position, velocity, rig, gl])
-  return <><Atmosphere player={position}/>
+  return <><Atmosphere player={position}/><LocalLights/>
     <Forest/><Grass/><AirEffects/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Fireflies homes={wetlandFireflyHomes} seed={13}/><Water player={position} velocity={velocity}/><FireflyRoute player={position}/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/><Precompile/><PostFX/>
   </>
 }

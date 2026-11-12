@@ -36,7 +36,7 @@ function Mushrooms() {
     if (!(mesh instanceof Mesh) || !(mesh.material instanceof MeshStandardMaterial)) throw new Error(`${MUSHROOM_URL} has no standard mesh named VEG-007_LOD0`)
     return mesh.material
   }, [scene])
-  useFrame(() => { material.emissiveIntensity = 0.4 + 2.6 * atmosphere.preset.fireflies })
+  useFrame(() => { material.emissiveIntensity = 0.35 + 1.1 * atmosphere.preset.fireflies })
   return <Scatter url={MUSHROOM_URL} lods={['VEG-007_LOD0', 'VEG-007_LOD1']} items={mushrooms} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={40}/>
 }
 

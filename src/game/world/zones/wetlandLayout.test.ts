@@ -40,7 +40,8 @@ describe('wetland layout', () => {
     }
   })
   it('places every wetland tree on dry ground', () => {
-    expect(wetlandTrees.length).toBe(WETLAND_TREE_COUNT)
+    // The count is a cap: stand density decides how many take root (forestLayout).
+    expect(wetlandTrees.length).toBeGreaterThan(WETLAND_TREE_COUNT * 0.6); expect(wetlandTrees.length).toBeLessThanOrEqual(WETLAND_TREE_COUNT)
     for (const t of wetlandTrees) { expect(rectDistance(t.x, t.z, WETLAND)).toBe(0); expect(heightAt(t.x, t.z)).toBe(0); expect(nearestPathPoint(t.x, t.z).distance).toBeGreaterThan(2) }
   })
   it('wading means feet in a pool, not merely low ground', () => {

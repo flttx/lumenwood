@@ -1,6 +1,6 @@
 import type { CircleCollider } from '../../player/collision'
 import type { CylinderOccluder } from '../../camera/occlusion'
-import { heightAt, nearestPathPoint } from '../terrain/terrain'
+import { heightAt, nearestPathPoint, paths, valueNoise } from '../terrain/terrain'
 import { CAMP, HIGHLAND, WETLAND, regionDistance, worldBounds } from '../regions'
 import { cabin } from './campLayout'
 import { ANCIENT_TREE, cradleSpots, rampRocks } from './highlandLayout'
@@ -8,9 +8,13 @@ import { basinDepth } from './wetlandLayout'
 import { flowers } from './floraLayout'
 import { lanterns } from '../../features/route/routeLayout'
 import { random } from '../../shared/random'
+import { smoothstep } from '../../shared/math'
 // Deterministic tree layout shared by rendering, collision and camera occlusion (scene upgrade, 2026-11-12). Three species:
 // VEG-003 giant redwoods and VEG-004 tall firs make the towering canopy of the concept art; VEG-001 conifers are the young
 // understory. Trunk radii and heights per species are measured from the optimised meshes (scale 1).
+// Layout pass 2 (2026-11-12, the even scatter read as a plantation): low-frequency noise splits the land into dense stands
+// and open, sunlit glades; redwoods grow in rings around a parent tree, as they do in nature; young conifers gather at
+// stand edges and in the light along trails; and big "sentinel" trunks flank the trails at irregular intervals.
 export type TreeKind = 'conifer' | 'redwood' | 'fir'
 export const species: Record<TreeKind, { trunk: number; height: number; scale: [number, number] }> = {
   conifer: { trunk: 0.4, height: 4.8, scale: [1.3, 2.4] },
@@ -19,26 +23,84 @@ export const species: Record<TreeKind, { trunk: number; height: number; scale: [
 }
 export interface TreeSpot { x: number; z: number; scale: number; kind: TreeKind }
 export const trunkRadius = (t: TreeSpot) => species[t.kind].trunk * t.scale
-/** Walkable gap kept between neighbouring trunks (beyond both radii). */
-export const TREE_GAP = 2.6
+/** Walkable gap kept between neighbouring trunks (beyond both radii); young conifers may crowd each other into thickets. */
+export const TREE_GAP = 2.6, THICKET_GAP = 1.4
+const gapBetween = (a: TreeKind, b: TreeKind) => (a === 'conifer' && b === 'conifer' ? THICKET_GAP : TREE_GAP)
+/** 0 in open glades, 1 in the densest stands; features tens of metres across. */
+export function standDensity(x: number, z: number) {
+  return smoothstep(0.3, 0.72, valueNoise(x * 0.028 + 3.7, z * 0.028 - 8.1) * 0.8 + valueNoise(x * 0.09 - 2.3, z * 0.09 + 6.1) * 0.2)
+}
+/** How likely a tree of `kind` is to take root at stand density `d`: big trees fill the stands, young ones the edges. */
+function rootChance(kind: TreeKind, d: number, trail: number) {
+  if (kind === 'redwood') return 0.01 + 0.99 * d * d * d
+  if (kind === 'fir') return 0.02 + 0.98 * d * d
+  const edge = 1 - Math.min(1, Math.abs(d - 0.35) * 3), light = 1 - smoothstep(TRAIL_CLEARANCE + 2, TRAIL_CLEARANCE + 9, trail)
+  return 0.03 + 0.55 * edge + 0.3 * light
+}
 export const SPAWN_CLEARING = 9, CABIN_CLEARING = 11, TRAIL_CLEARANCE = 3.4
 
 function pickKind(r: number, mix: [number, number]): TreeKind { return r < mix[0] ? 'redwood' : r < mix[0] + mix[1] ? 'fir' : 'conifer' }
-/** Rejection sampling inside `area`: `ok` filters the ground, trunks never crowd each other or the trails. */
-function plant(seed: number, count: number, area: { minX: number; maxX: number; minZ: number; maxZ: number }, mix: [number, number], ok: (x: number, z: number, radius: number) => boolean, existing: TreeSpot[] = []) {
+type Area = { minX: number; maxX: number; minZ: number; maxZ: number }
+type Ok = (x: number, z: number, radius: number) => boolean
+const inside = (a: Area, x: number, z: number) => x > a.minX + 2 && x < a.maxX - 2 && z > a.minZ + 2 && z < a.maxZ - 2
+/** Ground, trail, flower/lantern and neighbour checks shared by every placement pass. */
+function fits(tree: TreeSpot, area: Area, ok: Ok, others: TreeSpot[]) {
+  const { x, z } = tree, radius = trunkRadius(tree)
+  if (!inside(area, x, z) || nearestPathPoint(x, z).distance < TRAIL_CLEARANCE + radius || !ok(x, z, radius)) return false
+  if ([...flowers, ...lanterns].some(s => Math.hypot(s.x - x, s.z - z) < 3 + radius)) return false
+  return others.every(t => Math.hypot(t.x - x, t.z - z) >= trunkRadius(t) + radius + gapBetween(t.kind, tree.kind))
+}
+const scaleFor = (kind: TreeKind, k: number) => { const [lo, hi] = species[kind].scale; return lo + Math.max(0, Math.min(1, k)) * (hi - lo) }
+/** Sentinels: big trunks beside the trails every 14–26 m, alternating sides, framing the walk like the concept art. */
+function sentinels(seed: number, area: Area, mix: [number, number], ok: Ok, others: TreeSpot[]) {
   const rand = random(seed), out: TreeSpot[] = []
-  for (let tries = 0; out.length < count && tries < count * 120; tries++) {
-    const kind = pickKind(rand(), mix), [lo, hi] = species[kind].scale, scale = lo + rand() * (hi - lo)
-    const x = area.minX + 2 + rand() * (area.maxX - area.minX - 4), z = area.minZ + 2 + rand() * (area.maxZ - area.minZ - 4)
-    const tree = { x, z, scale, kind }, radius = trunkRadius(tree)
-    if (nearestPathPoint(x, z).distance < TRAIL_CLEARANCE + radius || !ok(x, z, radius)) continue
-    if ([...flowers, ...lanterns].some(s => Math.hypot(s.x - x, s.z - z) < 3 + radius)) continue
-    if ([...existing, ...out].some(t => Math.hypot(t.x - x, t.z - z) < trunkRadius(t) + radius + TREE_GAP)) continue
-    out.push(tree)
+  for (const path of paths) {
+    let side = rand() < 0.5 ? 1 : -1, next = 6 + rand() * 10
+    for (let i = 1, walked = 0; i < path.length; i++) {
+      const [ax, az] = path[i - 1], [bx, bz] = path[i], length = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / length, uz = (bz - az) / length
+      for (; next < walked + length; next += 14 + rand() * 12, side = rand() < 0.7 ? -side : side) {
+        const t = next - walked, kind: TreeKind = rand() < mix[0] / (mix[0] + mix[1]) ? 'redwood' : 'fir'
+        const tree: TreeSpot = { x: 0, z: 0, scale: scaleFor(kind, 0.55 + rand() * 0.45), kind }
+        const offset = TRAIL_CLEARANCE + trunkRadius(tree) + 0.4 + rand() * 2.2
+        tree.x = ax + ux * t - uz * side * offset; tree.z = az + uz * t + ux * side * offset
+        if (fits(tree, area, ok, [...others, ...out])) out.push(tree)
+      }
+      walked += length
+    }
   }
   return out
 }
-/** The camp is a dense, tall forest with a clearing at the spawn point and around the cabin. */
+/** Up to `count` trees in `area`: a fixed budget of seeds weighted by stand density (so glades stay open however many fit
+ *  in the stands), with redwood rings around parent trees. */
+function plant(seed: number, count: number, area: Area, mix: [number, number], ok: Ok, existing: TreeSpot[] = []) {
+  const rand = random(seed), out = sentinels(seed + 1, area, mix, ok, existing)
+  const ring: TreeSpot[] = []
+  for (let tries = 0; out.length < count && (tries < count * 30 || ring.length); tries++) {
+    let tree: TreeSpot
+    const child = ring.pop()
+    if (child) tree = child
+    else {
+      const kind = pickKind(rand(), mix), x = area.minX + rand() * (area.maxX - area.minX), z = area.minZ + rand() * (area.maxZ - area.minZ)
+      const d = standDensity(x, z)
+      if (rand() > rootChance(kind, d, nearestPathPoint(x, z).distance)) continue
+      // Trees in the heart of a stand grow taller.
+      tree = { x, z, kind, scale: scaleFor(kind, 0.25 * rand() + 0.75 * d * (0.5 + 0.5 * rand())) }
+    }
+    if (!fits(tree, area, ok, [...existing, ...out])) continue
+    out.push(tree)
+    // A large redwood seeds a loose ring of younger redwoods and firs around it.
+    if (!child && tree.kind === 'redwood' && tree.scale > 0.9 && rand() < 0.7) {
+      for (let n = 2 + Math.floor(rand() * 3), a = rand() * 6.28; n > 0; n--, a += 1.2 + rand() * 1.4) {
+        const kind: TreeKind = rand() < 0.6 ? 'redwood' : 'fir', young: TreeSpot = { x: 0, z: 0, kind, scale: scaleFor(kind, rand() * 0.5) }
+        const distance = trunkRadius(tree) + trunkRadius(young) + TREE_GAP + rand() * 3.5
+        young.x = tree.x + Math.cos(a) * distance; young.z = tree.z + Math.sin(a) * distance
+        ring.push(young)
+      }
+    }
+  }
+  return out.slice(0, count)
+}
+/** The camp is a dense, tall forest with a clearing at the spawn point and around the cabin. Counts are caps (see plant). */
 export const CAMP_TREE_COUNT = 300
 const campTrees = plant(11, CAMP_TREE_COUNT, CAMP, [0.22, 0.38],
   (x, z, r) => Math.hypot(x, z) > SPAWN_CLEARING + r && Math.hypot(x - cabin.x, z - cabin.z) > CABIN_CLEARING + r)
