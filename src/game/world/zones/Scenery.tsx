@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
-import { Mesh, MeshStandardMaterial, type WebGLProgramParametersWithUniforms } from 'three'
+import { Mesh, MeshStandardMaterial } from 'three'
 import { assetConfig } from '../../assets/config'
 import { Scatter } from '../../rendering/Scatter'
 import { atmosphere } from '../../rendering/timeOfDay'
@@ -53,40 +53,7 @@ function Mushrooms() {
   return <Scatter url={MUSHROOM_URL} lods={['VEG-007_LOD0', 'VEG-007_LOD1']} items={mushrooms} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={40}/>
 }
 
-/**
- * VEG-010 lost its blossoms in Meshy (only green leaves came back, see ASSET_MANIFEST), so they are painted back on in
- * the shader: small cream and blush-pink flower spots on the upward-facing leaves, placed by a hash of the model-space
- * position plus the instance's offset, so neighbouring shrubs do not flower alike.
- */
-function useShrubBlossoms() {
-  const { scene } = useGLTF(url('vegetation', 'VEG-010'), false, false)
-  useMemo(() => {
-    const mesh = scene.getObjectByName('VEG-010_LOD0')
-    if (!(mesh instanceof Mesh) || !(mesh.material instanceof MeshStandardMaterial)) throw new Error('VEG-010 has no standard mesh named VEG-010_LOD0')
-    mesh.material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
-      shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>
-varying vec3 vBloom; varying float vUp;`)
-        .replace('#include <begin_vertex>', `#include <begin_vertex>
-  vBloom = position;
-  #ifdef USE_INSTANCING
-    vBloom += instanceMatrix[3].xyz * 0.37;
-  #endif
-  vUp = normal.y;`)
-      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
-varying vec3 vBloom; varying float vUp;`)
-        .replace('#include <map_fragment>', `#include <map_fragment>
-  vec3 cell = floor(vBloom * 11.0), f = fract(vBloom * 11.0) - 0.5;
-  float h = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-  float spot = step(0.78, h) * smoothstep(0.34, 0.18, length(f)) * smoothstep(0.1, 0.5, vUp);
-  vec3 petal = mix(vec3(0.98, 0.93, 0.8), vec3(0.96, 0.7, 0.72), step(0.9, h));
-  diffuseColor.rgb = mix(diffuseColor.rgb, petal, spot);`)
-    }
-    mesh.material.customProgramCacheKey = () => 'lumenwood-shrub-blossoms'
-  }, [scene])
-}
-
 export function Scenery() {
-  useShrubBlossoms()
   return <>
     {layers.map(l => <Scatter key={l.id} url={url(l.folder, l.id)} lods={l.lods ?? [l.id]} items={l.items} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={l.maxDistance} castShadow={l.castShadow}/>)}
     <Mushrooms/>

@@ -177,7 +177,7 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 | ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数 | 贴图规格 | GLB 与尺寸 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | VEG-009 | 白桦 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1ceff-b16c-7371-b6e4-bfbc2b618a11` | 30 | LOD0 3,266 / LOD1 1,176 | 1024² | `public/assets/models/vegetation/VEG-009.glb`（1.14 MB，`36717b7b…67f3ed9d`），尺寸 高 11 m（树干半径约 0.3 m，树冠半径约 2.9 m） |
-| VEG-010 | 开花灌木 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf02-880f-76d0-8ac0-9fc4e567740f` | 30 | LOD0 1,497 / LOD1 588 | 512² | `public/assets/models/vegetation/VEG-010.glb`（0.29 MB，`8e7cb66d…b27f7b0c`），尺寸 高 1.4 m、半径约 0.78 m |
+| VEG-010 | 开花灌木 | Vegetation | 中 | 已集成（第 2 版） | `front.png` v2（codex-cli 生成；v1 为 `front-v1.png`） | `01a1cf87-617b-7490-8f30-ca1446de8c48`（v1 `01a1cf02-880f-76d0-8ac0-9fc4e567740f` 废弃） | 60（2 次各 30） | LOD0 5,268 / LOD1 1,176 | 1024² | `public/assets/models/vegetation/VEG-010.glb`（1.53 MB，`50d43b69…9be54472`），尺寸 高 1.4 m、半径约 0.79 m |
 | VEG-011 | 野花丛 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf07-f292-723d-a622-968aa8a67512` | 30 | LOD0 1,316 / LOD1 392 | 512² | `public/assets/models/vegetation/VEG-011.glb`（0.34 MB，`3002ac79…ade2f5fe`），尺寸 高 0.5 m |
 | VEG-012 | 苔藓树桩 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf0a-92fb-72f7-ba3b-f0dc3720b8f6` | 30 | 2,450 | 512² | `public/assets/models/vegetation/VEG-012.glb`（0.36 MB，`f3a8a581…b099f489`），尺寸 2.12 × 0.9 × 1.99 m（含外展根系） |
 | PRP-004 | 篝火 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf0c-838f-769e-b617-e61f8879204a` | 30 | 2,994 | 1024² | `public/assets/models/props/PRP-004.glb`（0.87 MB，`22599edf…daec6b55`），尺寸 1.56 × 0.55 × 1.58 m |
@@ -187,12 +187,12 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 | CRT-001 | 林兔 | Creature | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf13-fe88-757b-ae9b-47e224f761f5` | 30 | 2,940 | 512² | `public/assets/models/creatures/CRT-001.glb`（0.41 MB，`67fb5e09…a346edd9`），尺寸 0.21 × 0.42 × 0.40 m |
 | CRT-002 | 林鸟 | Creature | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cf15-d9c8-74bc-9489-243650b52562` | 30 | 1,960 | 512² | `public/assets/models/creatures/CRT-002.glb`（0.33 MB，`c1815631…0660cb77`），尺寸 翼展 0.42 m（Meshy 建成竖立姿态，加载时转为水平） |
 
-累计积分：848（此前 548 + 本批 300）。生成前余额 672，生成后脚本查询余额 372。
+累计积分：848（此前 548 + 本批 300）。生成前余额 672，生成后脚本查询余额 372。VEG-010 重做后累计 878，余额 342（脚本查询）。
 
 授权：2026-11-12 用户要求“再丰富场景中的模型或者别的元素”，选择植被多样性、环境动态粒子、营地与生活痕迹、小动物四个方向，Meshy 预算“约 10 件，≤ 300 积分”。脚本上限每件 1 次 / 30 积分，十件都一次成功，没有重试余量；参考图各用 codex-cli 生成 1 张，提示词与检查见 `assets/reference/<ID>/`。CRT 为新的“生物”类别（脚本已支持该前缀），产物放在 `public/assets/models/creatures/`。
 
-- **初检（Claude，非用户验收）**：看了 Meshy 缩略图和游戏内截图，未在 Blender 中逐项检查法线和接缝。VEG-010 偏差：参考图上的奶油色与浅粉色花簇几乎没被 Meshy 保留（贴图里只有零星粉色碎片），叶片偏尖碎；因预算用满未重生成，改由着色器在朝上的叶面上程序化点缀花斑（`Scenery.tsx` 的 `useShrubBlossoms`），待用户确认是否可接受。VEG-009 树冠较稀疏。CRT-002 按参考图（正俯视）被建成竖立、腹部朝前，`Wildlife.tsx` 加载时绕 X 轴转 90° 并居中。
-- **优化**：白桦、灌木、野花用 `optimize_tree.py`（生成 LOD1）；其余用 `optimize_static.py`。`.blend` 存于各原始任务目录（不纳入版本管理）。
+- **初检（Claude，非用户验收）**：看了 Meshy 缩略图和游戏内截图，未在 Blender 中逐项检查法线和接缝。VEG-010 第 1 版的奶油色与浅粉色花簇几乎没被 Meshy 保留（贴图里只有零星粉色碎片），叶片偏尖碎，曾用着色器补花斑；2026-11-12 用户要求“重新调用 meshy 生成，效果优先”，授权本轮最多 2 次 / 60 积分。第 2 版参考图改为约 12 个大而饱满的球状花团、宽圆叶片，`target_polycount` 提到 8,000，1 次即成功（30 积分）：四个视角的缩略图和游戏内截图都能看到成团的粉色与奶油色花，着色器花斑已删除。近看（镜头 1 m 内）花团呈揉纸般的硬棱面，中远距离可辨认为花团。第 1 版原始文件保留在 `assets/meshy/raw/VEG-010/01a1cf02-…/`。VEG-009 树冠较稀疏。CRT-002 按参考图（正俯视）被建成竖立、腹部朝前，`Wildlife.tsx` 加载时绕 X 轴转 90° 并居中。
+- **优化**：白桦、灌木、野花用 `optimize_tree.py`（生成 LOD1；VEG-010 第 2 版贴图 1024²、LOD1 上限 1,200，花的细节主要在贴图里）；其余用 `optimize_static.py`。`.blend` 存于各原始任务目录（不纳入版本管理）。
 - **集成**：白桦是 `forestLayout.ts` 的第四种树（只种在林缘与空地边，上限 80 棵），有碰撞与遮挡。灌木（约 170 丛，有圆形碰撞）、野花（成片分布在空地与林径边）、树桩（约 46 个，有碰撞）、路标（3 个林径分岔口）在 `sceneryLayout.ts`；篝火、木箱木桶、柴堆在 `campLayout.ts`（木屋局部坐标），篝火旁 3 个小树桩（VEG-012 缩放 0.5）作座位。兔子 16 只、鸟群 3 群 × 7 只，见 `features/ambient/Wildlife.tsx`；二者都是静态网格，动作由代码驱动。
 
 ## 后续类别（未规划具体资产）
