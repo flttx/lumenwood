@@ -6,8 +6,8 @@ import { dampAngle, dampFactor, movementAxis, PLAYER_RADIUS, RUN_SPEED, WALK_SPE
 import { pushOutOfBox, resolveCollisions } from './collision'
 import { rockColliders, treeColliders } from '../world/zones/forestLayout'
 import { cabinCollider, campBoxColliders, campCircleColliders } from '../world/zones/campLayout'
-import { deckHeight, fenceColliders, logColliders, shrubColliders, signpostColliders, stoneColliders, stumpColliders } from '../world/zones/sceneryLayout'
-import { clampToRegions, onBridge, walkableRegions } from '../world/regions'
+import { bridgeRailColliders, deckHeight, fenceColliders, logColliders, shrubColliders, signpostColliders, stoneColliders, stumpColliders } from '../world/zones/sceneryLayout'
+import { bridgeDeck, clampToRegions, onBridge, walkableRegions } from '../world/regions'
 import { deepPoolColliders } from '../world/zones/wetlandLayout'
 import { treeCollider } from '../world/zones/highlandLayout'
 import { heightAt, pathWeight } from '../world/terrain/terrain'
@@ -20,7 +20,7 @@ const ACCELERATION = 12, DECELERATION = 9, TURN_RATE = 14
 // Footstep cadence (s per step) and the speed below which no steps sound; wading steps are the water's own splashes.
 const WALK_STEP = 0.42, RUN_STEP = 0.3, STEP_MIN_SPEED = 0.6
 const circleColliders = [...treeColliders, ...lanternColliders, ...deepPoolColliders, ...rockColliders, ...stoneColliders, ...shrubColliders, ...stumpColliders, ...signpostColliders, ...campCircleColliders, treeCollider]
-const boxColliders = [cabinCollider, ...campBoxColliders, ...logColliders, ...fenceColliders]
+const boxColliders = [cabinCollider, ...campBoxColliders, ...logColliders, ...fenceColliders, ...bridgeRailColliders]
 export function Player({ input, position, velocity }: { input: InputState; position: Vector3; velocity: Vector3 }) {
   const group = useRef<Group>(null!)
   const stepTimer = useRef(0)
@@ -44,7 +44,7 @@ export function Player({ input, position, velocity }: { input: InputState; posit
       if (hitTree || hitCabin || clamped) { velocity.x = (position.x - px) / dt; velocity.z = (position.z - pz) / dt }
     }
     // Wading: the feet follow the pool floor; the light bridge carries the player level over the channel.
-    position.y = onBridge(position.x, position.z) ? 0 : Math.max(heightAt(position.x, position.z), deckHeight(position.x, position.z))
+    position.y = onBridge(position.x, position.z) ? bridgeDeck(position.z) : Math.max(heightAt(position.x, position.z), deckHeight(position.x, position.z))
     group.current.position.copy(position)
     const moving = Math.hypot(velocity.x, velocity.z)
     if (moving < STEP_MIN_SPEED) stepTimer.current = 0.12 // the first step lands shortly after setting off

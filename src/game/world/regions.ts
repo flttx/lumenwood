@@ -31,8 +31,15 @@ export function walkableRegions(northOpen = gates.north, bridgeOpen = gates.brid
   }
   return rects
 }
-/** True on the light bridge once it exists; the player walks on it at y = 0 above the deep channel. */
+/** True on the light bridge once it exists; the player walks on its arched deck above the deep channel. */
 export function onBridge(x: number, z: number) { return gates.bridge && rectDistance(x, z, BRIDGE) === 0 }
+/** Rise of the light bridge's arch at its middle (metres); 0 at both ends, so it meets the banks. */
+export const BRIDGE_ARCH = 0.9
+/** Deck height of the light bridge at `z` (a half-sine arch along the bridge). */
+export function bridgeDeck(z: number) {
+  const t = Math.max(0, Math.min(1, (z - BRIDGE.minZ) / (BRIDGE.maxZ - BRIDGE.minZ)))
+  return BRIDGE_ARCH * Math.sin(Math.PI * t)
+}
 
 /** Euclidean distance from a point to a rectangle; 0 inside. */
 export function rectDistance(x: number, z: number, r: Rect) {

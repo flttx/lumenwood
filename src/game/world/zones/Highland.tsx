@@ -9,7 +9,7 @@ import { route, routeClock } from '../../features/route/progress'
 import { zoneLanterns } from '../../features/route/routeLayout'
 import { smoothstep } from '../../shared/math'
 import { radialGlowTexture } from '../../features/flora/glowSprites'
-import { heightAt } from '../terrain/terrain'
+import { groundUnder } from '../terrain/terrain'
 import { highlandRocks } from './forestLayout'
 import { ANCIENT_TREE, PLATEAU_HEIGHT, TREE_BANDS } from './highlandLayout'
 // Ancient Tree Highlands: the VEG-002 landmark and PRP-001 rock clusters. The tree lights up in height bands (roots, trunk,
@@ -105,7 +105,7 @@ function Rocks() {
     const source = scene.getObjectByName('PRP-001')
     if (!(source instanceof Mesh)) throw new Error(`${ROCK_URL} has no mesh named PRP-001`)
     const mesh = new InstancedMesh(source.geometry, source.material, highlandRocks.length), up = new Vector3(0, 1, 0)
-    highlandRocks.forEach((r, i) => mesh.setMatrixAt(i, new Matrix4().compose(new Vector3(r.x, heightAt(r.x, r.z) - 0.05, r.z), new Quaternion().setFromAxisAngle(up, r.angle), new Vector3(r.scale, r.scale, r.scale))))
+    highlandRocks.forEach((r, i) => mesh.setMatrixAt(i, new Matrix4().compose(new Vector3(r.x, groundUnder(r.x, r.z, 1.1 * r.scale) - 0.05, r.z), new Quaternion().setFromAxisAngle(up, r.angle), new Vector3(r.scale, r.scale, r.scale))))
     mesh.castShadow = mesh.receiveShadow = true
     mesh.computeBoundingSphere()
     return mesh

@@ -102,6 +102,7 @@ export function Grass() {
     material.customProgramCacheKey = () => 'lumenwood-grass'
     const mesh = new Mesh(bladeGeometry(blades), material)
     mesh.frustumCulled = false // the patch always surrounds the camera
+    mesh.userData.noAO = true // blades are placed in the vertex shader; the AO pass's normal render would draw them flat
     mesh.receiveShadow = true
     return { mesh, uniforms, texture }
   }, [blades])

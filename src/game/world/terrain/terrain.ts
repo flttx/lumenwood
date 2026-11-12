@@ -42,6 +42,21 @@ export function heightAt(x: number, z: number) {
   return (rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))) + basin + elevation(z) + rolling(x, z)
 }
 
+/**
+ * Lowest ground under a footprint of `radius` metres around (x, z): the centre and two rings of twelve samples. Objects
+ * with a wide base (root flares, logs, stumps, rocks) sit at this height so no side floats over a slope; the uphill
+ * side simply sinks into the ground.
+ */
+export function groundUnder(x: number, z: number, radius: number) {
+  let low = heightAt(x, z)
+  if (radius <= 0) return low
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a)
+    low = Math.min(low, heightAt(x + c * radius, z + s * radius), heightAt(x + c * radius * 0.5, z + s * radius * 0.5))
+  }
+  return low
+}
+
 // Footpaths drawn into the ground colour: spawn → cabin door, and a trail north through the corridor into the wetlands.
 // Routed so every trunk is at least 1.3 m from a centreline.
 export const paths: [number, number][][] = [

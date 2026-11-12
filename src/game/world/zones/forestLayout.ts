@@ -1,6 +1,6 @@
 import type { CircleCollider } from '../../player/collision'
 import type { CylinderOccluder } from '../../camera/occlusion'
-import { heightAt, nearestPathPoint, paths, valueNoise } from '../terrain/terrain'
+import { groundUnder, heightAt, nearestPathPoint, paths, valueNoise } from '../terrain/terrain'
 import { CAMP, HIGHLAND, WETLAND, regionDistance, worldBounds } from '../regions'
 import { cabin } from './campLayout'
 import { ANCIENT_TREE, cradleSpots, rampRocks } from './highlandLayout'
@@ -16,14 +16,19 @@ import { smoothstep } from '../../shared/math'
 // and open, sunlit glades; redwoods grow in rings around a parent tree, as they do in nature; young conifers gather at
 // stand edges and in the light along trails; and big "sentinel" trunks flank the trails at irregular intervals.
 export type TreeKind = 'conifer' | 'redwood' | 'fir' | 'birch'
-export const species: Record<TreeKind, { trunk: number; height: number; scale: [number, number] }> = {
-  conifer: { trunk: 0.4, height: 4.8, scale: [1.3, 2.4] },
-  redwood: { trunk: 2.2, height: 28, scale: [0.72, 1.12] },
-  fir: { trunk: 0.75, height: 18, scale: [0.8, 1.25] },
-  birch: { trunk: 0.3, height: 11, scale: [0.8, 1.2] },
+// `trunk` is the collision and spacing radius: the root flare where it is still knee to waist high (2026-11-12: measured
+// from the meshes; the old values were the bare trunk, so the player walked into redwood and fir roots). `core` is the
+// trunk proper, for camera occlusion. `spread` is the outermost root tip at ground level, used to seat the tree on slopes.
+export const species: Record<TreeKind, { trunk: number; core: number; spread: number; height: number; scale: [number, number] }> = {
+  conifer: { trunk: 0.4, core: 0.4, spread: 0.8, height: 4.8, scale: [1.3, 2.4] },
+  redwood: { trunk: 3.5, core: 2.2, spread: 5, height: 28, scale: [0.72, 1.12] },
+  fir: { trunk: 1.0, core: 0.75, spread: 2.1, height: 18, scale: [0.8, 1.25] },
+  birch: { trunk: 0.36, core: 0.3, spread: 1.3, height: 11, scale: [0.8, 1.2] },
 }
 export interface TreeSpot { x: number; z: number; scale: number; kind: TreeKind }
 export const trunkRadius = (t: TreeSpot) => species[t.kind].trunk * t.scale
+/** Ground height a tree is planted at: the lowest point under most of its root spread, sunk a little further. */
+export const treeBase = (t: TreeSpot) => groundUnder(t.x, t.z, species[t.kind].spread * t.scale) - 0.08 * t.scale
 /** Walkable gap kept between neighbouring trunks (beyond both radii); young conifers may crowd each other into thickets. */
 export const TREE_GAP = 2.6, THICKET_GAP = 1.4
 const small = (k: TreeKind) => k === 'conifer' || k === 'birch'
@@ -147,7 +152,7 @@ export const highlandRocks = (() => {
 })()
 export const rockColliders: CircleCollider[] = highlandRocks.map(r => ({ x: r.x, z: r.z, radius: ROCK_RADIUS * r.scale }))
 export const treeColliders: CircleCollider[] = forestTrees.map(t => ({ x: t.x, z: t.z, radius: trunkRadius(t) }))
-export const treeOccluders: CylinderOccluder[] = forestTrees.map(t => ({ x: t.x, z: t.z, radius: trunkRadius(t), height: species[t.kind].height * t.scale * 0.6, base: heightAt(t.x, t.z) }))
+export const treeOccluders: CylinderOccluder[] = forestTrees.map(t => ({ x: t.x, z: t.z, radius: species[t.kind].core * t.scale, height: species[t.kind].height * t.scale * 0.6, base: heightAt(t.x, t.z) }))
 /** Backdrop trees keep at least this far from any walkable region, so they never need colliders. */
 export const OUTER_CLEARANCE = 3
 const OUTER_STEP = 6.5, OUTER_NEAR = 9, OUTER_FAR = 18
@@ -161,7 +166,7 @@ export const outerTrees = (() => {
       const [lo, hi] = species[kind].scale, scale = lo + rand() * (hi - lo)
       const d = regionDistance(x, z)
       if (d < OUTER_CLEARANCE || d > OUTER_FAR || (d > OUTER_NEAR && keep < 0.55)) continue
-      out.push({ x, y: heightAt(x, z), z, scale, kind })
+      out.push({ x, y: treeBase({ x, z, scale, kind }), z, scale, kind })
     }
   }
   return out

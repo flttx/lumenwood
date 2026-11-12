@@ -1,9 +1,8 @@
 import { Suspense } from 'react'
 import { useGLTF } from '@react-three/drei'
 import { assetConfig } from '../../assets/config'
-import { forestTrees, outerTrees, type TreeKind } from './forestLayout'
+import { forestTrees, outerTrees, treeBase, type TreeKind } from './forestLayout'
 import { Ground } from '../terrain/Ground'
-import { heightAt } from '../terrain/terrain'
 import { Scatter } from '../../rendering/Scatter'
 import { LOD1_DISTANCE } from './treeLod'
 import { Cabin } from './Cabin'
@@ -20,7 +19,7 @@ const MODELS: Record<TreeKind, { url: string; lods: string[]; lodDistance: numbe
 }
 const KINDS = Object.keys(MODELS) as TreeKind[]
 const VIEW_DISTANCE = 190, TREE_CHUNK = 20
-const byKind = (kind: TreeKind) => forestTrees.flatMap((t, i) => t.kind === kind ? [{ x: t.x, y: heightAt(t.x, t.z), z: t.z, angle: i * 2.39996, scale: t.scale }] : [])
+const byKind = (kind: TreeKind) => forestTrees.flatMap((t, i) => t.kind === kind ? [{ x: t.x, y: treeBase(t), z: t.z, angle: i * 2.39996, scale: t.scale }] : [])
 const playable = Object.fromEntries(KINDS.map(k => [k, byKind(k)])) as Record<TreeKind, ReturnType<typeof byKind>>
 const backdrop = Object.fromEntries(KINDS.map(k => [k, outerTrees.flatMap((t, i) => t.kind === k ? [{ x: t.x, y: t.y, z: t.z, angle: i * 1.7, scale: t.scale }] : [])])) as Record<TreeKind, ReturnType<typeof byKind>>
 // The files use neither Draco nor meshopt; skipping both keeps the build free of CDN decoder requests.

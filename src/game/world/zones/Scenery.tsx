@@ -6,7 +6,7 @@ import { assetConfig } from '../../assets/config'
 import { Scatter } from '../../rendering/Scatter'
 import { atmosphere } from '../../rendering/timeOfDay'
 import type { ScatterItem } from '../../rendering/scatterChunks'
-import { fences, ferns, footbridges, logs, mossStones, mushrooms, reeds, shrubs, signposts, steppingStones, stumps, wildflowers } from './sceneryLayout'
+import { BRIDGE_BASE, fences, ferns, footbridges, logs, mossStones, mushrooms, reeds, shrubs, signposts, steppingStones, stumps, wildflowers } from './sceneryLayout'
 import { campCrates, campSeats, campfire, woodpile } from './campLayout'
 import { CampfireEffects } from './Campfire'
 import { heightAt } from '../terrain/terrain'
@@ -16,7 +16,7 @@ const url = (folder: string, id: string) => `${assetConfig.baseUrl}models/${fold
 interface Layer { id: string; folder: string; items: readonly ScatterItem[]; maxDistance: number; castShadow?: boolean; lods?: string[] }
 // Ferns and mushrooms carry a decimated LOD1 (scripts/blender/optimize_tree.py) used beyond NEAR_DETAIL metres.
 const NEAR_DETAIL = 12
-const bridgeItems = footbridges.map(b => ({ x: b.x, y: heightAt(b.x, b.z), z: b.z, angle: b.angle, scale: 1 }))
+const bridgeItems = footbridges.map(b => ({ x: b.x, y: BRIDGE_BASE, z: b.z, angle: b.angle, scale: 1 })) // sceneryLayout.deckHeight assumes this
 const placed = (p: { x: number; z: number; angle: number }, scale = 1): ScatterItem => ({ x: p.x, y: heightAt(p.x, p.z), z: p.z, angle: p.angle, scale })
 // Seats round the fire are small VEG-012 stumps.
 const stumpItems = [...stumps, ...campSeats.map(s => placed(s, 0.5))]

@@ -913,5 +913,33 @@
       "sha256": "7747c82c93ab2f6335f3c4e86ed3051b28ef94c9c68e680a5b2b701522572afd"
     },
     "outputDir": "assets/meshy/raw/PRP-008/01a1cfb8-0ae5-70c3-b214-ad0a0bcaa3f9"
+  },
+  {
+    "asset": "ARC-002",
+    "taskId": "01a1cfd1-caa9-749e-8c42-41e45e0468dc",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T12:53:13.951Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 9000
+    },
+    "input": {
+      "file": "assets/reference/ARC-002-wooden-footbridge/front.png",
+      "sha256": "32ed5e82318c900ffcadd8d1da20138db285a8ac5a55e0e9dfcf56b851270815"
+    },
+    "outputDir": "assets/meshy/raw/ARC-002/01a1cfd1-caa9-749e-8c42-41e45e0468dc"
   }
 ]
