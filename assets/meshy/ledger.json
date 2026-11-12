@@ -857,5 +857,61 @@
       "sha256": "0563b372d7446420d8c2e725e634bb0ae9d3df168417f3a3b9fc9a7029fc5535"
     },
     "outputDir": "assets/meshy/raw/VEG-010/01a1cf87-617b-7490-8f30-ca1446de8c48"
+  },
+  {
+    "asset": "INT-004",
+    "taskId": "01a1cfb3-ddf8-73ba-b50e-e2199a297b27",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T12:20:34.390Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-6",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 6000
+    },
+    "input": {
+      "file": "assets/reference/INT-004-glow-lily/front.png",
+      "sha256": "e7b4d402b1cc9a37f8625a6ec080bf3538cf40c97c854133c43f771e38e19807"
+    },
+    "outputDir": "assets/meshy/raw/INT-004/01a1cfb3-ddf8-73ba-b50e-e2199a297b27"
+  },
+  {
+    "asset": "PRP-008",
+    "taskId": "01a1cfb8-0ae5-70c3-b214-ad0a0bcaa3f9",
+    "endpoint": "image-to-3d",
+    "createdAt": "2026-11-12T12:25:07.695Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 3000
+    },
+    "input": {
+      "file": "assets/reference/PRP-008-hand-lantern/front.png",
+      "sha256": "7747c82c93ab2f6335f3c4e86ed3051b28ef94c9c68e680a5b2b701522572afd"
+    },
+    "outputDir": "assets/meshy/raw/PRP-008/01a1cfb8-0ae5-70c3-b214-ad0a0bcaa3f9"
   }
 ]

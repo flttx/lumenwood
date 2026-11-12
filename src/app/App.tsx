@@ -22,7 +22,7 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [pause])
   return <main className="app">
-    {phase !== 'title' && <ErrorBoundary><Suspense fallback={<div className="loading">正在进入森林…</div>}>
+    {phase !== 'title' && <ErrorBoundary><Suspense fallback={null}>
       <Canvas dpr={qualitySettings[quality].dpr} shadows={qualitySettings[quality].shadowMapSize > 0 ? 'soft' : false} camera={{ fov: 50, near: 0.1, far: 320 }}><World /></Canvas>
     </Suspense></ErrorBoundary>}
     <Overlay />

@@ -11,20 +11,23 @@ import { sz } from '../../world/scale'
 import { flock } from './flock'
 import { ascentOpen, gateOpen, reachFinale, route, routeClock, tryLight } from './progress'
 import { LANTERN_COST, LANTERN_RANGE, lanternPlacements, routeEnds, zoneLanterns } from './routeLayout'
-import { HINT_AFTER, captions, hintTarget, type CaptionId } from './guide'
+import { HINT_AFTER, captions, hintTarget, zoneAt, type CaptionId } from './guide'
+import type { RegionId } from '../../../state/gameStore'
 import { serialize, writeSave } from './save'
 // Applies the route rules each frame: advances play time and the flock, lights nodes the player reaches with enough
 // fireflies, opens gates once a zone's stream has arrived, and plays the finale and ending. It also drives the guidance
 // (first-time captions, a pulse on the next target after a stall), the score's voices and the local save. Rendering lives
 // in the sibling components.
 const REARM = LANTERN_RANGE + 1, CAPTION_START = 3, ENDING_CARD = 14, SAVE_EVERY = 5
+/** Seconds the player must stay in a new region before its name banner shows (no flicker along a boundary). */
+const REGION_SETTLE = 1.2
 /** Where the stall hint currently points (read by HintPulse). Frame-loop state, not React state. */
 export const hint = { x: 0, y: 0, z: 0, at: -Infinity }
 
 export function RouteDirector({ player }: { player: Vector3 }) {
   // A node reacts once per approach; walking more than REARM metres away re-arms it.
   const armed = useMemo(() => lanternPlacements.map(() => true), [])
-  const memory = useMemo(() => ({ released: route.released.size, lastProgress: routeClock.now, saveTimer: SAVE_EVERY, dirty: false, gates: '' }), [])
+  const memory = useMemo(() => ({ released: route.released.size, lastProgress: routeClock.now, saveTimer: SAVE_EVERY, dirty: false, gates: '', region: '' as RegionId | '', candidate: '' as RegionId | '', candidateSince: 0, journey: '' }), [])
   useFrame((_, delta) => {
     if (useGameStore.getState().phase !== 'playing') return
     const dt = Math.min(delta, 0.1), now = (routeClock.now += dt)
@@ -37,6 +40,12 @@ export function RouteDirector({ player }: { player: Vector3 }) {
     // A restored journey brings its following fireflies back around the player.
     for (let missing = route.carried - flock.following; missing > 0; missing--) flock.spawn(player.x, player.y + 1.2, player.z)
     flock.update(dt, player, now)
+    // HUD: region banner on entering a new region, and the lantern / firefly tally when it changes.
+    const region: RegionId = rectDistance(player.x, player.z, GLADE) === 0 ? 'glade' : zoneAt(player.z)
+    if (region !== memory.candidate) { memory.candidate = region; memory.candidateSince = now }
+    if (region !== memory.region && (now - memory.candidateSince >= REGION_SETTLE || !memory.region)) { memory.region = region; useGameStore.getState().showRegion(region) }
+    const lit = route.litAt.filter(t => t !== null).length, tally = `${lit}/${route.carried}`
+    if (tally !== memory.journey) { memory.journey = tally; useGameStore.getState().setJourney({ lit, total: lanternPlacements.length, carried: route.carried }) }
     if (route.released.size !== memory.released) {
       if (route.released.size > memory.released) { say('firstFirefly'); progressed() }
       memory.released = route.released.size

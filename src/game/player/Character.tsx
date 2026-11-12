@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { Suspense, useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useAnimations, useGLTF } from '@react-three/drei'
 import type { Group, Vector3 } from 'three'
 import { assetConfig } from '../assets/config'
 import { RUN_SPEED, WALK_SPEED } from './movement'
 import { gaitFor } from './gait'
+import { HandLantern } from './HandLantern'
 // CHR-001 (docs/ASSET_MANIFEST.md): one skinned mesh with in-place idle / walk / run clips; facing +Z like the player group.
 const CHARACTER_URL = `${assetConfig.baseUrl}models/character/CHR-001.glb`
 const FADE = 0.25
@@ -29,5 +30,5 @@ export function Character({ velocity }: { velocity: Vector3 }) {
     if (walk) walk.timeScale = Math.max(0.6, Math.min(1.4, speed / WALK_SPEED))
     if (run) run.timeScale = Math.max(0.8, Math.min(1.3, speed / RUN_SPEED))
   })
-  return <group ref={group}><primitive object={scene}/></group>
+  return <group ref={group}><primitive object={scene}/><Suspense fallback={null}><HandLantern character={scene}/></Suspense></group>
 }

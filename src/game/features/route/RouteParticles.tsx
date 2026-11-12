@@ -4,7 +4,7 @@ import { BufferAttribute, BufferGeometry, type Object3D, type Points } from 'thr
 import { atmosphere } from '../../rendering/timeOfDay'
 import { random } from '../../shared/random'
 import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
-import { flock, MAX_MOTES } from './flock'
+import { flock, MAX_MOTES, type Mote } from './flock'
 import { createMoteMaterial } from './moteMaterial'
 import { GATE_DELAY, route, routeClock } from './progress'
 import { ZONES, lanternPlacements, routeEnds, zoneLanterns, type Zone } from './routeLayout'
@@ -15,6 +15,8 @@ import { ANCIENT_TREE, PLATEAU_HEIGHT } from '../../world/zones/highlandLayout'
 const STREAM_COUNT = 56, STREAM_SPEED = 0.05, COLUMN_COUNT = 140, COLUMN_RISE = 6
 // Ending: fireflies gather from the whole forest into the ancient tree's crown, then keep circling it.
 const SWARM_COUNT = 260, SWARM_GATHER = 8, CROWN_Y = PLATEAU_HEIGHT + 17
+// Guide fireflies leave a short fading trail (concept board: a chain of light), sampled every TRAIL_STEP seconds.
+const TRAIL = 7, TRAIL_STEP = 0.035
 
 function pointsGeometry(count: number) {
   const geometry = new BufferGeometry()
@@ -48,6 +50,7 @@ export function RouteParticles() {
     const rand = random(31)
     return {
       guide: { geometry: pointsGeometry(MAX_MOTES), material: createMoteMaterial(0xffe6a8) },
+      trail: { geometry: pointsGeometry(MAX_MOTES * TRAIL), material: createMoteMaterial(0xffc86e), history: new WeakMap<Mote, number[]>(), clock: 0 },
       streams: ZONES.map(zone => ({ zone, geometry: pointsGeometry(STREAM_COUNT), material: createMoteMaterial(0xffd27d), path: routePath(zone) })),
       seeds: Array.from({ length: STREAM_COUNT }, () => [rand(), rand() * 6.28, 0.2 + rand() * 0.35]),
       column: { geometry: pointsGeometry(COLUMN_COUNT), material: createMoteMaterial(0xfff0c4), seeds: Array.from({ length: COLUMN_COUNT }, () => [rand(), rand() * 6.28, rand()]) },
@@ -55,21 +58,32 @@ export function RouteParticles() {
       scratch: [0, 0, 0],
     }
   }, [])
-  useFrame(() => {
+  useFrame((_, delta) => {
     const now = routeClock.now, opacity = 0.55 + 0.45 * atmosphere.preset.fireflies
-    const { guide, streams, seeds, column, swarm, scratch } = parts
-    for (const { material } of [guide, column, swarm, ...streams]) { material.uniforms.uTime.value = now; material.uniforms.uOpacity.value = opacity }
-    guide.material.uniforms.uSize.value = 120 * dpr; column.material.uniforms.uSize.value = 90 * dpr
+    const { guide, trail, streams, seeds, column, swarm, scratch } = parts
+    for (const { material } of [guide, trail, column, swarm, ...streams]) { material.uniforms.uTime.value = now; material.uniforms.uOpacity.value = opacity }
+    guide.material.uniforms.uSize.value = 170 * dpr; trail.material.uniforms.uSize.value = 95 * dpr; column.material.uniforms.uSize.value = 90 * dpr
     const gp = guide.geometry.attributes.position as BufferAttribute, ga = guide.geometry.attributes.aAlpha as BufferAttribute
-    flock.motes.forEach((m, i) => { gp.setXYZ(i, m.x, m.y, m.z); ga.setX(i, 1) })
-    guide.geometry.setDrawRange(0, flock.motes.length)
-    gp.needsUpdate = ga.needsUpdate = true
+    const tp = trail.geometry.attributes.position as BufferAttribute, ta = trail.geometry.attributes.aAlpha as BufferAttribute
+    trail.clock += delta
+    const step = trail.clock >= TRAIL_STEP
+    if (step) trail.clock = 0
+    flock.motes.forEach((m, i) => {
+      gp.setXYZ(i, m.x, m.y, m.z); ga.setX(i, 1)
+      // Each mote keeps its last TRAIL positions (newest first) as a flat xyz list.
+      let h = trail.history.get(m)
+      if (!h) trail.history.set(m, h = Array.from({ length: TRAIL * 3 }, (_, k) => [m.x, m.y, m.z][k % 3]))
+      if (step) { h.copyWithin(3, 0, (TRAIL - 1) * 3); h[0] = m.x; h[1] = m.y; h[2] = m.z }
+      for (let k = 0; k < TRAIL; k++) { tp.setXYZ(i * TRAIL + k, h[k * 3], h[k * 3 + 1], h[k * 3 + 2]); ta.setX(i * TRAIL + k, 0.55 * (1 - k / TRAIL)) }
+    })
+    guide.geometry.setDrawRange(0, flock.motes.length); trail.geometry.setDrawRange(0, flock.motes.length * TRAIL)
+    gp.needsUpdate = ga.needsUpdate = tp.needsUpdate = ta.needsUpdate = true
     // Each stream grows from the zone's first lantern to its gate over GATE_DELAY, then keeps flowing as a lasting guide line.
     streams.forEach((stream, k) => {
       const done = route.completedAt[stream.zone], points = streamPoints.current[k]
       if (points) points.visible = done !== null
       if (done === null) return
-      stream.material.uniforms.uSize.value = 80 * dpr
+      stream.material.uniforms.uSize.value = 110 * dpr
       const elapsed = now - done, head = Math.min(1, elapsed / GATE_DELAY)
       const sp = stream.geometry.attributes.position as BufferAttribute, sa = stream.geometry.attributes.aAlpha as BufferAttribute
       seeds.forEach(([offset, phase, wobble], i) => {
@@ -108,6 +122,7 @@ export function RouteParticles() {
     cp.needsUpdate = ca.needsUpdate = true
   })
   return <>
+    <points geometry={parts.trail.geometry} material={parts.trail.material} frustumCulled={false}/>
     <points geometry={parts.guide.geometry} material={parts.guide.material} frustumCulled={false}/>
     {parts.streams.map((s, k) => <points key={s.zone} ref={(node: Object3D | null) => { streamPoints.current[k] = node }} geometry={s.geometry} material={s.material} frustumCulled={false} visible={false}/>)}
     <points ref={columnPoints} geometry={parts.column.geometry} material={parts.column.material} frustumCulled={false} visible={false}/>

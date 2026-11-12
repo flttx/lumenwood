@@ -16,15 +16,40 @@ const WETLAND_FROM = sz(30), WETLAND_FULL = sz(40), ZONE_RATE = 1.5
 // The highland look takes over up the ramp (z 84 → 100); the wetland look fades out first so they never stack.
 const HIGHLAND_FROM = sz(84), HIGHLAND_FULL = sz(100)
 const skyVertex = 'varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'
-const skyFragment = `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunColor; uniform float glow; varying vec3 vDir;
+const skyFragment = `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunColor; uniform float glow; uniform float night;
+uniform vec3 haze; varying vec3 vDir;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+}
+float fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; } return v; }
 void main() {
   vec3 dir = normalize(vDir);
   float h = clamp(dir.y, 0.0, 1.0);
+  // Noise is sampled on the horizon circle (not by angle), so there is no seam behind the camera.
+  vec2 ring = normalize(dir.xz + vec2(1e-5));
   vec3 color = mix(horizon, top, pow(h, 0.5));
   // Sun: a hot disc, a tight halo and a wide warm glow that also warms the horizon haze on the sun's side.
   float toward = max(dot(dir, sunDir), 0.0);
   float horizonBand = 1.0 - smoothstep(0.0, 0.35, abs(dir.y));
-  color += sunColor * glow * (pow(toward, 900.0) * 14.0 + pow(toward, 40.0) * 0.9 + pow(toward, 5.0) * 0.35 * (0.4 + horizonBand));
+  vec3 sunLight = sunColor * glow * (pow(toward, 900.0) * 14.0 + pow(toward, 40.0) * 0.9 + pow(toward, 5.0) * 0.35 * (0.4 + horizonBand));
+  color += sunLight;
+  // Stars after dusk, high in the sky only.
+  vec2 sp = dir.xz / max(dir.y, 0.05) * 60.0;
+  float star = step(0.9965, hash(floor(sp))) * smoothstep(0.25, 0.6, dir.y) * night;
+  color += vec3(0.9, 0.92, 1.0) * star * (0.6 + 0.4 * sin(sp.x * 3.0 + sp.y));
+  // Cloud band: soft streaks over the horizon, rim-lit on the sun's side (concept boards: warm sunset clouds).
+  vec2 cp = ring * 2.4 + vec2(dir.y * 9.0, -dir.y * 5.0);
+  float cloud = smoothstep(0.52, 0.85, fbm(cp + vec2(0.0, fbm(cp * 0.7) * 0.6))) * smoothstep(0.03, 0.12, dir.y) * (1.0 - smoothstep(0.22, 0.42, dir.y));
+  vec3 cloudColor = mix(mix(horizon, top, 0.35) * 0.9, sunColor * 1.25 + horizon * 0.3, pow(toward, 3.0) * 0.85 + 0.15);
+  color = mix(color, cloudColor, cloud * 0.7);
+  // Distant mountain ranges: two silhouettes of ridged noise by azimuth, the far one fading into the haze.
+  float farRidge = 0.03 + 0.22 * pow(fbm(ring * 1.7 + 1.7), 2.0) + 0.025 * noise(ring * 16.0 + 4.0);
+  float nearRidge = 0.01 + 0.16 * pow(fbm(ring * 2.6 + 9.0), 2.2) + 0.015 * noise(ring * 22.0 + 8.0);
+  vec3 farColor = mix(haze, top, 0.25) * 0.92, nearColor = mix(haze, top, 0.5) * 0.7;
+  color = mix(color, farColor + sunLight * 0.25, step(dir.y, farRidge) * smoothstep(-0.05, 0.02, dir.y));
+  color = mix(color, nearColor, step(dir.y, nearRidge));
   gl_FragColor = vec4(color, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -34,7 +59,7 @@ export function Atmosphere({ player }: { player: Vector3 }) {
   const shadowMapSize = useGameStore(s => qualitySettings[s.quality].shadowMapSize)
   const { gl, scene } = useThree()
   const sun = useRef<DirectionalLight>(null), hemi = useRef<HemisphereLight>(null), dome = useRef<Mesh>(null), fill = useRef<DirectionalLight>(null)
-  const sky = useMemo(() => new ShaderMaterial({ uniforms: { top: { value: new Color() }, horizon: { value: new Color() }, sunDir: { value: new V3(0, 1, 0) }, sunColor: { value: new Color() }, glow: { value: 1 } }, vertexShader: skyVertex, fragmentShader: skyFragment, side: BackSide, depthWrite: false, fog: false }), [])
+  const sky = useMemo(() => new ShaderMaterial({ uniforms: { top: { value: new Color() }, horizon: { value: new Color() }, sunDir: { value: new V3(0, 1, 0) }, sunColor: { value: new Color() }, glow: { value: 1 }, night: { value: 0 }, haze: { value: new Color() } }, vertexShader: skyVertex, fragmentShader: skyFragment, side: BackSide, depthWrite: false, fog: false }), [])
   const fog = useMemo(() => new Fog(0xffffff, 1, 2), [])
   const background = useMemo(() => new Color(), [])
   useFrame(({ camera }, delta) => {
@@ -51,6 +76,7 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     const flatSun = Math.cos(p.sunElevation)
     sky.uniforms.sunDir.value.set(Math.sin(p.sunAzimuth) * flatSun, Math.sin(p.sunElevation), Math.cos(p.sunAzimuth) * flatSun)
     sky.uniforms.sunColor.value.setHex(p.sun); sky.uniforms.glow.value = p.sunGlow
+    sky.uniforms.night.value = atmosphere.blend; sky.uniforms.haze.value.setHex(p.fog)
     atmosphere.sunDirection.copy(sky.uniforms.sunDir.value)
     fog.color.setHex(p.fog); fog.near = p.fogNear; fog.far = p.fogFar
     scene.fog = fog; scene.background = background.setHex(p.fog)

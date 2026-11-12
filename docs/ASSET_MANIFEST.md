@@ -45,7 +45,7 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | CHR-001 | 松果拾光者 | Character | 高 | 已集成 | `a-front.png` + `a-back.png`（背视图 codex-cli 生成） | 生成 `01a1c5ac-a8ac-7590-879d-e5e557b9c476`；绑骨 `01a1c5b1-b1d1-7168-bf2e-825f26227a07`；待机动画 `01a1c5b2-8644-77a9-9c7d-ee068d22d165` | 38（30 + 5 + 3） | 20,767 → 19,600（≤ 20,000） | 1024² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/character/CHR-001.glb` |
 | VEG-001 | 针叶树 | Vegetation | 高 | 可用 | `front.png`（codex-cli 生成） | `01a1c2fb-9c7c-76b4-bfad-a01f9df70604`（第 1 次，采用） | 30 | 3,987 → LOD0 3,987 → LOD1 1,176 | 1024² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/vegetation/VEG-001.glb` |
-| INT-001 | 发光植物 | Interactive | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1c5a5-99bc-767a-aa7f-d46fc8e57baa` | 30 | 2,002 → 1,959（≤ 2,000） | 1024² BaseColor / Normal / MetallicRoughness / Emissive（JPEG，内嵌） | `public/assets/models/interactive/INT-001.glb` |
+| INT-001 | 发光植物 | Interactive | 中 | 已替换（2026-11-12 起由 INT-004 取代，游戏不再加载；GLB 暂留） | `front.png`（codex-cli 生成） | `01a1c5a5-99bc-767a-aa7f-d46fc8e57baa` | 30 | 2,002 → 1,959（≤ 2,000） | 1024² BaseColor / Normal / MetallicRoughness / Emissive（JPEG，内嵌） | `public/assets/models/interactive/INT-001.glb` |
 | ARC-001 | 森林木屋 | Architecture | 中 | 已集成 | `front.png` + `three-quarter.png`（codex-cli 生成） | `01a1c5a9-7bfc-725b-8493-8f24167765a3` | 30 | 14,533（≤ 15,000，未减面） | 2048² BaseColor / Normal / MetallicRoughness（JPEG，内嵌） | `public/assets/models/architecture/ARC-001.glb` |
 
 累计积分：128（VEG-001 30、INT-001 30、ARC-001 30、CHR-001 38）；2026-11-10 生成后余额 1092。P3 起累计见下方 INT-002。
@@ -194,6 +194,21 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 - **初检（Claude，非用户验收）**：看了 Meshy 缩略图和游戏内截图，未在 Blender 中逐项检查法线和接缝。VEG-010 第 1 版的奶油色与浅粉色花簇几乎没被 Meshy 保留（贴图里只有零星粉色碎片），叶片偏尖碎，曾用着色器补花斑；2026-11-12 用户要求“重新调用 meshy 生成，效果优先”，授权本轮最多 2 次 / 60 积分。第 2 版参考图改为约 12 个大而饱满的球状花团、宽圆叶片，`target_polycount` 提到 8,000，1 次即成功（30 积分）：四个视角的缩略图和游戏内截图都能看到成团的粉色与奶油色花，着色器花斑已删除。近看（镜头 1 m 内）花团呈揉纸般的硬棱面，中远距离可辨认为花团。第 1 版原始文件保留在 `assets/meshy/raw/VEG-010/01a1cf02-…/`。VEG-009 树冠较稀疏。CRT-002 按参考图（正俯视）被建成竖立、腹部朝前，`Wildlife.tsx` 加载时绕 X 轴转 90° 并居中。
 - **优化**：白桦、灌木、野花用 `optimize_tree.py`（生成 LOD1；VEG-010 第 2 版贴图 1024²、LOD1 上限 1,200，花的细节主要在贴图里）；其余用 `optimize_static.py`。`.blend` 存于各原始任务目录（不纳入版本管理）。
 - **集成**：白桦是 `forestLayout.ts` 的第四种树（只种在林缘与空地边，上限 80 棵），有碰撞与遮挡。灌木（约 170 丛，有圆形碰撞）、野花（成片分布在空地与林径边）、树桩（约 46 个，有碰撞）、路标（3 个林径分岔口）在 `sceneryLayout.ts`；篝火、木箱木桶、柴堆在 `campLayout.ts`（木屋局部坐标），篝火旁 3 个小树桩（VEG-012 缩放 0.5）作座位。兔子 16 只、鸟群 3 群 × 7 只，见 `features/ambient/Wildlife.tsx`；二者都是静态网格，动作由代码驱动。
+
+## 视觉对齐资产（2026-11-12）
+
+| ID | 名称 | 类别 | 优先级 | 状态 | 参考图 | Meshy Task ID | 生成积分 | 模型面数 | 贴图规格 | GLB 与尺寸 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| INT-004 | 发光百合 | Interactive | 高 | 已集成 | `front.png`（codex-cli 生成） | `01a1cfb3-ddf8-73ba-b50e-e2199a297b27`（meshy-6） | 30 | 5,879 | 1024² BaseColor / Normal / MetallicRoughness / Emissive | `public/assets/models/interactive/INT-004.glb`（1.11 MB，`6cca7267…8c3d828c`），尺寸 1.04 × 1.1 × 0.87 m |
+| PRP-008 | 手提灯笼 | Prop | 高 | 已集成 | `front.png`（codex-cli 生成） | `01a1cfb8-0ae5-70c3-b214-ad0a0bcaa3f9`（meshy-7.1） | 30 | 2,940 | 512² BaseColor / Normal / MetallicRoughness（无 Emission） | `public/assets/models/props/PRP-008.glb`（0.37 MB，`63837621…6d13b699`），尺寸 0.16 × 0.32 × 0.14 m |
+
+SHA-256：INT-004.glb `6cca7267283cddfef769f6b78e1870c20ee09a9a933d977c54fb26468c3d828c`；PRP-008.glb `638376215aebee146234597dbb92e30e43a7eeaa93a3c2e8a11dfd956d13b699`。
+
+累计积分：938（此前 878 + 本批 60）。授权：2026-11-12 用户在“对照设计图补差距”时选择“两件都做，≤ 80 积分”；脚本上限每件 1 次 / 30 积分，两件都一次成功，未重试。参考图各用 codex-cli 生成 1 张，见 `assets/reference/<ID>/`。
+
+- **初检（Claude，非用户验收）**：看了 Meshy 缩略图、贴图与游戏内截图，未在 Blender 中逐项检查法线和接缝。INT-004 的 Emission 贴图覆盖花瓣与花蕊、不含叶片，可直接用于代码驱动的发光。PRP-008 没有 Emission 贴图，玻璃在底色里画成浅灰；`HandLantern.tsx` 在着色器里把“亮且低饱和”的像素（玻璃与蜡烛）作为发光区域。
+- **优化**：两件都用 `optimize_static.py`：INT-004 高 1.1 m、贴图 1024²；PRP-008 高 0.32 m（含提环）、贴图 512²。`.blend` 存于各原始任务目录（不纳入版本管理）。
+- **集成**：INT-004 取代 INT-001 作为全部可唤醒的花（`features/flora/GlowFlowers.tsx`，布局不变）。PRP-008 挂在 CHR-001 的 `RightHand` 骨骼下方，保持竖直并按手的加速度摆动（`player/HandLantern.tsx`），暮光下是一盏实时点光源（`LocalLights`）。
 
 ## 后续类别（未规划具体资产）
 Props、Creatures 暂无条目。新增资产时先在本表登记为 `规划`，再进入流程。

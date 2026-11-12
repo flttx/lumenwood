@@ -19,7 +19,8 @@ import { ANCIENT_TREE, PLATEAU_HEIGHT, TREE_BANDS } from './highlandLayout'
 // own. When the highland route completes, the canopy blazes for the ending under a large crown halo.
 const TREE_URL = `${assetConfig.baseUrl}models/vegetation/VEG-002.glb`
 const ROCK_URL = `${assetConfig.baseUrl}models/props/PRP-001.glb`
-const VEIN_COLOR = new Color(0xffb04a), VEIN_INTENSITY = 7, CANOPY_COLOR = new Color(0xffd28a), CANOPY_TINT = 0xd9e2cc, ENDING_BLAZE = 3
+// 2026-11-12: veins softened (they read as lava cracks at 7) and the lit crown gains warm orbs of light, as in the concept art.
+const VEIN_COLOR = new Color(0xffc068), VEIN_INTENSITY = 3.6, CANOPY_COLOR = new Color(0xffd28a), CANOPY_TINT = 0xd9e2cc, ENDING_BLAZE = 3
 export const CROWN_HEIGHT = 17
 useGLTF.preload(TREE_URL, false, false)
 useGLTF.preload(ROCK_URL, false, false)
@@ -37,12 +38,12 @@ function AncientTree() {
     const material = source.material.clone()
     // Meshy rendered the foliage brighter and more lime than the reference; a light multiply brings it back to moss green.
     material.color.setHex(CANOPY_TINT)
-    const uniforms = { uLayers: { value: 0 }, uCanopy: { value: 0 }, uCanopyColor: { value: CANOPY_COLOR }, uVeinColor: { value: VEIN_COLOR }, uVein: { value: 0 }, uTime: { value: 0 } }
+    const uniforms = { uLayers: { value: 0 }, uCanopy: { value: 0 }, uCanopyColor: { value: CANOPY_COLOR }, uVeinColor: { value: VEIN_COLOR }, uVein: { value: 0 }, uTime: { value: 0 }, uOrbs: { value: 0 } }
     material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
       Object.assign(shader.uniforms, uniforms)
       shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying float vTreeY;\nvarying vec3 vTreePos;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvTreeY = transformed.y;\nvTreePos = transformed;')
-      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vTreeY;\nvarying vec3 vTreePos;\nuniform float uLayers;\nuniform float uCanopy;\nuniform vec3 uCanopyColor;\nuniform vec3 uVeinColor;\nuniform float uVein;\nuniform float uTime;')
+      shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vTreeY;\nvarying vec3 vTreePos;\nuniform float uLayers;\nuniform float uCanopy;\nuniform vec3 uCanopyColor;\nuniform vec3 uVeinColor;\nuniform float uVein;\nuniform float uTime;\nuniform float uOrbs;')
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   float band = smoothstep(${TREE_BANDS[0].toFixed(1)} - 0.6, ${TREE_BANDS[0].toFixed(1)} + 0.6, vTreeY) + smoothstep(${TREE_BANDS[1].toFixed(1)} - 0.8, ${TREE_BANDS[1].toFixed(1)} + 0.8, vTreeY);
   // Veins: bright amber texels (linear red high, green well below it); moss, leaves and bark fall outside this key.
@@ -51,9 +52,15 @@ function AncientTree() {
   // winding up the trunk and roots. Bark texels are the ones where red clearly beats green; moss and leaves stay dark.
   float bark = smoothstep(1.05, 1.45, diffuseColor.r / max(diffuseColor.g, 0.02));
   float flow = sin(vTreePos.y * 1.6 + sin(vTreePos.x * 1.9) * 2.2 + sin(vTreePos.z * 1.7) * 2.2 - uTime * 0.6);
-  float lines = smoothstep(0.9, 0.985, flow) + 0.04;
+  float lines = smoothstep(0.7, 1.0, flow) * 0.8 + 0.06;
   totalEmissiveRadiance = uVeinColor * uVein * clamp(uLayers - band, 0.0, 1.0) * max(vein, bark * lines * 0.09);
-  totalEmissiveRadiance += uCanopyColor * uCanopy * smoothstep(${(TREE_BANDS[1] - 1).toFixed(1)}, ${(TREE_BANDS[1] + 3).toFixed(1)}, vTreeY) * (0.25 + 0.75 * diffuseColor.g);`)
+  float crown = smoothstep(${(TREE_BANDS[1] - 1).toFixed(1)}, ${(TREE_BANDS[1] + 3).toFixed(1)}, vTreeY);
+  totalEmissiveRadiance += uCanopyColor * uCanopy * crown * (0.25 + 0.75 * diffuseColor.g);
+  // Orbs of light hung through the lit crown: soft spots on a coarse 3D grid, a few cells in each lit, twinkling slowly.
+  vec3 cell = floor(vTreePos * 0.9), f = fract(vTreePos * 0.9) - 0.5;
+  float seed = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+  float orb = step(0.72, seed) * smoothstep(0.42, 0.12, length(f)) * (0.7 + 0.3 * sin(uTime * 1.3 + seed * 40.0));
+  totalEmissiveRadiance += uCanopyColor * orb * crown * uOrbs;`)
     }
     material.customProgramCacheKey = () => 'lumenwood-ancient-tree'
     const mesh = new Mesh(source.geometry, material)
@@ -69,6 +76,8 @@ function AncientTree() {
     uniforms.uVein.value = VEIN_INTENSITY * (0.6 + 0.4 * night) * (1 + 0.5 * blaze)
     // The canopy band glows gently once lit, and blazes for the ending.
     uniforms.uCanopy.value = (0.35 * Math.max(0, Math.min(1, layers - 2)) + ENDING_BLAZE * 0.2 * blaze) * (0.5 + 0.5 * night)
+    // Crown orbs: a few appear with each lit band, all of them by the ending; brighter after dusk.
+    uniforms.uOrbs.value = (1.2 * Math.min(1, layers / 3) + 2.5 * blaze) * (0.35 + 0.65 * night)
   })
   return <><primitive object={mesh} position={[ANCIENT_TREE[0], PLATEAU_HEIGHT, ANCIENT_TREE[1]]}/><CrownHalo/></>
 }

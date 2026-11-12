@@ -31,11 +31,11 @@ export const presets: Record<TimeOfDay, LightingPreset> = {
     bloom: 0.55, bloomThreshold: 0.86, fill: 0.9,
   },
   twilight: {
-    skyTop: 0x16234a, skyHorizon: 0xd98a62, fog: 0x3b4975, fogNear: 18, fogFar: 110,
-    hemiSky: 0x8196dc, hemiGround: 0x34442e, hemiIntensity: 1.9,
+    skyTop: 0x232a66, skyHorizon: 0xe8906a, fog: 0x4b4a86, fogNear: 18, fogFar: 110,
+    hemiSky: 0x8f8fe0, hemiGround: 0x40523a, hemiIntensity: 2.2,
     sun: 0xff8a52, sunIntensity: 1.6, sunElevation: 0.12, sunAzimuth: 0.6, shadowStrength: 0.5,
-    exposure: 1.45, fireflies: 1, lantern: 1, flowerGlow: 1.2, flowerHalo: 1,
-    sunGlow: 0.85, shadeTint: 0x5a6aa6, lightTint: 0xe8a878, contrast: 1.04, saturation: 1.12, vignette: 0.32,
+    exposure: 1.5, fireflies: 1, lantern: 1, flowerGlow: 1.2, flowerHalo: 1,
+    sunGlow: 0.4, shadeTint: 0x6658b4, lightTint: 0xf2b070, contrast: 1.05, saturation: 1.2, vignette: 0.34,
     bloom: 0.95, bloomThreshold: 0.62, fill: 0.7,
   },
 }
