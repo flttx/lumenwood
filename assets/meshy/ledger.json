@@ -941,5 +941,47 @@
       "sha256": "32ed5e82318c900ffcadd8d1da20138db285a8ac5a55e0e9dfcf56b851270815"
     },
     "outputDir": "assets/meshy/raw/ARC-002/01a1cfd1-caa9-749e-8c42-41e45e0468dc"
+  },
+  {
+    "asset": "ARC-002",
+    "taskId": "01a1cfe4-7069-71e1-9e47-dc253aee7c4e",
+    "endpoint": "multi-image-to-3d",
+    "createdAt": "2026-11-12T13:13:37.988Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 12000
+    },
+    "input": [
+      {
+        "file": "assets/reference/ARC-002-wooden-footbridge/view-a.png",
+        "sha256": "8046f5acf15c5ab3d175038710c8d2657100ae5afd9b10711c395166d6aed2b0"
+      },
+      {
+        "file": "assets/reference/ARC-002-wooden-footbridge/view-b.png",
+        "sha256": "23b92e486abc5bf5e084625f66256d2409c5d12a8d10ca6926372da531cf0ff6"
+      },
+      {
+        "file": "assets/reference/ARC-002-wooden-footbridge/view-c.png",
+        "sha256": "0a1470d19501983b3f2af4763746a8101f177d365d438919b7c493f3f35b5140"
+      },
+      {
+        "file": "assets/reference/ARC-002-wooden-footbridge/view-d.png",
+        "sha256": "1fe81b7d41dcbeebda3bc72549d826b35412e364ee433f6c36e68fab65c11c29"
+      }
+    ],
+    "outputDir": "assets/meshy/raw/ARC-002/01a1cfe4-7069-71e1-9e47-dc253aee7c4e"
   }
 ]

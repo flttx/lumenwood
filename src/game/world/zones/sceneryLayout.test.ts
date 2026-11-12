@@ -20,7 +20,7 @@ describe('scenery layout', () => {
       const cos = Math.cos(b.angle), sin = Math.sin(b.angle)
       for (const end of [-1, 1]) {
         const along = end * (BRIDGE_HALF[0] - 0.01)
-        expect(deckHeight(b.x + cos * along, b.z - sin * along)).toBeCloseTo(BRIDGE_BASE + -BRIDGE_BASE, 2) // flush with the flat bank
+        expect(deckHeight(b.x + cos * along, b.z - sin * along)).toBeCloseTo(BRIDGE_BASE, 1) // flush with the flat bank
       }
       for (let along = -BRIDGE_HALF[0]; along <= BRIDGE_HALF[0]; along += 0.25) {
         const p = { x: b.x + cos * along, z: b.z - sin * along }

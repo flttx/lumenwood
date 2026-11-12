@@ -161,7 +161,7 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 | VEG-008 | 芦苇香蒲 | Vegetation | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdfd-1e67-718b-b6bf-d9020164cc0f` | 30 | 1,776 | 512² | `public/assets/models/vegetation/VEG-008.glb`（0.34 MB，`e58e98a5…b081f810`），尺寸 1.7 m |
 | PRP-002 | 苔石小组 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1cdff-e533-7033-9148-42eedd1e1545` | 30 | 1,516 | 512² | `public/assets/models/props/PRP-002.glb`（0.26 MB，`de75b483…a0b44bc8`），尺寸 1.3 × 0.9 × 1.2 m |
 | PRP-003 | 脚踏石 | Prop | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1ce02-28fd-7606-85b3-f9bc1ae3fc4b` | 30 | 1,480 | 512² | `public/assets/models/props/PRP-003.glb`（0.29 MB，`2d5d73b6…fab9684b`），尺寸 2.26 × 0.18 × 0.81 m |
-| ARC-002 | 木桥 | Architecture | 中 | 已集成（第 2 版） | `front.png` v2（codex-cli 生成；v1 为 `front-v1.png`） | `01a1cfd1-caa9-749e-8c42-41e45e0468dc`（v1 `01a1ce03-6a25-7128-ac4d-b12416f26910` 废弃） | 60（2 次各 30） | 7,840 | 1024² | `public/assets/models/architecture/ARC-002.glb`（1.83 MB，`f78a26ed…3138fb3e`），尺寸 8.68 × 2.7 × 2.91 m（含两端石墩） |
+| ARC-002 | 林间石拱桥 | Architecture | 中 | 已集成（第 3 版） | 四视图 `sheet.png` 裁成 `view-a…d.png`（codex-cli 生成；v1 `front-v1.png`、v2 `front-v2.png`） | `01a1cfe4-7069-71e1-9e47-dc253aee7c4e`（multi-image；v1 `01a1ce03-…`、v2 `01a1cfd1-…` 废弃） | 90（3 次各 30） | 10,067 | 1024² | `public/assets/models/architecture/ARC-002.glb`（1.05 MB，`531c4876…516ddd84`），尺寸 9.69 × 2.3 × 3.63 m |
 | ARC-003 | 栅栏段 | Architecture | 中 | 已集成 | `front.png`（codex-cli 生成） | `01a1ce05-177b-7288-b481-ada57aac9f36` | 30 | 2,582 | 512² | `public/assets/models/architecture/ARC-003.glb`（0.37 MB，`091235e6…e2b4c6e9`），尺寸 2.61 × 1.28 × 0.45 m |
 
 累计积分：548（此前 248 + 本批 300）。生成前余额 972，生成后按脚本输出推算 672。
@@ -203,6 +203,8 @@ ID 格式为“前缀 + 三位序号”，一经分配不再复用，退役资�
 | PRP-008 | 手提灯笼 | Prop | 高 | 已集成 | `front.png`（codex-cli 生成） | `01a1cfb8-0ae5-70c3-b214-ad0a0bcaa3f9`（meshy-7.1） | 30 | 2,940 | 512² BaseColor / Normal / MetallicRoughness（无 Emission） | `public/assets/models/props/PRP-008.glb`（0.37 MB，`63837621…6d13b699`），尺寸 0.16 × 0.32 × 0.14 m |
 
 2026-11-12 重做 ARC-002：v1 参考图只在远侧画了栏杆、桥面在平面上弯曲，模型成了半边栏杆、1.44 m 宽的窄桥，用户指出“不是正常的桥”并授权重做（≤ 60 积分）。v2 参考图要求两侧对称栏杆、平面笔直、立面拱起、两端石砌桥墩，`target_polycount` 提到 9,000，1 次成功（30 积分）。桥面中线实测：拱顶高出模型底面 1.27 m，两端石墩处 0.88 m；摆放时底面放在河岸下 0.72 m，使两端与岸齐平（`sceneryLayout.deckProfile`），两侧栏杆是盒体碰撞。v1 原始文件保留。累计积分 968，余额 252（脚本查询）。
+
+同日第 3 版：用户看到第 2 版从桥头看栏杆扭曲、立柱堆在入口（单视角重建对看不到的一侧靠猜），评价“桥模型太差了”。在同一授权（≤ 60 积分）剩余的 30 积分内改为：结构换成实心苔藓石拱桥加矮石栏墙、木板桥面、四角灯柱；参考图在一张图里画同一座桥的四个视角（3/4 前、侧立面、桥头、3/4 后），裁开后用 multi-image-to-3d 提交，1 次成功。桥面中线实测：两端 0.16 m、拱顶 1.33 m，石栏高出桥面约 0.72 m，内宽约 1.7 m；底面直接放在河岸地面（`BRIDGE_BASE = 0`），桥面高度按实测表插值，两道石栏为盒体碰撞。累计积分 998，余额 222（脚本查询）。
 
 SHA-256：INT-004.glb `6cca7267283cddfef769f6b78e1870c20ee09a9a933d977c54fb26468c3d828c`；PRP-008.glb `638376215aebee146234597dbb92e30e43a7eeaa93a3c2e8a11dfd956d13b699`。
 

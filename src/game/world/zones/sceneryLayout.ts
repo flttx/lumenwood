@@ -114,21 +114,23 @@ export const fenceColliders: BoxCollider[] = fences.map(f => ({ x: f.x, z: f.z, 
 export const stoneColliders: CircleCollider[] = mossStones.filter(s => s.scale > 1.1).map(s => ({ x: s.x, z: s.z, radius: 0.6 * s.scale }))
 
 /**
- * ARC-002 footbridges over the brooks, aligned with the trail. The v2 model (2026-11-12) is 8.68 × 2.7 × 2.91 m: an arched
- * deck between two railings on stone abutments. Its base sits BRIDGE_BASE below the (flat) wetland bank so the deck ends
- * meet the ground. `deckHeight` follows the measured deck profile where the player stands on one, or -Infinity elsewhere;
- * the railings are box colliders, so the deck is entered only from its ends.
+ * ARC-002 footbridges over the brooks, aligned with the trail. The v3 model (2026-11-12, built from a four-view sheet) is a
+ * mossy stone arch, 9.69 × 2.3 × 3.63 m, with a planked walkway between two solid parapets and lantern pillars at the
+ * corners. Its base sits on the flat wetland bank. `deckHeight` follows the measured walkway profile where the player stands
+ * on one, or -Infinity elsewhere; the parapets are box colliders, so the walkway is entered only from its ends.
  */
-export const BRIDGE_HALF: [number, number] = [4.35, 0.75]
-export const BRIDGE_BASE = -0.72
+export const BRIDGE_HALF: [number, number] = [4.84, 0.8]
+export const BRIDGE_BASE = 0
 export const footbridges = brookSegments.map(i => {
   const [ax, az] = wetlandPath[i], [bx, bz] = wetlandPath[i + 1]
   return { x: (ax + bx) / 2, z: (az + bz) / 2, angle: Math.atan2(-(bz - az), bx - ax) }
 })
-/** Deck top above the model's base, `u` metres from mid-span: 1.27 m at the crown, easing to 0.88 m at the abutments, then a ramp to the bank. */
+/** Walkway top above the model's base by distance from mid-span (measured from the optimised mesh's centre strip). */
+const DECK: [number, number][] = [[0, 1.33], [1, 1.29], [1.5, 1.19], [2, 1.12], [2.5, 0.93], [3, 0.82], [3.5, 0.59], [4, 0.46], [4.5, 0.18], [4.84, 0]]
 export function deckProfile(u: number) {
-  const a = Math.abs(u), crown = (v: number) => 1.27 - 0.27 * (v / 3) ** 2
-  return a <= 3.6 ? crown(a) : crown(3.6) + (-BRIDGE_BASE - crown(3.6)) * Math.min(1, (a - 3.6) / (BRIDGE_HALF[0] - 3.6))
+  const a = Math.min(Math.abs(u), DECK[DECK.length - 1][0])
+  const i = Math.max(1, DECK.findIndex(([d]) => d >= a)), [d0, h0] = DECK[i - 1], [d1, h1] = DECK[i]
+  return h0 + (h1 - h0) * ((a - d0) / (d1 - d0 || 1))
 }
 export function deckHeight(x: number, z: number) {
   for (const b of footbridges) {
@@ -138,9 +140,9 @@ export function deckHeight(x: number, z: number) {
   }
   return -Infinity
 }
-/** The two railings of each footbridge (measured about 1.2 m off the centre line). */
+/** The two stone parapets of each footbridge (measured 0.9–1.8 m off the centre line, between the corner pillars). */
 export const bridgeRailColliders: BoxCollider[] = footbridges.flatMap(b => [-1, 1].map(side => ({
-  x: b.x + Math.sin(b.angle) * 1.15 * side, z: b.z + Math.cos(b.angle) * 1.15 * side, halfX: 3.9, halfZ: 0.15, angle: b.angle,
+  x: b.x + Math.sin(b.angle) * 1.35 * side, z: b.z + Math.cos(b.angle) * 1.35 * side, halfX: 3.8, halfZ: 0.45, angle: b.angle,
 })))
 
 // ---- Scene enrichment (2026-11-12): flowering shrubs, wildflowers, stumps and trail signposts ----------------------
