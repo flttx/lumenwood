@@ -1,6 +1,8 @@
 import { Vector3, type Camera } from 'three'
 import { ambienceMix, chimeFrequency, nextChirpDelay, nextCroakDelay } from './soundscape'
 import { BEAT, BEATS_PER_BAR, arpNote, bellNote, chordAt, midiFreq } from './music'
+import { WATERFALL } from '../world/zones/sideLayout'
+import { PLUNGE_POOL } from '../world/zones/wetlandLayout'
 // Web Audio soundscape synthesised at runtime, so there are no audio files to source or license. The context is created on
 // the first user gesture (browser autoplay policy) and suspended whenever the game is not playing.
 const SMOOTHING = 0.4
@@ -181,6 +183,19 @@ class Soundscape {
     lap.start(1.3)
     this.frogs = new GainNode(ctx, { gain: 0 }); this.frogs.connect(this.master)
     this.music = new GainNode(ctx, { gain: 1 }); this.music.connect(this.master)
+    // The glen's waterfall (2026-11-12): a steady rush placed at its foot; distance alone fades it, so it guides the ear.
+    const fall = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true, playbackRate: 1.1 })
+    const fallBand = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 900, Q: 0.5 }), fallLow = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2600 })
+    const fallPan = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 7, rolloffFactor: 1.3, positionX: (WATERFALL.x + PLUNGE_POOL.x) / 2, positionY: 2, positionZ: WATERFALL.z })
+    fall.connect(fallBand).connect(fallLow).connect(new GainNode(ctx, { gain: 0.55 })).connect(fallPan).connect(this.master)
+    fall.start(0.7)
+    // Surf in the crescent cove (2026-11-13): a darker rush that swells and draws back every few seconds.
+    const surf = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true, playbackRate: 0.6 })
+    const surfLow = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 700, Q: 0.5 }), surfSwell = new GainNode(ctx, { gain: 0.35 })
+    const surfWave = new OscillatorNode(ctx, { frequency: 0.13 }); surfWave.connect(new GainNode(ctx, { gain: 0.3 })).connect(surfSwell.gain); surfWave.start()
+    const surfPan = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 10, rolloffFactor: 1.2, positionX: 0, positionY: -2, positionZ: -92 })
+    surf.connect(surfLow).connect(surfSwell).connect(surfPan).connect(this.master)
+    surf.start(2.1)
   }
 
   /** Look-ahead scheduler: queues every beat that starts within the next 0.25 s, so timing never depends on frame rate. */

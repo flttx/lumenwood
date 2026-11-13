@@ -12,7 +12,13 @@ import { Atmosphere } from '../rendering/Atmosphere'
 import { Fireflies } from '../features/firefly/Fireflies'
 import { SoundscapeDriver } from '../audio/SoundscapeDriver'
 import { FireflyRoute } from '../features/route/FireflyRoute'
-import { Water } from './zones/Water'
+import { WATER_AREAS, Water } from './zones/Water'
+import { Waterfall } from './zones/Waterfall'
+import { Sea } from './zones/Sea'
+import { SideFeatures } from '../features/secrets/SideFeatures'
+import { Seeds } from '../features/secrets/Seeds'
+import { SecretsDirector } from '../features/secrets/SecretsDirector'
+import { Beacon } from '../features/route/Beacon'
 import { wetlandFireflyHomes } from '../features/firefly/swarm'
 import { useGameStore } from '../../state/gameStore'
 import { Precompile } from '../rendering/Precompile'
@@ -30,12 +36,12 @@ export function World() {
   const rig = useMemo<CameraRig>(() => ({ distance: CAMERA_DISTANCE }), [])
   // The grass tramples around the player; share the same position vector (updated in place by Player).
   trailTarget.position = position
-  const gl = useThree(s => s.gl)
+  const gl = useThree(s => s.gl), scene = useThree(s => s.scene)
   const element = gl.domElement
   useEffect(() => attachInput(input, element, () => useGameStore.getState().phase === 'playing'), [element, input])
   useEffect(() => attachFocusGuards(element), [element])
-  useEffect(() => installDebugApi({ input, position, velocity, rig, gl }), [input, position, velocity, rig, gl])
+  useEffect(() => installDebugApi({ input, position, velocity, rig, gl, scene }), [input, position, velocity, rig, gl, scene])
   return <><Atmosphere player={position}/><LocalLights/>
-    <Forest/><Grass/><AirEffects/><AmbientLife/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Fireflies homes={wetlandFireflyHomes} seed={13}/><Water player={position} velocity={velocity}/><FireflyRoute player={position}/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/><Precompile/><PostFX/>
+    <Forest/><Grass/><AirEffects/><AmbientLife/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Fireflies homes={wetlandFireflyHomes} seed={13}/><Water player={position} velocity={velocity}/><Water player={position} velocity={velocity} area={WATER_AREAS.glen}/><Waterfall/><Sea/><Suspense fallback={null}><SideFeatures/></Suspense><Seeds/><SecretsDirector player={position}/><Beacon/><FireflyRoute player={position}/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/><Precompile/><PostFX/>
   </>
 }

@@ -39,6 +39,7 @@ function PauseScreen() {
 
 function EndingCard() {
   const setEndingCard = useGameStore(s => s.setEndingCard)
+  const seeds = useGameStore(s => s.seeds)
   const close = () => { setEndingCard(false); requestLock(canvas()) }
   return <div className="screen ending-screen">
     <Motes count={40} seed={31}/>
@@ -47,6 +48,7 @@ function EndingCard() {
       <h1 className="logo">森林被点亮了</h1>
       <p className="logo-en">Lumenwood <em>Whispers of Light</em></p>
       <p className="description">你唤醒的每一朵花、点亮的每一盏灯，都汇进了古树的光里。森林会记住这一夜。</p>
+      {seeds.total > 0 && <p className="description seeds-line">{seeds.found === seeds.total ? `十二颗光之种子都回到了森林。` : `找到光之种子 ${seeds.found} / ${seeds.total}。还有一些藏在溪谷、幽谷、湖心与崖边。`}</p>}
       <div className="actions"><button className="primary" onClick={close}><Leaf/>继续探索<span className="arrow">→</span></button></div>
     </div>
   </div>

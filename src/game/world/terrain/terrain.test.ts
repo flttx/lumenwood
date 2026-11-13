@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { FLAT_EDGE, HILL_HEIGHT, groundColor, heightAt, pathWeight, paths, valueNoise } from './terrain'
+import { FLAT_EDGE, HILL_HEIGHT, SEA_CLIFF_EDGE, SEA_LEVEL, groundColor, heightAt, pathWeight, paths, valueNoise } from './terrain'
 import { OUTER_CLEARANCE, forestTrees, outerTrees } from '../zones/forestLayout'
-import { CAMP, GLADE, NORTH_CORRIDOR, regionDistance } from '../regions'
+import { BEACH, CAMP, GLADE, NORTH_CORRIDOR, OVERLOOK, allRegions, regionDistance, worldBounds } from '../regions'
 import { sz } from '../scale'
 import { cabin } from '../zones/campLayout'
 describe('terrain', () => {
@@ -17,7 +17,7 @@ describe('terrain', () => {
     for (const [dx, dz] of [[0, 0], [3, 0], [0, -3], [-3, 3]]) expect(heightAt(cabin.x + dx, cabin.z + dz)).toBe(0)
   })
   it('rises into bounded hills away from the regions, including the ridges beside the corridor', () => {
-    expect(heightAt(CAMP.maxX + FLAT_EDGE + 20, 0)).toBeGreaterThan(1)
+    expect(heightAt(CAMP.maxX + FLAT_EDGE + 20, 30)).toBeGreaterThan(1) // east of the camp, clear of the hollow
     expect(heightAt(NORTH_CORRIDOR.maxX + 12, sz(29))).toBeGreaterThan(1) // between camp and wetlands, east of the corridor
     for (let x = CAMP.maxX + 5; x < CAMP.maxX + 60; x += 3) expect(heightAt(x, x * 0.3)).toBeLessThanOrEqual(HILL_HEIGHT)
   })
@@ -37,10 +37,23 @@ describe('terrain', () => {
     expect(path[0]).toBeGreaterThan(grass[0]) // earth is redder than moss
   })
   it('backdrop trees stay clear of every region, gated corridor included', () => {
-    expect(outerTrees.length).toBeGreaterThan(200); expect(outerTrees.length).toBeLessThan(420)
+    expect(outerTrees.length).toBeGreaterThan(200); expect(outerTrees.length).toBeLessThan(800)
     for (const t of outerTrees) expect(regionDistance(t.x, t.z)).toBeGreaterThanOrEqual(OUTER_CLEARANCE)
   })
   it('the north trail runs through the corridor into the wetlands', () => {
     for (const z of [24, 28, 33].map(sz)) expect(Math.max(...[-5, -4, -3.5, -3, -2].map(x => pathWeight(sz(x), z)))).toBeGreaterThan(0.9)
+  })
+})
+
+describe('island', () => {
+  it('every walkable area stays above the sea; the land falls to the seabed out past the coast', () => {
+    // The beach runs down to the waterline; everything else stands well clear of the sea.
+    for (const r of allRegions) for (const [x, z] of [[r.minX, r.minZ], [r.maxX, r.maxZ], [(r.minX + r.maxX) / 2, (r.minZ + r.maxZ) / 2]]) expect(heightAt(x, z)).toBeGreaterThan(SEA_LEVEL + (r === BEACH ? 0.05 : 1.5))
+    const { minX, maxX, minZ, maxZ } = worldBounds
+    for (const [x, z] of [[minX - 130, 0], [maxX + 130, 100], [0, minZ - 130], [-20, maxZ + 130]]) expect(heightAt(x, z)).toBeLessThan(SEA_LEVEL - 4)
+  })
+  it('the overlook ends in a sea cliff', () => {
+    expect(heightAt(OVERLOOK.maxX - 1, 299)).toBeGreaterThan(8)
+    expect(heightAt(SEA_CLIFF_EDGE + 12, 299)).toBeLessThan(SEA_LEVEL - 4)
   })
 })

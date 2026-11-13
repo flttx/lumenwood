@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Color, HalfFloatType, Material, Mesh, ShaderMaterial, Vector2, WebGLRenderTarget, type Camera, type Object3D, type Scene } from 'three'
+import { Color, DepthTexture, HalfFloatType, Material, Mesh, ShaderMaterial, Vector2, WebGLRenderTarget, type Camera, type Object3D, type PerspectiveCamera, type Scene } from 'three'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
@@ -9,6 +9,9 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js'
 import { useGameStore } from '../../state/gameStore'
 import { atmosphere } from './timeOfDay'
+import { AtmospherePass } from './AtmospherePass'
+import { reviveCircles } from '../features/route/revive'
+import { route, routeClock } from '../features/route/progress'
 // Screen pipeline (visual upgrade, 2026-11-12; the user made light and shadow the project's core): the scene renders into
 // an HDR multisampled target, bright pixels (sun, glowing flora, lanterns, fireflies) bloom softly, then tone mapping and
 // sRGB output, then a display-space grade: split toning (cool shadows, warm highlights), contrast, saturation, vignette.
@@ -61,14 +64,20 @@ class GroundingAO extends GTAOPass {
   _restoreVisibility() { for (const o of this.hidden) o.visible = true; this.hidden.length = 0 }
 }
 
+/** How faded the not-yet-restored world is (0 none, 1 fully): a hint of what lighting it brings back, not a grey world. */
+const FADED = 0.55
+
 export function PostFX() {
   const { gl, scene, camera, size } = useThree()
   const bloomOn = useGameStore(s => s.quality !== 'low')
   const aoOn = useGameStore(s => s.quality === 'high')
   const fx = useMemo(() => {
-    const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: 4 })
+    // The scene target carries a depth texture for the atmosphere pass (mist and light shafts).
+    const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: 4, depthTexture: new DepthTexture(1, 1) })
     const composer = new EffectComposer(gl, target)
     composer.addPass(new RenderPass(scene, camera))
+    const air = new AtmospherePass(camera as PerspectiveCamera)
+    composer.addPass(air)
     // Contact shadows at metre scale: a radius that reaches from a trunk's foot into the ground around it.
     const ao = new GroundingAO(scene, camera)
     ao.updateGtaoMaterial({ radius: 0.9, distanceExponent: 1.5, thickness: 1.5, scale: 1.1, samples: 12 })
@@ -80,7 +89,7 @@ export function PostFX() {
     composer.addPass(new OutputPass())
     const grade = new ShaderPass(GradeShader)
     composer.addPass(grade)
-    return { composer, bloom, grade, ao }
+    return { composer, bloom, grade, ao, air }
   }, [gl, scene, camera])
   useEffect(() => {
     fx.composer.setPixelRatio(gl.getPixelRatio())
@@ -95,6 +104,16 @@ export function PostFX() {
     const p = atmosphere.preset, u = fx.grade.uniforms
     fx.bloom.enabled = bloomOn; fx.ao.enabled = aoOn
     fx.bloom.strength = p.bloom; fx.bloom.threshold = p.bloomThreshold
+    const air = fx.air.settings
+    air.mist = p.mist; air.falloff = p.mistFalloff; air.rays = p.rays; air.raysOn = bloomOn
+    const revived = reviveCircles(route, routeClock.now, air.revive)
+    air.reviveCount = revived.count; air.reviveAll = revived.all; air.faded = FADED
+    // Cloud shadows only where the sun is strong enough to cast them.
+    air.cloud = 0.28 * Math.min(1, p.sunIntensity / 4.2) * (1 - atmosphere.blend); air.time = performance.now() / 1000
+    air.mistColor.setHex(p.fog)
+    // In-scattering and shafts follow the light's strength: the moon (night's light) is a quarter of the afternoon sun, and
+    // at full colour its glow through the mist bloomed into a white-out at night.
+    air.sunColor.setHex(p.sun).multiplyScalar(Math.min(1, p.sunIntensity / 4.2)); air.sunDir.copy(atmosphere.sunDirection)
     u.uShade.value.setHex(p.shadeTint); u.uLight.value.setHex(p.lightTint)
     u.uContrast.value = p.contrast; u.uSaturation.value = p.saturation; u.uVignette.value = p.vignette
     u.uAspect.value = size.width / Math.max(1, size.height); u.uTime.value = performance.now() / 1000

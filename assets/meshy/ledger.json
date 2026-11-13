@@ -983,5 +983,132 @@
       }
     ],
     "outputDir": "assets/meshy/raw/ARC-002/01a1cfe4-7069-71e1-9e47-dc253aee7c4e"
+  },
+  {
+    "asset": "ARC-004",
+    "taskId": "01a1d064-699f-72be-bd59-2d53e30bb0ee",
+    "endpoint": "multi-image-to-3d",
+    "createdAt": "2026-11-12T15:33:18.685Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 10000
+    },
+    "input": [
+      {
+        "file": "assets/reference/ARC-004-island-shrine/view-a.png",
+        "sha256": "a18da721318d3ef41851ab1f33444bc8904fbe0a7d9f8b66e8533819a6d27235"
+      },
+      {
+        "file": "assets/reference/ARC-004-island-shrine/view-b.png",
+        "sha256": "975a39941481f08f2fe51d5a86117e4f0213833554c04825e237e5f34cef422f"
+      },
+      {
+        "file": "assets/reference/ARC-004-island-shrine/view-c.png",
+        "sha256": "d53c1f884df488828b3a092d76656a641749f815d4b5f759ad3a5d391b6da495"
+      },
+      {
+        "file": "assets/reference/ARC-004-island-shrine/view-d.png",
+        "sha256": "dfe6941970e708fb54c1abe8aeb92e163636427b0f3cb782c77a7ae449903c42"
+      }
+    ],
+    "outputDir": "assets/meshy/raw/ARC-004/01a1d064-699f-72be-bd59-2d53e30bb0ee"
+  },
+  {
+    "asset": "ARC-005",
+    "taskId": "01a1d064-802f-71e3-8129-47cea684af9d",
+    "endpoint": "multi-image-to-3d",
+    "createdAt": "2026-11-12T15:33:24.423Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 8000
+    },
+    "input": [
+      {
+        "file": "assets/reference/ARC-005-overlook-parapet/view-a.png",
+        "sha256": "90c61a81cb73bd3727a0d92d3bfb5def07b6f989ad0680002827ad130148efdf"
+      },
+      {
+        "file": "assets/reference/ARC-005-overlook-parapet/view-b.png",
+        "sha256": "ac3922dda54191588017c5692851d5d2d86b158df0cfa73372b532293ba110e3"
+      },
+      {
+        "file": "assets/reference/ARC-005-overlook-parapet/view-c.png",
+        "sha256": "c4f27d9616850b23378c9f4207f72bf43a9cbad7ed29a53a9fd298443eb145f9"
+      },
+      {
+        "file": "assets/reference/ARC-005-overlook-parapet/view-d.png",
+        "sha256": "509144993bf1d0c9e73811447886ac21cfcd03583189d6a06d92741a32a8025d"
+      }
+    ],
+    "outputDir": "assets/meshy/raw/ARC-005/01a1d064-802f-71e3-8129-47cea684af9d"
+  },
+  {
+    "asset": "PRP-009",
+    "taskId": "01a1d064-7564-70b6-b221-038c9ae66142",
+    "endpoint": "multi-image-to-3d",
+    "createdAt": "2026-11-12T15:33:21.000Z",
+    "status": "SUCCEEDED",
+    "estimatedCredits": 30,
+    "consumedCredits": 30,
+    "params": {
+      "ai_model": "meshy-7.1",
+      "should_texture": true,
+      "enable_pbr": true,
+      "texture_resolution": "2k",
+      "should_remesh": true,
+      "topology": "triangle",
+      "save_pre_remeshed_model": true,
+      "multi_view_thumbnails": true,
+      "target_formats": [
+        "glb"
+      ],
+      "target_polycount": 8000
+    },
+    "input": [
+      {
+        "file": "assets/reference/PRP-009-cliff-lip/view-a.png",
+        "sha256": "eb1ae2d1dde18a7ed807f8e1c1005cd963d398b5b0ab5c1bc369416ac13af493"
+      },
+      {
+        "file": "assets/reference/PRP-009-cliff-lip/view-b.png",
+        "sha256": "3e781af3481d5a993794e8e3ccadfdde8c999e62adc9a21d7f36cffc5162e816"
+      },
+      {
+        "file": "assets/reference/PRP-009-cliff-lip/view-c.png",
+        "sha256": "1105652953ab3ca7bc60c75d19d2ea6dc8315ec4504e46dc78ecc8f669309540"
+      },
+      {
+        "file": "assets/reference/PRP-009-cliff-lip/view-d.png",
+        "sha256": "d51fe597388c3b96cc7711e7eb3e6e50ec28b7d8c6829de78a9fbf9108860066"
+      }
+    ],
+    "outputDir": "assets/meshy/raw/PRP-009/01a1d064-7564-70b6-b221-038c9ae66142",
+    "note": "Recorded by hand: three tasks ran in parallel and their ledger writes raced (createdAt approximate)."
   }
 ]

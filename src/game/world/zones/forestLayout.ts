@@ -1,10 +1,11 @@
 import type { CircleCollider } from '../../player/collision'
 import type { CylinderOccluder } from '../../camera/occlusion'
-import { groundUnder, heightAt, nearestPathPoint, paths, valueNoise } from '../terrain/terrain'
-import { CAMP, HIGHLAND, WETLAND, regionDistance, worldBounds } from '../regions'
+import { SEA_LEVEL, coveWeight, cliffWeight, groundUnder, heightAt, nearestPathPoint, paths, seaWeight, valueNoise } from '../terrain/terrain'
+import { CAMP, GLEN, HIGHLAND, HOLLOW, LAKE, OVERLOOK, WETLAND, regionDistance, worldBounds } from '../regions'
 import { cabin } from './campLayout'
 import { ANCIENT_TREE, cradleSpots, rampRocks } from './highlandLayout'
-import { basinDepth } from './wetlandLayout'
+import { basinDepth, PLUNGE_POOL } from './wetlandLayout'
+import { echoStones, giantMushrooms, seeds, SHRINE } from './sideLayout'
 import { flowers } from './floraLayout'
 import { lanterns } from '../../features/route/routeLayout'
 import { random } from '../../shared/random'
@@ -54,7 +55,7 @@ const inside = (a: Area, x: number, z: number) => x > a.minX + 2 && x < a.maxX -
 function fits(tree: TreeSpot, area: Area, ok: Ok, others: TreeSpot[]) {
   const { x, z } = tree, radius = trunkRadius(tree)
   if (!inside(area, x, z) || nearestPathPoint(x, z).distance < TRAIL_CLEARANCE + radius || !ok(x, z, radius)) return false
-  if ([...flowers, ...lanterns].some(s => Math.hypot(s.x - x, s.z - z) < 3 + radius)) return false
+  if ([...flowers, ...lanterns, ...seeds, ...echoStones].some(s => Math.hypot(s.x - x, s.z - z) < 3 + radius) || Math.hypot(SHRINE[0] - x, SHRINE[1] - z) < 6 + radius) return false
   return others.every(t => Math.hypot(t.x - x, t.z - z) >= trunkRadius(t) + radius + gapBetween(t.kind, tree.kind))
 }
 const scaleFor = (kind: TreeKind, k: number) => { const [lo, hi] = species[kind].scale; return lo + Math.max(0, Math.min(1, k)) * (hi - lo) }
@@ -120,12 +121,27 @@ export const HIGHLAND_TREE_COUNT = 60
 const cradles = cradleSpots.map(([x, z]) => ({ x, z }))
 const highlandGround: Ok = (x, z, r) => Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) > 22 + r && cradles.every(c => Math.hypot(c.x - x, c.z - z) > 4 + r)
 const highlandTrees = plant(83, HIGHLAND_TREE_COUNT, HIGHLAND, [0.3, 0.45], highlandGround)
+// Side areas (2026-11-12). The glen keeps its plunge pool and the cliff foot open so the waterfall is seen from the trail;
+// the hollow is a dark redwood stand around its giant mushrooms; the lake has a few firs on its shores; the overlook keeps
+// its outer edge bare for the view.
+const dry: Ok = (x, z, r) => [[0, 0], [r + 1, 0], [-r - 1, 0], [0, r + 1], [0, -r - 1]].every(([dx, dz]) => basinDepth(x + dx, z + dz) === 0)
+const glenGround: Ok = (x, z, r) => dry(x, z, r) && cliffWeight(x, z) === 0 && Math.hypot(x - PLUNGE_POOL.x, z - PLUNGE_POOL.z) > PLUNGE_POOL.r + 6 + r
+const hollowGround: Ok = (x, z, r) => giantMushrooms.every(m => Math.hypot(m.x - x, m.z - z) > m.radius + 2.5 + r)
+const overlookGround: Ok = (x, _z, r) => x + r < OVERLOOK.maxX - 10
+/** Caps per side area: glen, hollow, lake, overlook. */
+export const SIDE_TREE_COUNTS = [70, 55, 24, 12] as const
+const sideTrees = [
+  ...plant(131, SIDE_TREE_COUNTS[0], GLEN, [0.2, 0.45], glenGround),
+  ...plant(141, SIDE_TREE_COUNTS[1], HOLLOW, [0.6, 0.3], hollowGround),
+  ...plant(151, SIDE_TREE_COUNTS[2], LAKE, [0.05, 0.55], dry),
+  ...plant(161, SIDE_TREE_COUNTS[3], OVERLOOK, [0.15, 0.5], overlookGround),
+]
 /** VEG-009 birches (scene enrichment): pale trunks and airy crowns where the canopy opens, at stand edges and glade
  *  margins, never deep in a stand; often two or three together. Planted after the conifers, around them. */
 export const BIRCH_COUNT = 80
 export const birches = (() => {
-  const rand = random(91), zones: [Area, Ok][] = [[CAMP, campGround], [CAMP, campGround], [CAMP, campGround], [WETLAND, wetlandGround], [HIGHLAND, highlandGround]]
-  const others = [...campTrees, ...wetlandTrees, ...highlandTrees], out: TreeSpot[] = []
+  const rand = random(91), zones: [Area, Ok][] = [[CAMP, campGround], [CAMP, campGround], [CAMP, campGround], [WETLAND, wetlandGround], [HIGHLAND, highlandGround], [GLEN, glenGround], [LAKE, dry]]
+  const others = [...campTrees, ...wetlandTrees, ...highlandTrees, ...sideTrees], out: TreeSpot[] = []
   for (let tries = 0; out.length < BIRCH_COUNT && tries < BIRCH_COUNT * 120; tries++) {
     const [area, ok] = zones[Math.floor(rand() * zones.length)], near = out.length && rand() < 0.4 ? out[Math.floor(rand() * out.length)] : null
     const x = near ? near.x + (rand() - 0.5) * 7 : area.minX + rand() * (area.maxX - area.minX), z = near ? near.z + (rand() - 0.5) * 7 : area.minZ + rand() * (area.maxZ - area.minZ)
@@ -136,7 +152,7 @@ export const birches = (() => {
   }
   return out
 })()
-export const forestTrees: TreeSpot[] = [...campTrees, ...wetlandTrees, ...highlandTrees, ...birches]
+export const forestTrees: TreeSpot[] = [...campTrees, ...wetlandTrees, ...highlandTrees, ...sideTrees, ...birches]
 /** PRP-001 clusters scattered on the plateau, clear of the tree, trail, flowers, cradles and trees; plus the ramp shoulders. */
 export const ROCK_RADIUS = 0.95
 export const highlandRocks = (() => {
@@ -155,17 +171,20 @@ export const treeColliders: CircleCollider[] = forestTrees.map(t => ({ x: t.x, z
 export const treeOccluders: CylinderOccluder[] = forestTrees.map(t => ({ x: t.x, z: t.z, radius: species[t.kind].core * t.scale, height: species[t.kind].height * t.scale * 0.6, base: heightAt(t.x, t.z) }))
 /** Backdrop trees keep at least this far from any walkable region, so they never need colliders. */
 export const OUTER_CLEARANCE = 3
-const OUTER_STEP = 6.5, OUTER_NEAR = 9, OUTER_FAR = 18
+const OUTER_STEP = 6.5, OUTER_NEAR = 9, OUTER_FAR = 18, OUTER_COAST = 60
 // Unreachable backdrop on the hills around every region (corridor ridges included): hides the world edge with tall firs
 // and redwoods. A jittered grid, dense next to the walkable area, thinning out further up the hills.
 export const outerTrees = (() => {
   const rand = random(23), out: { x: number; y: number; z: number; scale: number; kind: TreeKind }[] = []
-  for (let gx = worldBounds.minX - OUTER_FAR; gx <= worldBounds.maxX + OUTER_FAR; gx += OUTER_STEP) {
-    for (let gz = worldBounds.minZ - OUTER_FAR; gz <= worldBounds.maxZ + OUTER_FAR; gz += OUTER_STEP) {
+  for (let gx = worldBounds.minX - OUTER_COAST; gx <= worldBounds.maxX + OUTER_COAST; gx += OUTER_STEP) {
+    for (let gz = worldBounds.minZ - OUTER_COAST; gz <= worldBounds.maxZ + OUTER_COAST; gz += OUTER_STEP) {
       const x = gx + (rand() - 0.5) * OUTER_STEP * 0.8, z = gz + (rand() - 0.5) * OUTER_STEP * 0.8, keep = rand(), kind: TreeKind = rand() < 0.35 ? 'redwood' : 'fir'
       const [lo, hi] = species[kind].scale, scale = lo + rand() * (hi - lo)
       const d = regionDistance(x, z)
-      if (d < OUTER_CLEARANCE || d > OUTER_FAR || (d > OUTER_NEAR && keep < 0.55)) continue
+      // Beyond the dense ring the island's outer woods thin out toward the beaches (third pass: the forest is an island).
+      if (d < OUTER_CLEARANCE || d > OUTER_COAST || (d > OUTER_NEAR && keep < (d > OUTER_FAR ? 0.8 : 0.55)) || cliffWeight(x, z) > 0.3) continue
+      // No tree on the beaches or in the sea, near the walkable areas too (the cove brings the sea right up to them).
+      if (heightAt(x, z) < SEA_LEVEL + 2.5 || coveWeight(x, z) > 0.05 || (d > OUTER_FAR && seaWeight(x, z, d) > 0.25)) continue
       out.push({ x, y: treeBase({ x, z, scale, kind }), z, scale, kind })
     }
   }

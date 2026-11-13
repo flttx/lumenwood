@@ -9,7 +9,7 @@ import { GLOW_BASE, GLOW_PEAK, WAVE_FLASH, glowTarget, lightWave, nextAwake } fr
 import { radialGlowTexture, softRing } from './glowSprites'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { soundscape } from '../../audio/engine'
-import { releaseFirefly, route } from '../route/progress'
+import { releaseFirefly, route, routeClock } from '../route/progress'
 import { flock } from '../route/flock'
 import { heightAt } from '../../world/terrain/terrain'
 import { lightSource, lightSources } from '../../rendering/LocalLights'
@@ -77,7 +77,7 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
       if (awake && !f.awake) {
         f.age = 0; soundscape.chime(f.index, f.x, f.y + CHIME_HEIGHT, f.z)
         // The first waking also frees a guide firefly that joins the player (the firefly route, P3).
-        if (releaseFirefly(route, f.index)) flock.spawn(f.x, f.y + HALO_HEIGHT, f.z)
+        if (releaseFirefly(route, f.index, routeClock.now)) flock.spawn(f.x, f.y + HALO_HEIGHT, f.z)
       }
       f.awake = awake
       const wave = lightWave(f.age)

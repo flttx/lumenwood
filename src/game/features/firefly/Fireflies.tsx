@@ -10,7 +10,9 @@ void main() {
   vec3 p = position + vec3(sin(uTime * 0.37 + aPhase.x * 6.3) * 0.7, sin(uTime * 0.53 + aPhase.y * 6.3) * 0.35, cos(uTime * 0.31 + aPhase.z * 6.3) * 0.7);
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vBlink = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(uTime * (1.2 + aPhase.y) + aPhase.x * 40.0), 3.0);
-  gl_PointSize = uSize / -mv.z;
+  // Capped and faded right at the lens: a firefly drifting past the camera used to bloom into a white-out.
+  gl_PointSize = min(uSize / -mv.z, 48.0);
+  vBlink *= smoothstep(0.6, 2.2, -mv.z);
   gl_Position = projectionMatrix * mv;
 }`
 const fragmentShader = `uniform vec3 uColor; uniform float uOpacity; varying float vBlink;

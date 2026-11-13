@@ -18,6 +18,9 @@ const PIVOT_HEIGHT = 1.25, MIN_DISTANCE = 1.2, CAMERA_PADDING = 0.3, RETURN_RATE
 const ENDING_PULL_BACK = 9, ENDING_AIM = 0.55, ENDING_HOLD = 18, CROWN = new Vector3(ANCIENT_TREE[0], PLATEAU_HEIGHT + 17, ANCIENT_TREE[1])
 const occluders = [...treeOccluders, cabinOccluder, treeOccluder]
 export interface CameraRig { distance: number }
+/** A short cinematic beat other systems can start (the overlook's vista): for `hold` seconds from `at`, the camera eases
+ *  back by `pull`, rises by `lift` and turns its aim toward `aim`; the player keeps the yaw. Frame-loop state. */
+export const cameraMoment = { at: null as number | null, hold: 0, pull: 0, lift: 0, aim: new Vector3() }
 export function FollowCamera({ input, position, rig }: { input: InputState; position: Vector3; rig: CameraRig }) {
   const pivot = useMemo(() => new Vector3(), [])
   const dir = useMemo(() => new Vector3(), [])
@@ -32,10 +35,15 @@ export function FollowCamera({ input, position, rig }: { input: InputState; posi
     rig.distance = allowed < rig.distance ? allowed : rig.distance + (allowed - rig.distance) * dampFactor(RETURN_RATE, Math.min(delta, 0.1))
     const done = route.completedAt.highland, now = routeClock.now
     const cinematic = done === null ? 0 : smoothstep(done, done + 3, now) * (1 - smoothstep(done + ENDING_HOLD - 3, done + ENDING_HOLD, now))
-    camera.position.copy(pivot).addScaledVector(dir, rig.distance + ENDING_PULL_BACK * cinematic)
+    const m = cameraMoment.at, moment = m === null ? 0 : smoothstep(m, m + 2.5, now) * (1 - smoothstep(m + cameraMoment.hold - 2.5, m + cameraMoment.hold, now))
+    camera.position.copy(pivot).addScaledVector(dir, rig.distance + ENDING_PULL_BACK * cinematic + cameraMoment.pull * moment)
+    camera.position.y += cameraMoment.lift * moment
     // Looking down a slope or across a hill, lift the camera clear of the ground instead of letting it sink in.
     camera.position.y = Math.max(camera.position.y, heightAt(camera.position.x, camera.position.z) + GROUND_CLEARANCE)
-    camera.lookAt(cinematic > 0 ? aim.copy(pivot).lerp(CROWN, ENDING_AIM * cinematic) : pivot)
+    if (cinematic > 0) aim.copy(pivot).lerp(CROWN, ENDING_AIM * cinematic)
+    else if (moment > 0) aim.copy(pivot).lerp(cameraMoment.aim, 0.6 * moment)
+    else aim.copy(pivot)
+    camera.lookAt(aim)
   })
   return null
 }

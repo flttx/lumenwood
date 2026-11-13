@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FIREFLY_COUNT, WETLAND_FIREFLY_COUNT, fireflyHomes, random, wetlandFireflyHomes } from './swarm'
-import { WETLAND } from '../../world/regions'
+import { LAKE, WETLAND } from '../../world/regions'
 import { WORLD_LIMIT } from '../../player/movement'
 describe('fireflies', () => {
   it('random is deterministic and in [0, 1)', () => {
@@ -20,8 +20,8 @@ describe('fireflies', () => {
     const homes = wetlandFireflyHomes()
     expect(homes.length).toBe(WETLAND_FIREFLY_COUNT * 3)
     for (let i = 0; i < WETLAND_FIREFLY_COUNT; i++) {
-      expect(homes[i * 3]).toBeGreaterThan(WETLAND.minX - 3); expect(homes[i * 3]).toBeLessThan(WETLAND.maxX + 3)
-      expect(homes[i * 3 + 2]).toBeGreaterThan(WETLAND.minZ - 3); expect(homes[i * 3 + 2]).toBeLessThan(WETLAND.maxZ + 3)
+      expect(homes[i * 3]).toBeGreaterThan(LAKE.minX - 3); expect(homes[i * 3]).toBeLessThan(WETLAND.maxX + 3)
+      expect(homes[i * 3 + 2]).toBeGreaterThan(Math.min(WETLAND.minZ, LAKE.minZ) - 3); expect(homes[i * 3 + 2]).toBeLessThan(WETLAND.maxZ + 3)
       expect(homes[i * 3 + 1]).toBeGreaterThan(0.2)
     }
   })

@@ -22,12 +22,14 @@ export function fireflyHomes(count = FIREFLY_COUNT, seed = 7) {
 }
 export const WETLAND_FIREFLY_COUNT = 700
 /** The Firefly Wetlands live up to their name: dense low swarms over every pool, more around flowers, a thin scatter above. */
+/** Pools of the wetlands and the mirror lake beside them (not the glen's stream). */
+const wetPools = pools.filter(p => p.z > WETLAND.minZ - 10)
 export function wetlandFireflyHomes(count = WETLAND_FIREFLY_COUNT, seed = 17) {
   const rand = random(seed), out = new Float32Array(count * 3)
   for (let i = 0; i < count; i++) {
     let x: number, z: number, y: number
     if (i % 4 < 2) {
-      const pool = pools[i % pools.length], angle = rand() * Math.PI * 2, r = Math.sqrt(rand()) * pool.r
+      const pool = wetPools[i % wetPools.length], angle = rand() * Math.PI * 2, r = Math.sqrt(rand()) * pool.r
       x = pool.x + Math.cos(angle) * r; z = pool.z + Math.sin(angle) * r; y = 0.25 + rand() * 1.4
     } else if (i % 4 === 2) {
       const [fx, fz] = wetlandFlowers[i % wetlandFlowers.length], angle = rand() * Math.PI * 2, r = 0.4 + rand() * 2.4

@@ -7,6 +7,8 @@ import { atmosphere } from '../rendering/timeOfDay'
 import { lightSource, lightSources } from '../rendering/LocalLights'
 import { radialGlowTexture } from '../features/flora/glowSprites'
 import { dampFactor } from './movement'
+import { lanternBoost } from '../features/secrets/secrets'
+import { route } from '../features/route/progress'
 // PRP-008: the lamplighter's hand lantern (concept boards show the character carrying it). It hangs from CHR-001's right
 // hand bone but stays upright, swinging like a pendulum as the hand moves. The candle is a real light after dusk
 // (LocalLights) with a soft halo; by day only the flame glows. Meshy gave no emission map, so the shader lights the
@@ -79,7 +81,8 @@ uniform float uGlow;`)
     parts.halo.getWorldPosition(light); parent.getWorldPosition(parts.local)
     const ox = light.x - parts.local.x, oz = light.z - parts.local.z, len = Math.hypot(ox, oz) || 1
     light.set(light.x + (ox / len) * OUTWARD, light.y + LIFT, light.z + (oz / len) * OUTWARD)
-    parts.source.level = night * flicker
+    // Each light seed found makes the lantern a little brighter (features/secrets).
+    parts.source.level = night * flicker * lanternBoost(route.seedsAt.size)
   })
   return <group ref={group}><primitive object={parts.model}/></group>
 }

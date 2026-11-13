@@ -15,7 +15,8 @@ from fontTools import subset
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = ROOT / 'src' / 'assets' / 'fonts'
-TEXT_SOURCES = [*sorted((ROOT / 'src' / 'ui').glob('*.tsx')), ROOT / 'src' / 'game' / 'features' / 'route' / 'guide.ts']
+TEXT_SOURCES = [*sorted((ROOT / 'src' / 'ui').glob('*.tsx')), ROOT / 'src' / 'game' / 'features' / 'route' / 'guide.ts',
+                *sorted((ROOT / 'src' / 'game' / 'features' / 'secrets').glob('*.ts*'))]  # side-area captions and memories
 LATIN = ''.join(chr(c) for c in range(0x20, 0x7f)) + '·—–’“”…→'
 
 

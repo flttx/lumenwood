@@ -131,8 +131,10 @@ async function createTask(endpoint: MeshyEndpoint, flags: Record<string, string>
   if (balance < estimate) fail(`Balance ${balance} is below the estimated ${estimate} credits`)
   out(`Creating ${endpoint} for ${asset}: estimate ${estimate} credits (spent so far ${spent}/${maxCredits}, attempt ${attempts + 1}/${maxAttempts}, balance ${balance})`)
   const { result: taskId } = await api<{ result: string }>(`/${endpoint}`, { method: 'POST', body: JSON.stringify({ ...params, ...body }) })
-  ledger.push({ asset, taskId, endpoint, createdAt: new Date().toISOString(), status: 'PENDING', estimatedCredits: estimate, consumedCredits: null, params, input, outputDir: '' })
-  await writeLedger(ledger)
+  // Re-read before appending: another run (another asset) may have written the ledger while this request was in flight.
+  const fresh = await readLedger()
+  fresh.push({ asset, taskId, endpoint, createdAt: new Date().toISOString(), status: 'PENDING', estimatedCredits: estimate, consumedCredits: null, params, input, outputDir: '' })
+  await writeLedger(fresh)
   out(`Task ${taskId} recorded in ${LEDGER}`)
   await pollAndDownload(asset, taskId, endpoint)
 }

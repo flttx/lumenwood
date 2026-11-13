@@ -1,14 +1,15 @@
 import type { BoxCollider, CircleCollider } from '../../player/collision'
 import type { ScatterItem } from '../../rendering/scatterChunks'
 import { random } from '../../shared/random'
-import { CAMP, HIGHLAND, WETLAND } from '../regions'
-import { groundUnder, nearestPathPoint, paths, pathWeight } from '../terrain/terrain'
+import { CAMP, GLEN, HIGHLAND, HOLLOW, LAKE, OVERLOOK, WETLAND } from '../regions'
+import { cliffWeight, groundUnder, nearestPathPoint, paths, pathWeight } from '../terrain/terrain'
 import { cabin, campClearings } from './campLayout'
 import { flowers } from './floraLayout'
 import { ANCIENT_TREE, TREE_ROOT_RADIUS, highlandPath } from './highlandLayout'
 import { basinDepth, brookSegments, channelBanks, CHANNEL, pools, shoreScale, wetlandPath, WATER_LEVEL } from './wetlandLayout'
 import { SPAWN_CLEARING, forestTrees, standDensity, trunkRadius } from './forestLayout'
 import { lanterns } from '../../features/route/routeLayout'
+import { SHRINE, VISTA_POINT, echoStones, fordStones, giantMushrooms, seeds } from './sideLayout'
 // Scenery dressing (scene upgrade, 2026-11-12): undergrowth, props and small structures from the second Meshy batch,
 // placed deterministically. Everything keeps clear of trails, water (except reeds), route nodes, flowers and trunks.
 // Grass is kept off the ground under structures and nodes so they sit cleanly.
@@ -18,11 +19,13 @@ export const grassClearings: { x: number; z: number; r: number }[] = [
   { x: ANCIENT_TREE[0], z: ANCIENT_TREE[1], r: TREE_ROOT_RADIUS + 1 },
   ...campClearings,
 ]
-const spots = [...flowers, ...lanterns]
+const spots = [...flowers, ...lanterns, ...seeds, ...echoStones]
 function clear(x: number, z: number, room: number) {
   if (basinDepth(x, z) < 0 || pathWeight(x, z) > 0.25 || Math.hypot(x - cabin.x, z - cabin.z) < 6 + room) return false
   if (Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) < TREE_ROOT_RADIUS + 3 + room) return false
   if (spots.some(s => Math.hypot(s.x - x, s.z - z) < 1.4 + room)) return false
+  if (giantMushrooms.some(m => Math.hypot(m.x - x, m.z - z) < m.radius + 0.6 + room) || Math.hypot(SHRINE[0] - x, SHRINE[1] - z) < 4 + room) return false
+  if (cliffWeight(x, z) > 0.05 || Math.hypot(VISTA_POINT[0] - x, VISTA_POINT[1] - z) < 5 + room) return false
   if (campClearings.some(c => Math.hypot(c.x - x, c.z - z) < c.r + room)) return false
   return forestTrees.every(t => Math.hypot(t.x - x, t.z - z) > trunkRadius(t) + 0.4 + room)
 }
@@ -48,9 +51,10 @@ function undergrowth(seed: number, count: number, areas: Area[], room: number, s
   }
   return out
 }
-export const ferns = undergrowth(201, 1100, [CAMP, HIGHLAND, WETLAND], 0.2, [0.8, 1.5], 0.7, 0.6)
-export const mossStones = undergrowth(203, 260, [CAMP, HIGHLAND, WETLAND], 0.6, [0.6, 1.4], 0.4, 0.75)
-export const mushrooms = undergrowth(205, 220, [CAMP, WETLAND, HIGHLAND], 0.1, [0.8, 1.6], 0.9, 0.3)
+// Side areas get their own seeds, so the main areas' dressing is unchanged: a lush glen, a mushroom-carpeted hollow.
+export const ferns = [...undergrowth(201, 1100, [CAMP, HIGHLAND, WETLAND], 0.2, [0.8, 1.5], 0.7, 0.6), ...undergrowth(301, 420, [GLEN, HOLLOW, LAKE, OVERLOOK], 0.2, [0.9, 1.7], 0.6, 0.6)]
+export const mossStones = [...undergrowth(203, 260, [CAMP, HIGHLAND, WETLAND], 0.6, [0.6, 1.4], 0.4, 0.75), ...undergrowth(303, 110, [GLEN, LAKE, OVERLOOK], 0.6, [0.7, 1.6], 0.3, 0.75)]
+export const mushrooms = [...undergrowth(205, 220, [CAMP, WETLAND, HIGHLAND], 0.1, [0.8, 1.6], 0.9, 0.3), ...undergrowth(305, 260, [HOLLOW], 0.1, [1, 2.2], 0.6, 0.3), ...undergrowth(306, 50, [GLEN], 0.1, [0.8, 1.5], 0.9, 0.3)]
 
 /** VEG-005 fallen logs (5.4 × 2.6 × 2.5 m at scale 1) lie off the trails; each gets an oriented box collider. */
 export const LOG_HALF: [number, number] = [2.5, 0.75]
@@ -91,6 +95,8 @@ export const steppingStones = (() => {
     const [ax, az] = wetlandPath[i - 1], [bx, bz] = wetlandPath[i], length = Math.hypot(bx - ax, bz - az), angle = Math.atan2(-(bz - az), bx - ax)
     for (let s = 3; s < length - 3; s += 7) { const t = s / length; out.push(item(ax + (bx - ax) * t, az + (bz - az) * t, angle, 1.2, 0.02)) }
   }
+  // The mirror lake's ford: a line of stones just breaking the surface, from the east shore to the island.
+  for (const f of fordStones) out.push({ x: f.x, y: WATER_LEVEL - 0.06, z: f.z, angle: f.angle, scale: 1.7 })
   return out
 })()
 
@@ -147,7 +153,7 @@ export const bridgeRailColliders: BoxCollider[] = footbridges.flatMap(b => [-1, 
 
 // ---- Scene enrichment (2026-11-12): flowering shrubs, wildflowers, stumps and trail signposts ----------------------
 /** VEG-010 flowering shrubs (about 1.4 m) round tree feet and glade edges; solid, like the larger stones. */
-export const shrubs = undergrowth(211, 170, [CAMP, WETLAND, HIGHLAND], 0.8, [0.75, 1.15], 0.55, 0.7).filter(s => standDensity(s.x, s.z) < 0.75)
+export const shrubs = [...undergrowth(211, 170, [CAMP, WETLAND, HIGHLAND], 0.8, [0.75, 1.15], 0.55, 0.7), ...undergrowth(311, 50, [GLEN, LAKE, OVERLOOK], 0.8, [0.75, 1.15], 0.55, 0.7)].filter(s => standDensity(s.x, s.z) < 0.75)
 export const shrubColliders: CircleCollider[] = shrubs.map(s => ({ x: s.x, z: s.z, radius: 0.6 * s.scale }))
 /** VEG-012 mossy stumps (about 0.9 m tall): scattered in the stands, where trees once fell. */
 export const stumps = undergrowth(215, 46, [CAMP, HIGHLAND, WETLAND], 1.0, [0.75, 1.15], 0.35, 1.1)
@@ -156,8 +162,8 @@ export const stumpColliders: CircleCollider[] = stumps.map(s => ({ x: s.x, z: s.
 /** VEG-011 wildflower clumps gather in drifts in the glades and along the trail edges, where the sun reaches the ground. */
 export const wildflowers = (() => {
   const rand = random(213), out: ScatterItem[] = []
-  for (let tries = 0, drifts = 0; drifts < 150 && tries < 20000; tries++) {
-    const area = [CAMP, CAMP, CAMP, HIGHLAND, WETLAND][Math.floor(rand() * 5)]
+  for (let tries = 0, drifts = 0; drifts < 210 && tries < 30000; tries++) {
+    const area = [CAMP, CAMP, CAMP, HIGHLAND, WETLAND, GLEN, GLEN, LAKE, OVERLOOK][Math.floor(rand() * 9)]
     const cx = area.minX + rand() * (area.maxX - area.minX), cz = area.minZ + rand() * (area.maxZ - area.minZ)
     const trail = nearestPathPoint(cx, cz).distance
     if (standDensity(cx, cz) > 0.35 && (trail < 2.2 || trail > 5)) continue

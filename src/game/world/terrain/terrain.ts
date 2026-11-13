@@ -1,9 +1,10 @@
-import { BRIDGE, GLADE, WETLAND, regionDistance } from '../regions'
+import { BEACH, BRIDGE, GLADE, GLEN, LAKE, OVERLOOK, WETLAND, regionDistance } from '../regions'
 import { cabin } from '../zones/campLayout'
 import { smoothstep } from '../../shared/math'
 import { WATER_LEVEL, basinDepth, wetlandPath } from '../zones/wetlandLayout'
 import { ANCIENT_TREE, elevation, highlandPath } from '../zones/highlandLayout'
 import { at } from '../scale'
+import { WATERFALL } from '../zones/sideLayout'
 // Code-built ground (terrain is allowed as code per AGENTS.md). The camp and corridor stay exactly flat at y = 0; in the
 // wetlands the ground sinks into pools (the player wades, their height follows the ground) and a deep channel; north of
 // the glade the whole land rises up a ramp to the highland plateau. Hills rise
@@ -27,7 +28,7 @@ export function valueNoise(x: number, z: number) {
 export function hillWeight(x: number, z: number) { return smoothstep(FLAT_EDGE, HILL_FULL, regionDistance(x, z)) }
 /** Rolling ground (scene upgrade): two octaves of gentle swells, about ±1.4 m over tens of metres. */
 export const ROLL_HEIGHT = 2.8
-const waterZones = [WETLAND, BRIDGE, GLADE]
+const waterZones = [WETLAND, BRIDGE, GLADE, GLEN, LAKE, BEACH]
 /** Where the ground may roll: not in the flat wetlands (the water surface is level) nor on the cabin and ancient-tree pads. */
 export function rollWeight(x: number, z: number) {
   return smoothstep(4, 18, regionDistance(x, z, waterZones)) * smoothstep(9, 17, Math.hypot(x - cabin.x, z - cabin.z))
@@ -36,10 +37,52 @@ export function rollWeight(x: number, z: number) {
 export function rolling(x: number, z: number) {
   return ROLL_HEIGHT * ((valueNoise(x * 0.022 + 7, z * 0.022 - 3) - 0.5) * 0.8 + (valueNoise(x * 0.07 - 11, z * 0.07 + 5) - 0.5) * 0.2) * rollWeight(x, z)
 }
-/** Ground height: hills outside the regions, rolling swells on land, wetland pools and channel below 0, the highland rise. */
+// Side-area landforms (2026-11-12). The glen ends in a cliff the waterfall drops from; beyond the overlook the plateau ends
+// in a sea cliff (third pass: the forest is an island in the sea).
+export const CLIFF_HEIGHT = 17, CLIFF_FOOT = GLEN.minX - 0.5, CLIFF_TOP = GLEN.minX - 3
+/** 0–1: the glen's west cliff (full height west of CLIFF_TOP), across the glen's width. */
+export function cliffWeight(x: number, z: number) {
+  return smoothstep(CLIFF_FOOT, CLIFF_TOP, x) * (1 - smoothstep(GLEN.maxZ - 6, GLEN.maxZ + 14, z)) * (1 - smoothstep(GLEN.minZ + 6, GLEN.minZ - 14, z))
+}
+// The island (third pass, 2026-11-12; the user: "beyond the forest is the sea; the forest is an island"). Past the hills the
+// land falls to a seabed; the coastline wanders with noise between about 45 and 75 m from the walkable areas, so beaches,
+// headlands and coves form on their own. East of the overlook the plateau drops straight into the sea.
+export const SEA_LEVEL = -3.5, SEABED = -16
+export const SEA_CLIFF_EDGE = OVERLOOK.maxX + 2
+/** 0–1: the sea cliff below the overlook (full drop SEA_CLIFF_EDGE + 9 m out), fading out along the coast either side. */
+export function seaCliffWeight(x: number, z: number) {
+  return smoothstep(SEA_CLIFF_EDGE, SEA_CLIFF_EDGE + 9, x) * (1 - smoothstep(OVERLOOK.maxZ + 25, OVERLOOK.maxZ + 60, z)) * (1 - smoothstep(OVERLOOK.minZ - 25, OVERLOOK.minZ - 60, z))
+}
+/** 0–1: how far the land has fallen toward the seabed (0 on the island, 1 out at sea). */
+export function seaWeight(x: number, z: number, distance = regionDistance(x, z)) {
+  const from = 34 + 26 * valueNoise(x * 0.013 + 5, z * 0.013 - 2)
+  return Math.max(smoothstep(from, from + 48, distance), seaCliffWeight(x, z))
+}
+// The crescent cove (2026-11-13): south of the camp the land runs down as a sandy beach to the waterline at the cove's
+// south edge (about 0.15 m above the sea), then shelves to the seabed; the hills either side frame it.
+const COVE_TOP = BEACH.maxZ - 6, WATERLINE = BEACH.minZ
+/** 0–1: inside the cove's beach (fading out into the hills on either side and into the camp to the north). */
+export function coveWeight(x: number, z: number) {
+  return (1 - smoothstep(BEACH.maxX + 4, BEACH.maxX + 26, Math.abs(x))) * smoothstep(COVE_TOP + 4, COVE_TOP - 6, z)
+}
+/** The beach's height along the cove: an even slope of sand to the waterline, then the shelf down to the seabed. */
+export function beachProfile(x: number, z: number) {
+  const ripple = 0.12 * (valueNoise(x * 0.25, z * 0.25) - 0.5)
+  if (z > WATERLINE) return (SEA_LEVEL + 0.15) * Math.min(1, (COVE_TOP - z) / (COVE_TOP - WATERLINE)) + ripple * smoothstep(COVE_TOP, WATERLINE, z)
+  return SEA_LEVEL + 0.15 + (SEABED - SEA_LEVEL - 0.15) * smoothstep(WATERLINE, WATERLINE - 45, z)
+}
+/** Ground height: hills outside the regions, rolling swells on land, pools and channel below 0, the highland rise, the
+ *  glen's cliff, the cove's beach, and the island's shores falling to the seabed. */
 export function heightAt(x: number, z: number) {
-  const rim = hillWeight(x, z), basin = basinDepth(x, z)
-  return (rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))) + basin + elevation(z) + rolling(x, z)
+  const distance = regionDistance(x, z), rim = smoothstep(FLAT_EDGE, HILL_FULL, distance), basin = basinDepth(x, z)
+  const hills = rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))
+  let land = hills + basin + elevation(z) + rolling(x, z) + CLIFF_HEIGHT * cliffWeight(x, z) * (0.85 + 0.15 * valueNoise(z * 0.3, 2))
+  const cove = z < COVE_TOP + 4 ? coveWeight(x, z) : 0
+  if (cove > 0) land += (beachProfile(x, z) - land) * cove
+  if (cove > 0.99) return land
+  if (distance < 30 && x < SEA_CLIFF_EDGE) return land // well inside the island: skip the coast noise
+  const sea = seaWeight(x, z, distance)
+  return land + (SEABED - land) * sea * sea * (3 - 2 * sea)
 }
 
 /**
@@ -64,6 +107,14 @@ export const paths: [number, number][][] = [
   ([[0, 0], [-1.6, 4], [-4.6, 9.5], [-5.6, 14], [-3.6, 17], [-3.4, 21.5], [-3.7, 29], [-3.3, 37]] as const).map(at),
   wetlandPath,
   highlandPath,
+  // Side trails (2026-11-12): west to the waterfall glen, east from the cabin path to the mushroom hollow, west from the
+  // wetland trail to the mirror lake, east across the plateau to the overlook.
+  [[0, 0], [-14, 3], [-30, 6], [-45, 5], [-56, 5.5], [-72, 6], [-86, 8], [-98, 9], [-107, 10]],
+  [[26.25, -17.5], [38, -22], [50, -27], [62, -27.5], [75, -28], [88, -30], [97, -34]],
+  [[-15, 105], [-40, 111], [-55, 113], [-66, 121], [-78, 122]],
+  [[-12.5, 260], [10, 268], [30, 285], [46, 299.5], [62, 299.5], [76, 299], [86, 298]],
+  // South from the spawn down to the cove's beach (2026-11-13).
+  [[0, 0], [3, -14], [1, -30], [-2, -46], [0, -62], [1, -76]],
 ]
 function segmentPoint(px: number, pz: number, [ax, az]: [number, number], [bx, bz]: [number, number]): [number, number] {
   const dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)))
@@ -92,14 +143,30 @@ export function pathWeight(x: number, z: number) {
 
 const MOSS: [number, number, number] = [0.42, 0.52, 0.29], DEEP: [number, number, number] = [0.27, 0.37, 0.22]
 const EARTH: [number, number, number] = [0.4, 0.33, 0.25], HILL: [number, number, number] = [0.33, 0.42, 0.27]
-const MUD: [number, number, number] = [0.2, 0.22, 0.16]
+const MUD: [number, number, number] = [0.2, 0.22, 0.16], ROCK: [number, number, number] = [0.58, 0.55, 0.5], ROCK_DARK: [number, number, number] = [0.36, 0.35, 0.33]
+const WET_ROCK: [number, number, number] = [0.2, 0.21, 0.21], SLIME: [number, number, number] = [0.18, 0.27, 0.17]
+const SAND: [number, number, number] = [0.78, 0.7, 0.52], WET_SAND: [number, number, number] = [0.5, 0.45, 0.34], SEAFLOOR: [number, number, number] = [0.36, 0.42, 0.36]
 const mix = (a: readonly number[], b: readonly number[], t: number) => a.map((v, i) => v + (b[i] - v) * t) as [number, number, number]
-/** sRGB ground colour: moss patches, worn earth paths, slightly darker hills, dark wet mud around and under water. */
-export function groundColor(x: number, z: number) {
+/** sRGB ground colour: moss patches, worn earth paths, slightly darker hills, dark wet mud around and under water, and on
+ *  the coast sand beaches, wet sand at the waterline, a pale seafloor and rock on the sea cliff. */
+export function groundColor(x: number, z: number, height = heightAt(x, z)) {
   const patches = valueNoise(x * 0.18 + 40, z * 0.18) * 0.7 + valueNoise(x * 0.9, z * 0.9) * 0.3
   let color = mix(DEEP, MOSS, patches)
   color = mix(color, HILL, hillWeight(x, z))
+  // Bare rock on the cliff face, mossy toward its top and foot.
+  const cliff = cliffWeight(x, z)
+  // Strata: pale and dark bands following the height, broken up by noise.
+  const strata = mix(ROCK, ROCK_DARK, smoothstep(0.35, 0.65, valueNoise(height * 1.3 + z * 0.08, x * 0.2)))
+  color = mix(color, strata, smoothstep(0.08, 0.3, cliff) * (1 - smoothstep(0.85, 1, cliff)) * (0.75 + 0.25 * valueNoise(x * 0.7, z * 0.4)))
+  // Behind and beside the waterfall the rock is soaked dark, with green slime streaks.
+  const wet = cliff * (1 - smoothstep(WATERFALL.width / 2, WATERFALL.width / 2 + 3, Math.abs(z - WATERFALL.z)))
+  color = mix(color, mix(WET_ROCK, SLIME, smoothstep(0.4, 0.7, valueNoise(z * 1.7, height * 0.5))), wet * 0.85)
   color = mix(color, EARTH, pathWeight(x, z) * 0.75)
   // Darkens from just above the waterline down, so shores read as wet before the water starts.
-  return mix(color, MUD, smoothstep(0.02, WATER_LEVEL - 0.2, basinDepth(x, z)))
+  color = mix(color, MUD, smoothstep(0.02, WATER_LEVEL - 0.2, basinDepth(x, z)))
+  if (height > SEA_LEVEL + 3.5) return color
+  const seaCliff = seaCliffWeight(x, z), beach = 1 - smoothstep(SEA_LEVEL + 1.2, SEA_LEVEL + 3.5, height)
+  color = mix(color, mix(SAND, strata, seaCliff), beach * (0.8 + 0.2 * valueNoise(x * 0.4, z * 0.4)))
+  color = mix(color, WET_SAND, smoothstep(SEA_LEVEL + 0.6, SEA_LEVEL - 0.2, height) * (1 - seaCliff))
+  return mix(color, SEAFLOOR, smoothstep(SEA_LEVEL - 0.5, SEA_LEVEL - 4, height))
 }

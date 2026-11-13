@@ -17,8 +17,25 @@ export const GLADE: Rect = { minX: sz(-11), maxX: sz(3), minZ: sz(66), maxZ: sz(
 /** Ramp from the glade up to the plateau; gated until the glade's finale has played. */
 export const ASCENT: Rect = { minX: sz(-6), maxX: sz(-2), minZ: sz(75) - 0.5, maxZ: sz(100) + 0.5 }
 export const HIGHLAND: Rect = { minX: sz(-26), maxX: sz(18), minZ: sz(100), maxZ: sz(134) }
+// Side areas (third pass, 2026-11-12; the user found the world too small): optional places off the route, always open,
+// each reached through a narrow pass in the hills so finding it feels like a discovery. Coordinates are world metres.
+/** Waterfall glen west of the camp: a valley with a stream running from a plunge pool under a cliff waterfall. */
+export const GLEN_PASS: Rect = { minX: -70.5, maxX: -WORLD_LIMIT + 0.5, minZ: 2, maxZ: 9 }
+export const GLEN: Rect = { minX: -128, maxX: -70, minZ: -28, maxZ: 38 }
+/** Mushroom hollow east of the camp: a dark stand of redwoods over giant glowing mushrooms. */
+export const HOLLOW_PASS: Rect = { minX: WORLD_LIMIT - 0.5, maxX: 70.5, minZ: -31, maxZ: -24 }
+export const HOLLOW: Rect = { minX: 70, maxX: 112, minZ: -58, maxZ: -2 }
+/** Mirror lake west of the wetlands: a wide shallow lake with an island. */
+export const LAKE_PASS: Rect = { minX: -75.5, maxX: sz(-26) + 0.5, minZ: 118, maxZ: 126 }
+export const LAKE: Rect = { minX: -130, maxX: -75, minZ: 92, maxZ: 152 }
+/** Cliff overlook east of the highland plateau: the land falls away beyond it, opening a view over the forest. */
+export const OVERLOOK_PASS: Rect = { minX: sz(18) - 0.5, maxX: 62.5, minZ: 296, maxZ: 303 }
+export const OVERLOOK: Rect = { minX: 62, maxX: 92, minZ: 280, maxZ: 318 }
+/** Crescent cove south of the camp (2026-11-13; the user wanted to reach the sea): a sandy beach down to the waterline. */
+export const BEACH: Rect = { minX: -24, maxX: 24, minZ: -86, maxZ: -WORLD_LIMIT + 0.5 }
+export const sideRegions: readonly Rect[] = [GLEN_PASS, GLEN, HOLLOW_PASS, HOLLOW, LAKE_PASS, LAKE, OVERLOOK_PASS, OVERLOOK, BEACH]
 /** Every region that shapes the terrain, gated or not. */
-export const allRegions: readonly Rect[] = [CAMP, NORTH_CORRIDOR, WETLAND, BRIDGE, GLADE, ASCENT, HIGHLAND]
+export const allRegions: readonly Rect[] = [CAMP, NORTH_CORRIDOR, WETLAND, BRIDGE, GLADE, ASCENT, HIGHLAND, ...sideRegions]
 /** Frame-loop-owned gate state (not React state); the route system opens gates, the player reads them. */
 export const gates = { north: false, bridge: false, ascent: false }
 const combos = new Map<number, Rect[]>()
@@ -26,7 +43,7 @@ export function walkableRegions(northOpen = gates.north, bridgeOpen = gates.brid
   const key = +northOpen | (+bridgeOpen << 1) | (+ascentOpen << 2)
   let rects = combos.get(key)
   if (!rects) {
-    rects = [CAMP, WETLAND, GLADE, HIGHLAND, ...(northOpen ? [NORTH_CORRIDOR] : []), ...(bridgeOpen ? [BRIDGE] : []), ...(ascentOpen ? [ASCENT] : [])]
+    rects = [CAMP, WETLAND, GLADE, HIGHLAND, ...sideRegions, ...(northOpen ? [NORTH_CORRIDOR] : []), ...(bridgeOpen ? [BRIDGE] : []), ...(ascentOpen ? [ASCENT] : [])]
     combos.set(key, rects)
   }
   return rects

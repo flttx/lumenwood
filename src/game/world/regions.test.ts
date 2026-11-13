@@ -23,8 +23,8 @@ describe('walkable regions', () => {
   it('clamps to the nearest region and slides along the corridor walls', () => {
     const p = { x: NORTH_CORRIDOR.maxX + 0.4, z: sz(30) }
     clampToRegions(p, walkableRegions(true)); expect(p).toEqual({ x: NORTH_CORRIDOR.maxX, z: sz(30) })
-    const q = { x: CAMP.maxX + 8, z: CAMP.minZ - 8 }
-    clampToRegions(q, walkableRegions(false)); expect(q).toEqual({ x: CAMP.maxX, z: CAMP.minZ })
+    const q = { x: CAMP.maxX + 5, z: CAMP.minZ + 10 } // east of the camp, south of the hollow's pass
+    clampToRegions(q, walkableRegions(false)); expect(q).toEqual({ x: CAMP.maxX, z: CAMP.minZ + 10 })
   })
   it('no trunk stands on the north trail, so the way into the corridor is always open', () => {
     const north = paths[1]

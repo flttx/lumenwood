@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ANCIENT_TREE, PLATEAU_HEIGHT, TREE_ROOT_RADIUS, cradleSpots, elevation, highlandPath, treeCollider } from './highlandLayout'
 import { flowers } from './floraLayout'
-import { BIRCH_COUNT, CAMP_TREE_COUNT, HIGHLAND_TREE_COUNT, WETLAND_TREE_COUNT, forestTrees, highlandRocks, rockColliders, treeColliders } from './forestLayout'
+import { BIRCH_COUNT, SIDE_TREE_COUNTS, CAMP_TREE_COUNT, HIGHLAND_TREE_COUNT, WETLAND_TREE_COUNT, forestTrees, highlandRocks, rockColliders, treeColliders } from './forestLayout'
 import { ASCENT, GLADE, HIGHLAND, clampToRegions, rectDistance, walkableRegions } from '../regions'
 import { heightAt } from '../terrain/terrain'
 import { PLAYER_RADIUS } from '../../player/movement'
@@ -46,8 +46,8 @@ describe('highland layout', () => {
     expect(flowers.filter(f => f.zone === 'highland').length).toBe(zoneLanterns('highland').length * LANTERN_COST)
   })
   it('places plateau trees and rocks clear of the tree', () => {
-    const cap = CAMP_TREE_COUNT + WETLAND_TREE_COUNT + HIGHLAND_TREE_COUNT + BIRCH_COUNT
-    expect(forestTrees.length).toBeGreaterThan(cap * 0.85); expect(forestTrees.length).toBeLessThanOrEqual(cap)
+    const cap = CAMP_TREE_COUNT + WETLAND_TREE_COUNT + HIGHLAND_TREE_COUNT + BIRCH_COUNT + SIDE_TREE_COUNTS.reduce((a, b) => a + b, 0)
+    expect(forestTrees.length).toBeGreaterThan(cap * 0.78) // the small side areas fill before their caps; expect(forestTrees.length).toBeLessThanOrEqual(cap)
     expect(highlandRocks.length).toBeGreaterThan(12)
     for (const r of highlandRocks.slice(6)) expect(Math.hypot(r.x - ANCIENT_TREE[0], r.z - ANCIENT_TREE[1])).toBeGreaterThan(12)
   })

@@ -5,17 +5,23 @@ const regionNames: Record<RegionId, [string, string]> = {
   wetland: ['萤光湿地', 'The Glimmering Wetland'],
   glade: ['隐秘空地', 'The Hidden Glade'],
   highland: ['古树高地', 'The Ancient Highland'],
+  glen: ['瀑布溪谷', 'The Waterfall Glen'],
+  hollow: ['蘑菇幽谷', 'The Mushroom Hollow'],
+  lake: ['镜湖', 'The Mirror Lake'],
+  overlook: ['悬崖眺望台', 'The Cliff Overlook'],
+  beach: ['月牙海湾', 'The Crescent Cove'],
 }
 
 /** In-play overlay: brand, lantern tally, region banner, guidance caption and the control hint. */
 export function Hud() {
-  const { pointerLocked, caption, region, journey } = useGameStore()
+  const { pointerLocked, caption, region, journey, seeds } = useGameStore()
   return <div className="hud">
     <div className="hud-top">
       <div className="brand"><span className="logo-mini">流光之森</span><span>LUMENWOOD</span></div>
       {journey.total > 0 && <div className="tally" aria-label={`已点亮灯火 ${journey.lit} / ${journey.total}，携带萤火 ${journey.carried}`}>
         <div className="lanterns">{Array.from({ length: journey.total }, (_, i) => <LanternGlyph key={i} lit={i < journey.lit}/>)}</div>
         <div className="carried"><i/>萤火 {journey.carried}</div>
+        {seeds.found > 0 && <div className="carried seeds" aria-label={`光之种子 ${seeds.found} / ${seeds.total}`}><i/>光之种子 {seeds.found}/{seeds.total}</div>}
       </div>}
     </div>
     {region && <div key={region.id} className="region-banner" aria-hidden="true">

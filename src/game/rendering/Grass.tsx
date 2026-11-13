@@ -6,6 +6,7 @@ import { random } from '../shared/random'
 import { atmosphere } from './timeOfDay'
 import { qualitySettings } from './config'
 import { bakeGrassField } from './grassField'
+import { reflectionSkips } from './planarReflection'
 import { grassClearings } from '../world/zones/sceneryLayout'
 // Code-generated grass (user decision 2026-11-12: grass may be code, as terrain detail). A fixed set of blades tiles a
 // square around the camera: each blade wraps to the copy of its slot nearest the camera, so the patch follows the player
@@ -37,7 +38,7 @@ const vertexCommon = `#include <common>
 uniform vec3 uCamera; uniform float uRadius; uniform float uTime; uniform sampler2D uField; uniform vec4 uFieldRect; uniform vec2 uFieldSize;
 uniform vec4 uTrail[${TRAIL}]; uniform vec3 uSunDir;
 attribute vec4 aBlade; // xy slot offset, z random, w random
-varying float vT; varying float vShade; varying float vDry; varying float vBack;
+varying float vT; varying float vShade; varying float vDry; varying float vBack; varying float vPatch;
 vec2 fieldAt(vec2 p) {
   vec2 uv = (p - uFieldRect.xy) / uFieldRect.zw * (uFieldSize - 1.0);
   vec2 i = floor(uv), f = uv - i, t = 1.0 / uFieldSize;
@@ -51,6 +52,11 @@ const vertexBody = `
   vec2 field = fieldAt(p);
   float fade = 1.0 - smoothstep(uRadius * 0.65, uRadius, distance(p, uCamera.xz));
   float keep = step(aBlade.z, field.y) * fade;
+  // Meadow patches: large-scale value noise tints whole areas (sunlit yellow-green to cool blue-green), as in the boards.
+  vec2 cell = floor(p * 0.06), fr = fract(p * 0.06); fr = fr * fr * (3.0 - 2.0 * fr);
+  float h00 = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5), h10 = fract(sin(dot(cell + vec2(1, 0), vec2(127.1, 311.7))) * 43758.5);
+  float h01 = fract(sin(dot(cell + vec2(0, 1), vec2(127.1, 311.7))) * 43758.5), h11 = fract(sin(dot(cell + vec2(1, 1), vec2(127.1, 311.7))) * 43758.5);
+  vPatch = mix(mix(h00, h10, fr.x), mix(h01, h11, fr.x), fr.y);
   float height = (0.16 + 0.32 * aBlade.w) * keep;
   float t = position.y;
   float angle = aBlade.z * 31.4 + aBlade.w * 7.0;
@@ -62,7 +68,7 @@ const vertexBody = `
     float w = uTrail[i].z * (1.0 - smoothstep(0.25, 1.05, d));
     push += (d > 0.001 ? away / d : side) * w; flatten = max(flatten, w);
   }
-  float width = 0.095 * (1.0 - t * 0.85) * keep;
+  float width = 0.11 * (1.0 - t * 0.8) * keep;
   float gust = sin(uTime * 1.7 + p.x * 0.35 + p.y * 0.21) * 0.6 + sin(uTime * 3.1 + p.x * 1.3) * 0.25;
   vec2 bend = (vec2(0.8, 0.45) * gust * (1.0 - flatten) + side.yx * (aBlade.w - 0.5) * 0.6) * t * t * height * 0.45 + push * t * height * 0.85;
   float lift = t * height * (1.0 - 0.6 * flatten);
@@ -71,7 +77,8 @@ const vertexBody = `
   vBack = pow(max(dot(normalize(transformed - cameraPosition), uSunDir), 0.0), 5.0);`
 const fragmentCommon = `#include <common>
 uniform vec3 uBase; uniform vec3 uTip; uniform vec3 uTipDry; uniform vec3 uTipGlow; uniform float uGlow;
-varying float vT; varying float vShade; varying float vDry; varying float vBack;`
+varying float vT; varying float vShade; varying float vDry; varying float vBack; varying float vPatch;
+uniform vec3 uPatchWarm; uniform vec3 uPatchCool;`
 
 export function Grass() {
   const blades = useGameStore(s => qualitySettings[s.quality].grassBlades)
@@ -85,6 +92,7 @@ export function Grass() {
       uFieldSize: { value: new Vector2(field.width, field.depth) },
       uTrail: { value: Array.from({ length: TRAIL }, () => new Vector4(0, 0, 0, 0)) }, uSunDir: { value: new Vector3(0, 1, 0) },
       uBase: { value: BASE.clone() }, uTip: { value: TIP.clone() }, uTipDry: { value: TIP_DRY.clone() }, uTipGlow: { value: TIP_GLOW.clone() }, uGlow: { value: 0 },
+      uPatchWarm: { value: new Color(1.12, 1.05, 0.72) }, uPatchCool: { value: new Color(0.78, 0.95, 0.92) },
     }
     const material = new MeshLambertMaterial({ side: DoubleSide })
     material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
@@ -104,9 +112,10 @@ export function Grass() {
     mesh.frustumCulled = false // the patch always surrounds the camera
     mesh.userData.noAO = true // blades are placed in the vertex shader; the AO pass's normal render would draw them flat
     mesh.receiveShadow = true
+    reflectionSkips.add(mesh) // costly to draw twice, and the shore hides it in the water anyway
     return { mesh, uniforms, texture }
   }, [blades])
-  useEffect(() => () => { mesh.geometry.dispose(); (mesh.material as MeshLambertMaterial).dispose(); texture.dispose() }, [mesh, texture])
+  useEffect(() => () => { reflectionSkips.delete(mesh); mesh.geometry.dispose(); (mesh.material as MeshLambertMaterial).dispose(); texture.dispose() }, [mesh, texture])
   const trail = useMemo(() => ({ last: new Vector2(Infinity, Infinity) }), [])
   useFrame(({ camera, clock }, delta) => {
     uniforms.uCamera.value.copy(camera.position)

@@ -13,7 +13,8 @@ import { ascentOpen, gateOpen, reachFinale, route, routeClock, tryLight } from '
 import { LANTERN_COST, LANTERN_RANGE, lanternPlacements, routeEnds, zoneLanterns } from './routeLayout'
 import { HINT_AFTER, captions, hintTarget, zoneAt, type CaptionId } from './guide'
 import type { RegionId } from '../../../state/gameStore'
-import { serialize, writeSave } from './save'
+import { saveRequest, serialize, writeSave } from './save'
+import { BEACH, GLEN, HOLLOW, LAKE, OVERLOOK } from '../../world/regions'
 // Applies the route rules each frame: advances play time and the flock, lights nodes the player reaches with enough
 // fireflies, opens gates once a zone's stream has arrived, and plays the finale and ending. It also drives the guidance
 // (first-time captions, a pulse on the next target after a stall), the score's voices and the local save. Rendering lives
@@ -23,6 +24,7 @@ const REARM = LANTERN_RANGE + 1, CAPTION_START = 3, ENDING_CARD = 14, SAVE_EVERY
 const REGION_SETTLE = 1.2
 /** Where the stall hint currently points (read by HintPulse). Frame-loop state, not React state. */
 export const hint = { x: 0, y: 0, z: 0, at: -Infinity }
+const sideAreas: [RegionId, typeof GLEN][] = [['glen', GLEN], ['hollow', HOLLOW], ['lake', LAKE], ['overlook', OVERLOOK], ['beach', BEACH]]
 
 export function RouteDirector({ player }: { player: Vector3 }) {
   // A node reacts once per approach; walking more than REARM metres away re-arms it.
@@ -41,7 +43,8 @@ export function RouteDirector({ player }: { player: Vector3 }) {
     for (let missing = route.carried - flock.following; missing > 0; missing--) flock.spawn(player.x, player.y + 1.2, player.z)
     flock.update(dt, player, now)
     // HUD: region banner on entering a new region, and the lantern / firefly tally when it changes.
-    const region: RegionId = rectDistance(player.x, player.z, GLADE) === 0 ? 'glade' : zoneAt(player.z)
+    const side = sideAreas.find(([, rect]) => rectDistance(player.x, player.z, rect) === 0)
+    const region: RegionId = side ? side[0] : rectDistance(player.x, player.z, GLADE) === 0 ? 'glade' : zoneAt(player.z)
     if (region !== memory.candidate) { memory.candidate = region; memory.candidateSince = now }
     if (region !== memory.region && (now - memory.candidateSince >= REGION_SETTLE || !memory.region)) { memory.region = region; useGameStore.getState().showRegion(region) }
     const lit = route.litAt.filter(t => t !== null).length, tally = `${lit}/${route.carried}`
@@ -116,6 +119,7 @@ export function RouteDirector({ player }: { player: Vector3 }) {
       highlandLit: zoneLanterns('highland').filter(j => route.litAt[j] !== null).length, ending: done !== null,
     }))
     // Save on progress, and the position every few seconds.
+    if (saveRequest.dirty) { memory.dirty = true; saveRequest.dirty = false }
     if (memory.dirty || (memory.saveTimer -= dt) <= 0) {
       writeSave(serialize(route, [player.x, player.z]))
       memory.dirty = false; memory.saveTimer = SAVE_EVERY

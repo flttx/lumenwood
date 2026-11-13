@@ -4,6 +4,8 @@ import { LANTERN_COST, LANTERN_RANGE, lanterns, zoneLanterns, type Zone } from '
 export interface RouteProgress {
   /** Flowers that have already released their firefly (each releases once). */
   released: Set<number>
+  /** Session time (s) each flower released its firefly (drives the colour returning around it). */
+  releasedAt: Map<number, number>
   /** Fireflies following the player. */
   carried: number
   /** Session time (s) each lantern was lit, or null while dark. */
@@ -18,14 +20,18 @@ export interface RouteProgress {
   captions: Set<string>
   /** Whether the ending card has been shown. */
   endingSeen: boolean
+  /** Light seeds picked up (index into sideLayout.seeds) and when (s); side-area secrets solved and when. */
+  seedsAt: Map<number, number>
+  secretsAt: Map<SecretId, number>
 }
+export type SecretId = 'glen' | 'hollow' | 'lake' | 'overlook'
 export function createProgress(): RouteProgress {
-  return { released: new Set(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null, highland: null }, shortAt: lanterns.map(() => null), finaleAt: null, captions: new Set(), endingSeen: false }
+  return { released: new Set(), releasedAt: new Map(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null, highland: null }, shortAt: lanterns.map(() => null), finaleAt: null, captions: new Set(), endingSeen: false, seedsAt: new Map(), secretsAt: new Map() }
 }
 /** A flower woke: it releases one follower the first time only. Returns true when a firefly was released. */
-export function releaseFirefly(p: RouteProgress, flower: number) {
+export function releaseFirefly(p: RouteProgress, flower: number, now = 0) {
   if (p.released.has(flower)) return false
-  p.released.add(flower); p.carried++
+  p.released.add(flower); p.releasedAt.set(flower, now); p.carried++
   return true
 }
 export type LanternResult = 'lit' | 'short' | 'none'
