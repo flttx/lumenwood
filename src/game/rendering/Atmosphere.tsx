@@ -107,7 +107,7 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     // The dome travels with the camera so it never falls outside the far plane as the world grows north.
     dome.current?.position.copy(camera.position)
     const setting = useGameStore.getState().timeOfDay
-    const target = setting === 'journey' ? journeyBlend(route.litAt.filter(t => t !== null).length, atmosphere.wetland, atmosphere.highland, route.litAt.length)
+    const target = setting === 'journey' ? journeyBlend(route.litAt.filter(t => t !== null).length, atmosphere.wetland, atmosphere.highland, route.litAt.length, route.sunlight.crossed, route.captions.has('highland') ? 2 : route.captions.has('wetland') ? 1 : 0)
       : TIME_POINT[setting]
     // The journey's sunset eases slowly, so lighting a lantern dims the sky over several seconds.
     atmosphere.time += (target - atmosphere.time) * dampFactor(setting === 'journey' ? JOURNEY_RATE : TRANSITION_RATE, Math.min(delta, 0.1))
@@ -144,9 +144,12 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     sky.uniforms.meteorT.value = mt >= 0 && mt <= 1 ? mt : -1
     // Shared plant uniforms (worldMaterial.ts): leaves glow through when backlit by the low sun, rims take the sky colour.
     worldUniforms.uTime.value = clock.elapsedTime
+    worldUniforms.uFocusView.value.copy(player); worldUniforms.uFocusView.value.y += 1.25
+    worldUniforms.uFocusView.value.applyMatrix4(camera.matrixWorldInverse)
     worldUniforms.uSunView.value.copy(atmosphere.sunDirection).transformDirection(camera.matrixWorldInverse)
     worldUniforms.uSunColor.value.setHex(p.sun); worldUniforms.uRimColor.value.setHex(p.hemiSky)
     worldUniforms.uTranslucency.value = p.sunIntensity * 0.4
+    worldUniforms.uDaylight.value = 1 - atmosphere.blend
     fog.color.setHex(p.fog); fog.near = p.fogNear; fog.far = p.fogFar
     scene.fog = fog; scene.background = background.setHex(p.fog)
     gl.toneMappingExposure = p.exposure

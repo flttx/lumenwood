@@ -15,8 +15,8 @@ import { lanternPlacements, type NodeKind } from './routeLayout'
 const FLY_IN = 0.8, WARM_UP = 1.2, SHORT_FLICKER = 0.9
 interface NodeStyle { id: string; url: string; litEmissive: number; halo: number; light: number; haloSize: number; candela: number; range: number }
 const styles: Record<NodeKind, NodeStyle> = {
-  post: { id: 'INT-002', url: `${assetConfig.baseUrl}models/interactive/INT-002.glb`, litEmissive: 6, halo: 0xffc27a, light: 0xffb25e, haloSize: 1.1, candela: 7, range: 11 },
-  cradle: { id: 'INT-003', url: `${assetConfig.baseUrl}models/interactive/INT-003.glb`, litEmissive: 5, halo: 0xffd9a0, light: 0xffc27a, haloSize: 1.0, candela: 8, range: 12 },
+  post: { id: 'INT-002', url: `${assetConfig.baseUrl}models/interactive/INT-002.glb`, litEmissive: 3.2, halo: 0xffc27a, light: 0xffb25e, haloSize: 0.9, candela: 7, range: 11 },
+  cradle: { id: 'INT-003', url: `${assetConfig.baseUrl}models/interactive/INT-003.glb`, litEmissive: 2.8, halo: 0xffd9a0, light: 0xffc27a, haloSize: 0.9, candela: 8, range: 12 },
 }
 for (const style of Object.values(styles)) useGLTF.preload(style.url, false, false)
 /** Where a node's point light sits: a point light right at the glass would blow out the post or stone holding it, so the
@@ -65,7 +65,7 @@ export function Lanterns({ kind }: { kind: NodeKind }) {
       // By day a lit node keeps a faint halo so the player can still tell which ones are done.
       const light = lit * (0.3 + 0.7 * night) * breathe
       p.halo.visible = light > 0.01
-      p.haloMaterial.opacity = light * 0.4
+      p.haloMaterial.opacity = light * 0.22
       p.source.level = lit * night * breathe
     })
   })

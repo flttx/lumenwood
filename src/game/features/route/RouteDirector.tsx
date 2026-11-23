@@ -11,10 +11,15 @@ import { sz } from '../../world/scale'
 import { flock } from './flock'
 import { ascentOpen, gateOpen, reachFinale, route, routeClock, tryLight } from './progress'
 import { LANTERN_COST, LANTERN_RANGE, lanternPlacements, routeEnds, zoneLanterns } from './routeLayout'
-import { HINT_AFTER, captions, hintTarget, zoneAt, type CaptionId } from './guide'
+import { HINT_AFTER, captions, zoneAt, type CaptionId } from './guide'
+import { navigationFocus } from './navigation'
+import { heightAt } from '../../world/terrain/terrain'
 import type { RegionId } from '../../../state/gameStore'
 import { saveRequest, serialize, writeSave } from './save'
 import { BEACH, GLEN, HOLLOW, LAKE, OVERLOOK } from '../../world/regions'
+import { sunlightObjective } from '../sunlight/objective'
+import { atmosphere } from '../../rendering/timeOfDay'
+import { conduit } from './conduit'
 // Applies the route rules each frame: advances play time and the flock, lights nodes the player reaches with enough
 // fireflies, opens gates once a zone's stream has arrived, and plays the finale and ending. It also drives the guidance
 // (first-time captions, a pulse on the next target after a stall), the score's voices and the local save. Rendering lives
@@ -39,6 +44,7 @@ export function RouteDirector({ player }: { player: Vector3 }) {
       useGameStore.getState().showCaption(captions[id])
     }
     const progressed = () => { memory.lastProgress = now; memory.dirty = true }
+    const daylightChapter = sunlightObjective(route, player.x, player.z, atmosphere.time) !== null
     // A restored journey brings its following fireflies back around the player.
     for (let missing = route.carried - flock.following; missing > 0; missing--) flock.spawn(player.x, player.y + 1.2, player.z)
     flock.update(dt, player, now)
@@ -47,16 +53,17 @@ export function RouteDirector({ player }: { player: Vector3 }) {
     const region: RegionId = side ? side[0] : rectDistance(player.x, player.z, GLADE) === 0 ? 'glade' : zoneAt(player.z)
     if (region !== memory.candidate) { memory.candidate = region; memory.candidateSince = now }
     if (region !== memory.region && (now - memory.candidateSince >= REGION_SETTLE || !memory.region)) { memory.region = region; useGameStore.getState().showRegion(region) }
-    const lit = route.litAt.filter(t => t !== null).length, tally = `${lit}/${route.carried}`
-    if (tally !== memory.journey) { memory.journey = tally; useGameStore.getState().setJourney({ lit, total: lanternPlacements.length, carried: route.carried }) }
+    const lit = route.litAt.filter(t => t !== null).length, wetlandLit = zoneLanterns('wetland').filter(i => route.litAt[i] !== null).length, tally = `${lit}/${route.carried}/${wetlandLit}`
+    if (tally !== memory.journey) { memory.journey = tally; useGameStore.getState().setJourney({ lit, total: lanternPlacements.length, carried: route.carried, wetlandLit }) }
     if (route.released.size !== memory.released) {
-      if (route.released.size > memory.released) { say('firstFirefly'); progressed() }
+      if (route.released.size > memory.released) { if (!daylightChapter) say('firstFirefly'); progressed() }
       memory.released = route.released.size
     }
     lanternPlacements.forEach((lantern, i) => {
       const distance = Math.hypot(player.x - lantern.x, player.z - lantern.z)
       if (distance > REARM) armed[i] = true
       if (!armed[i]) return
+      if (lantern.zone === 'highland' && conduit.ready !== i) return
       const result = tryLight(route, i, distance, now)
       if (result === 'none') return
       armed[i] = false
@@ -91,7 +98,7 @@ export function RouteDirector({ player }: { player: Vector3 }) {
       ;[0, 2, 4].forEach((note, n) => soundscape.chime(note, GLADE_CENTRE[0], 3, GLADE_CENTRE[1], 3.4 + n * 0.04))
     }
     // First-time captions for places and gates.
-    if (now > CAPTION_START && route.released.size === 0) say('start')
+    if (now > CAPTION_START && !daylightChapter) { if (route.released.size === 0) say('start'); else say('firstFirefly') }
     if (gates.north && player.z > sz(18)) say('campDone')
     if (player.z > sz(38) && player.z < sz(62)) say('wetland')
     if (gates.bridge) say('bridge')
@@ -106,9 +113,9 @@ export function RouteDirector({ player }: { player: Vector3 }) {
     // Stall hint: after HINT_AFTER seconds without progress, pulse the next target and chime from its direction.
     if (now - memory.lastProgress > HINT_AFTER) {
       memory.lastProgress = now
-      const target = hintTarget(route, player.x, player.z)
+      const target = navigationFocus.target
       if (target) {
-        const lifted = target.z > sz(99) ? PLATEAU_HEIGHT : 0
+        const lifted = heightAt(target.x, target.z)
         Object.assign(hint, { x: target.x, y: lifted, z: target.z, at: now })
         soundscape.chime(4, target.x, lifted + 1.5, target.z)
       }

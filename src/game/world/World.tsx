@@ -28,6 +28,8 @@ import { PostFX } from '../rendering/PostFX'
 import { LocalLights } from '../rendering/LocalLights'
 import { AmbientLife } from '../features/ambient/AmbientLife'
 import { spawnPoint } from '../features/route/save'
+import { Sunlight } from '../features/sunlight/Sunlight'
+import { ConduitDirector } from '../features/route/ConduitDirector'
 export function World() {
   const input = useMemo(() => createInput(), [])
   // A continued journey starts where it was saved; a new one at the camp spawn.
@@ -42,6 +44,8 @@ export function World() {
   useEffect(() => attachFocusGuards(element), [element])
   useEffect(() => installDebugApi({ input, position, velocity, rig, gl, scene }), [input, position, velocity, rig, gl, scene])
   return <><Atmosphere player={position}/><LocalLights/>
+    <ConduitDirector player={position} input={input}/>
+    <Suspense fallback={null}><Sunlight player={position}/></Suspense>
     <Forest/><Grass/><AirEffects/><AmbientLife/><Suspense fallback={null}><GlowFlowers player={position}/></Suspense><Fireflies/><Fireflies homes={wetlandFireflyHomes} seed={13}/><Water player={position} velocity={velocity}/><Water player={position} velocity={velocity} area={WATER_AREAS.glen}/><Waterfall/><Sea/><Suspense fallback={null}><SideFeatures/></Suspense><Seeds/><SecretsDirector player={position}/><Beacon/><FireflyRoute player={position}/><Player input={input} position={position} velocity={velocity}/><FollowCamera input={input} position={position} rig={rig}/><SoundscapeDriver/><Precompile/><PostFX/>
   </>
 }

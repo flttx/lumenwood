@@ -5,6 +5,8 @@ import { WATER_LEVEL, basinDepth, wetlandPath } from '../zones/wetlandLayout'
 import { ANCIENT_TREE, elevation, highlandPath } from '../zones/highlandLayout'
 import { at } from '../scale'
 import { WATERFALL } from '../zones/sideLayout'
+import { sunlightGround } from '../../features/sunlight/terrain'
+import { sunRavineDepth } from '../../features/sunlight/landform'
 // Code-built ground (terrain is allowed as code per AGENTS.md). The camp and corridor stay exactly flat at y = 0; in the
 // wetlands the ground sinks into pools (the player wades, their height follows the ground) and a deep channel; north of
 // the glade the whole land rises up a ramp to the highland plateau. Hills rise
@@ -42,7 +44,14 @@ export function rolling(x: number, z: number) {
 export const CLIFF_HEIGHT = 17, CLIFF_FOOT = GLEN.minX - 0.5, CLIFF_TOP = GLEN.minX - 3
 /** 0–1: the glen's west cliff (full height west of CLIFF_TOP), across the glen's width. */
 export function cliffWeight(x: number, z: number) {
-  return smoothstep(CLIFF_FOOT, CLIFF_TOP, x) * (1 - smoothstep(GLEN.maxZ - 6, GLEN.maxZ + 14, z)) * (1 - smoothstep(GLEN.minZ + 6, GLEN.minZ - 14, z))
+  // Retreat folds outside the playable bank; keep the waterfall's own lip and landing unchanged.
+  const awayFromFall = smoothstep(WATERFALL.width / 2 + 1, WATERFALL.width / 2 + 5, Math.abs(z - WATERFALL.z))
+  const fold = (1.2 + valueNoise(z * 0.17, 17) * 4.8) * awayFromFall
+  const t = smoothstep(CLIFF_FOOT - fold * 0.2, CLIFF_TOP - fold, x)
+  // Broad, uneven shelves live entirely beyond the playable bank. The waterfall's own support stays unchanged.
+  const shelves = 0.42 * smoothstep(0, 0.4, t) + 0.32 * smoothstep(0.3, 0.76, t) + 0.26 * smoothstep(0.66, 1, t)
+  const profile = t + (shelves - t) * awayFromFall * 0.8
+  return profile * (1 - smoothstep(GLEN.maxZ - 6, GLEN.maxZ + 14, z)) * (1 - smoothstep(GLEN.minZ + 6, GLEN.minZ - 14, z))
 }
 // The island (third pass, 2026-11-12; the user: "beyond the forest is the sea; the forest is an island"). Past the hills the
 // land falls to a seabed; the coastline wanders with noise between about 45 and 75 m from the walkable areas, so beaches,
@@ -65,11 +74,24 @@ const COVE_TOP = BEACH.maxZ - 6, WATERLINE = BEACH.minZ
 export function coveWeight(x: number, z: number) {
   return (1 - smoothstep(BEACH.maxX + 4, BEACH.maxX + 26, Math.abs(x))) * smoothstep(COVE_TOP + 4, COVE_TOP - 6, z)
 }
-/** The beach's height along the cove: an even slope of sand to the waterline, then the shelf down to the seabed. */
+/** Gently meandering waterline, kept just seaward of the walkable beach boundary. */
+export function coveShore(x: number) {
+  return WATERLINE - 0.3 - 2.8 * valueNoise(x * 0.045 + 3.4, 1.7) - 0.6 * (1 + Math.sin(x * 0.14 + 0.8))
+}
+/** A sloping cove with low wind-shaped dunes, tapering smoothly into a shallow submerged shelf. */
 export function beachProfile(x: number, z: number) {
-  const ripple = 0.12 * (valueNoise(x * 0.25, z * 0.25) - 0.5)
-  if (z > WATERLINE) return (SEA_LEVEL + 0.15) * Math.min(1, (COVE_TOP - z) / (COVE_TOP - WATERLINE)) + ripple * smoothstep(COVE_TOP, WATERLINE, z)
-  return SEA_LEVEL + 0.15 + (SEABED - SEA_LEVEL - 0.15) * smoothstep(WATERLINE, WATERLINE - 45, z)
+  const shore = coveShore(x)
+  const inland = smoothstep(shore + 1.5, shore + 9, z) * (1 - smoothstep(COVE_TOP - 4, COVE_TOP + 3, z))
+  const dunes = ((valueNoise(x * 0.065 + 2, z * 0.075 - 3) - 0.5) * 0.9
+    + (valueNoise(x * 0.16 - 5, z * 0.12 + 1) - 0.5) * 0.28) * inland
+  const t = Math.min(1, Math.max(0, (COVE_TOP - z) / (COVE_TOP - WATERLINE)))
+  // Ease the slope to horizontal at the waterline to avoid a sharp normal crease.
+  const slope = (SEA_LEVEL + 0.15) * (t + t * t - t * t * t)
+  // At the walkable edge all terrain remains dry. Beyond it the shelf reaches the actual sea level smoothly.
+  if (z >= WATERLINE) return slope + dunes
+  const edge = SEA_LEVEL + 0.15
+  if (z >= shore) return edge + (SEA_LEVEL - edge) * smoothstep(WATERLINE, shore, z)
+  return SEA_LEVEL + (SEABED - SEA_LEVEL) * smoothstep(shore, shore - 45, z)
 }
 /** Ground height: hills outside the regions, rolling swells on land, pools and channel below 0, the highland rise, the
  *  glen's cliff, the cove's beach, and the island's shores falling to the seabed. */
@@ -80,7 +102,7 @@ export function heightAt(x: number, z: number) {
   const cove = z < COVE_TOP + 4 ? coveWeight(x, z) : 0
   if (cove > 0) land += (beachProfile(x, z) - land) * cove
   if (cove > 0.99) return land
-  if (distance < 30 && x < SEA_CLIFF_EDGE) return land // well inside the island: skip the coast noise
+  if (distance < 30 && x < SEA_CLIFF_EDGE) return sunlightGround(x, z, land) // interior, including the daytime sample
   const sea = seaWeight(x, z, distance)
   return land + (SEABED - land) * sea * sea * (3 - 2 * sea)
 }
@@ -103,7 +125,8 @@ export function groundUnder(x: number, z: number, radius: number) {
 // Footpaths drawn into the ground colour: spawn → cabin door, and a trail north through the corridor into the wetlands.
 // Routed so every trunk is at least 1.3 m from a centreline.
 export const paths: [number, number][][] = [
-  ([[0, 0], [3.5, -1.5], [8, -3], [10.5, -7], [13.08, -13.08]] as const).map(at),
+  // The cabin trail passes south of the daytime ravine; it never draws a walkable-looking path into the gap.
+  [[0, 0], [6, -5], [10, -16], [18, -18], [26.25, -17.5], [32.7, -32.7]],
   ([[0, 0], [-1.6, 4], [-4.6, 9.5], [-5.6, 14], [-3.6, 17], [-3.4, 21.5], [-3.7, 29], [-3.3, 37]] as const).map(at),
   wetlandPath,
   highlandPath,
@@ -115,6 +138,7 @@ export const paths: [number, number][][] = [
   [[-12.5, 260], [10, 268], [30, 285], [46, 299.5], [62, 299.5], [76, 299], [86, 298]],
   // South from the spawn down to the cove's beach (2026-11-13).
   [[0, 0], [3, -14], [1, -30], [-2, -46], [0, -62], [1, -76]],
+  [[10, -16], [13, -17], [22.5, -17], [22.5, -14]],
 ]
 function segmentPoint(px: number, pz: number, [ax, az]: [number, number], [bx, bz]: [number, number]): [number, number] {
   const dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)))
@@ -145,7 +169,7 @@ const MOSS: [number, number, number] = [0.42, 0.52, 0.29], DEEP: [number, number
 const EARTH: [number, number, number] = [0.4, 0.33, 0.25], HILL: [number, number, number] = [0.33, 0.42, 0.27]
 const MUD: [number, number, number] = [0.2, 0.22, 0.16], ROCK: [number, number, number] = [0.58, 0.55, 0.5], ROCK_DARK: [number, number, number] = [0.36, 0.35, 0.33]
 const WET_ROCK: [number, number, number] = [0.2, 0.21, 0.21], SLIME: [number, number, number] = [0.18, 0.27, 0.17]
-const SAND: [number, number, number] = [0.78, 0.7, 0.52], WET_SAND: [number, number, number] = [0.5, 0.45, 0.34], SEAFLOOR: [number, number, number] = [0.36, 0.42, 0.36]
+const SAND: [number, number, number] = [0.78, 0.7, 0.52], WET_SAND: [number, number, number] = [0.66, 0.59, 0.43], SEAFLOOR: [number, number, number] = [0.36, 0.42, 0.36]
 const mix = (a: readonly number[], b: readonly number[], t: number) => a.map((v, i) => v + (b[i] - v) * t) as [number, number, number]
 /** sRGB ground colour: moss patches, worn earth paths, slightly darker hills, dark wet mud around and under water, and on
  *  the coast sand beaches, wet sand at the waterline, a pale seafloor and rock on the sea cliff. */
@@ -162,6 +186,9 @@ export function groundColor(x: number, z: number, height = heightAt(x, z)) {
   const wet = cliff * (1 - smoothstep(WATERFALL.width / 2, WATERFALL.width / 2 + 3, Math.abs(z - WATERFALL.z)))
   color = mix(color, mix(WET_ROCK, SLIME, smoothstep(0.4, 0.7, valueNoise(z * 1.7, height * 0.5))), wet * 0.85)
   color = mix(color, EARTH, pathWeight(x, z) * 0.75)
+  // Exposed soil and stone in the daytime hollow; no green carpet painted down its steep sides.
+  const ravine = sunRavineDepth(x, z)
+  if (ravine > 0) color = mix(color, mix([0.32, 0.30, 0.25], [0.43, 0.41, 0.34], patches), smoothstep(0.12, 1.0, ravine))
   // Darkens from just above the waterline down, so shores read as wet before the water starts.
   color = mix(color, MUD, smoothstep(0.02, WATER_LEVEL - 0.2, basinDepth(x, z)))
   if (height > SEA_LEVEL + 3.5) return color

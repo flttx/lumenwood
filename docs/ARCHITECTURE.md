@@ -1,5 +1,20 @@
 # 工程架构
 
+## 2026-11-15 整体优化补记（已实现）
+
+第二次打磨：`Sea.tsx` 将粗糙天空反射与细波法线分开，并以 `userData.aoSurface` 明确参加 GTAO 的平面法线/深度渲染，阻止水下地形接缝的 AO 被乘到海面；该通道不重现细小浪面位移。`terrain.cliffWeight` 的外侧退台不进入 GLEN 可走岸边，落水口附近保留旧剖面；`Ground.tsx` 用独立 0.5 m 崖壁网格替换主网格同区域，细网格边界插值到粗边以避免裂缝。`groundMaterial` 分别投影地面 xz 与岩面 zy，混合材质权重，不混合绝对坐标；岩面用风化色与不规则裂隙。`grassField` 排除岩面，`Grass.fieldAt` 按已读取四点的高度差抑制陡单元密度，避免密度插值带入悬草，无额外纹理采样。`landmarkView.ts` 给古树入口的蕨类/灌木布局留出视线通道，保留其他位置的随机序列；灌木碰撞仍从同一最终布局生成。
+
+- `timeOfDay.journeyBlend` 用营地、湿地、高地的阶段锚点与访问下限合成 0–2 曲线；`Atmosphere` 从已有持久化字幕标记读取已访问区域，日光奖励仅作 0.3 下限，无新存档字段。
+- `camera/arm.ts` 把基础臂长、演出后拉和抬升先合成最终射线，再统一做硬遮挡与树冠检查。近处树冠保留原像素淡出策略，小型植被加入同一材质淡出；不执行全场景逐三角形射线。
+- `secrets/session.ts` 向目标层暴露当前秘密会话；纯函数 `secrets/objective.ts` 根据本地区域、步骤和已取得奖励生成线索。`RouteGuidance` 管理 T 切换与离区重置，继续最多每秒 4 次写入变更后的 HUD，不逐帧写 React 状态；未解回声只提示倾听，不暴露下一块石头。
+- `route/conduit.ts` 是可单测的高地顺序/朝向/蓄光规则；`ConduitDirector` 读相机水平朝向与 E，更新共享瞬态进度和光束。`RouteDirector` 仅在对应光脉 ready 时调用原点灯/扣除/声音逻辑；营地与湿地自动点灯不变。暂停冻结蓄光，未完成蓄光不保存，既有 lit 位图兼容旧的非顺序点灯存档。
+- 结局卡继续按钮显式恢复 playing 再请求鼠标锁，避免演出释放鼠标后焦点保护留下暂停态。`debugApi` 增加只读光脉快照供真实按键用例验证。
+- 水体、地形与雾的收敛沿用已有渲染模块，未新增模型请求、外部依赖、后端或区域加载系统。字体子集源加入 `RouteGuidance.tsx` 与新秘密目标文字。
+
+2026-11-15 白天视觉：日间预设、草地/叶片/苔藓颜色按 `1 - atmosphere.blend` 混合；白天开局褪色减弱，暮光/夜晚恢复原端点强度。`sunlight/landform.ts` 用扰动椭圆的距离近似统一地形深度、草地排除与碰撞边缘；`collision.ts` 沿梯度推回安全岸线，桥成后只开放桥面，替换矩形墙。`Ground.tsx` 切掉粗网格相同区域，用对齐边界的 0.25 m 局部网格承载岸坡。`SunlightBanks.tsx` 分块实例化已有 Meshy 布景，`VineLeaves.tsx` 用单个实例网格给临时根系补枝叶；`safeSunlightSpawn` 按新岸缘迁移旧岛角/坡地存档并保留桥上位置。验证见 PROGRESS.md。
+
+2026-11-14 白天样板新增 `features/sunlight/`：`layout.ts` 为镜位、保留空地、沟壑墙体与桥面高度的共同来源；`terrain.ts` 切出静态干沟壑；`progress.ts` 是可单测的两镜光路、生长与兼容存档规则；`objective.ts` 提供局部动作目标；`SunlightDirector.tsx` 处理 E/Q、暂停/日光门控、生长、奖励完成与保存请求；`SunlightOptics.tsx`、`VineBridge.tsx`、`Sunlight.tsx` 分别负责临时光学几何、临时藤桥与已有 Meshy 配景。`Player` 共享沟壑墙体和动态桥面，`FollowCamera` 补挡光岩石的遮挡代理。`RouteGuidance` 优先采用有条件的白天目标，`SunlightPanel` 显示低频互动反馈。`save.ts` 在 v2 中增加可选字段，安全迁移旧沟壑位置；`journeyBlend` 在取得样板奖励后加入傍晚偏移，固定时段优先。细节与边界见[样板说明](DAYLIGHT_SAMPLE.md)。
+
 ## 已实现
 `app` 管理入口和 Canvas，`world/zones` 组装灰盒，`world/zones/forestLayout.ts` 是树木布局的唯一数据源（渲染、碰撞圆、遮挡圆柱）；`Forest.tsx` 加载 VEG-001 GLB，用两个 InstancedMesh 按距离分 LOD（`treeLod.ts`），碰撞与遮挡仍用代码代理，不对渲染网格做射线检测。`world/zones/campLayout.ts` 定义木屋（`Cabin.tsx`，ARC-001）的位置、旋转盒体碰撞与圆柱遮挡代理，以及发光植物位置；`features/flora/GlowFlowers.tsx` 加载 INT-001，按与玩家的距离在帧循环里直接改材质发光强度（`glow.ts`）。`input` 维护非 React 高频输入，`input/focus.ts` 处理失焦、隐藏标签页、指针锁丢失的自动暂停。`player` 用纯函数 `movement.ts`（速度平滑、角度插值、边界）和 `collision.ts`（圆形推出、旋转盒体推出）更新共享的位置/速度向量，`Character.tsx` 加载 CHR-001 并按 `gait.ts` 选择动作；`camera` 在角色更新后跟随，`camera/occlusion.ts` 计算射线与竖直圆柱的最近交点。`rendering` 提供像素比档位，`assets` 提供模型根路径，`ui` 显示界面，`state` 用 Zustand 管理低频状态（阶段、指针锁、设置）。`debug/debugApi.ts` 仅在开发模式或 `?debug` 下暴露测试钩子。
 
@@ -31,3 +46,23 @@ P3 起：`world/regions.ts` 用矩形并集（营地、北侧走廊、湿地）�
 
 ## 计划
 按实际功能增设模块，不提前创建空壳：`features/flora`（发光植物、唤醒光波）、`features/firefly`（萤火粒子）、`features/route`（萤火航线）、`audio`（Web Audio 实时合成的环境声与空间音符，单例引擎 + 场景内 `SoundscapeDriver` 桥接设置与帧循环）、`shared` 已存在；新区域沿用区域并集、高度场与航线节点扩展；存档格式带版本号，布局改变时旧存档被忽略。碰撞与遮挡继续使用代码维护的代理体，不对渲染网格做逐帧射线检测。四种模型目前经 drei `useGLTF` 加载，树木已有实例化和 LOD；按区域加载与释放、纹理及网格压缩仍需随真实资源制定。Low/Medium/High 将扩展为经测量的完整渲染预算。部署使用 Vite 相对 base 与静态文件，无后端。
+
+
+外围树 LOD（2026-11-13）：外围树可距可行走边界仅 3 m，不再固定使用 LOD1；与场景树一样按分块最近距离选择 LOD。红杉 LOD1 网格存在明显破面，暂将切换距离提高到 80 m；这不是网格修复，远景仍需重新优化并验收，近中景渲染开销有所增加。
+
+
+海湾材质（2026-11-13）：`Sea.tsx` 在既有海床高度图基础上用多频动态噪声法线与像素足迹过滤控制波面，近岸按水深生成泡沫；`terrain/groundMaterial.ts` 在原有受光地面上按海湾范围和水位叠加沙粒、风纹与湿沙。海面仍是自定义着色器，不是平面反射或真实折射。
+
+
+海湾接缝（2026-11-13）：`beachProfile` 在可行走边界外生成弯曲水线和连续下沉的海床，在岸上叠加淡出至水边的低起伏。海面裁切交由地面深度测试，海床纹理只驱动水色和浪花；海湾另烘焙 0.75 m 局部高度图，纹理坐标按像素中心对齐。
+
+
+海湾冲滩（2026-11-13）：`terrain/surf.ts` 提供共享 GLSL 波浪函数和时间 uniform；`Sea.tsx` 使用细分海面在海湾局部升降并按水深生成推进浪带和泡沫，`groundMaterial.ts` 用同一函数使湿沙随冲刷变化。水面为视觉表现，不参与角色碰撞。
+
+主线引导（2026-11-14）：`features/route/navigation.ts` 根据进度生成常驻目标文案、局部路点与区域进度，并计算相对视角的方位；返回支线山口、穿走廊、跨光桥与爬坡按局部路点分段指引，不承担障碍物寻路。`RouteGuidance.tsx` 在帧循环中最多每 0.25 s 采样一次，保留仍有效的行动目标，仅在文案、整数米距离或按 10° 量化的方向变化时调用 store 的 `setObjective`。`navigationFocus` 共享当前目标给 `RouteDirector` 的停滞光柱与声音；首次就绪/目标切换也会使用原有 `HintPulse`。`ui/Objective.tsx` 单独订阅这份非持久化状态，`Hud` 改用分字段订阅，避免指南针刷新连带重画整个 HUD。原有字幕和玩法进度逻辑保留，停滞周期改为 12 s；字体子集脚本追加目标文案源。
+
+质感与开局收敛（2026-11-14）：`Grass.tsx` 同一实例预算按四片成簇分布，增加独立形体属性、收零尖端与大尺度色块，覆盖半径为 23 m；`groundMaterial.ts` 对近/远地形共用世界坐标纹理细节、导数过滤与轻微法线起伏，陡面改用侧坐标并排除落叶。`PostFX/timeOfDay` 降泛光、去色散、减颗粒；各光效模块分别控制光源核心与光晕，篝火用普通透明合成，`Beacon` 按相机距离衰减近处光柱。
+
+树冠与仰视：`camera/treeCanopies.ts` 依据 Meshy LOD0 的纵向径向包围范围建立分层圆柱；`occlusion.ts` 取径向与纵向射线区间交集，包括端面与竖直射线。`FollowCamera` 保留硬物体遮挡，中距离树冠可缩短相机臂，过近树冠交由 `worldMaterial` 的近镜头/角色视线像素淡出处理；`Atmosphere` 每帧更新视空间角色焦点。地面抬高相机时补偿瞄准点，以保留输入俯仰角；`input.ts` 上视界限改为 −0.45 rad。渲染状态仍在帧循环中，不逐帧写 React。
+
+水体与布局：`Sea.tsx` 将法线噪声分层旋转、浅深色改为连续吸收，泡沫沿世界空间浪相位向海湾移动，水深只限制破碎范围；`surf.ts` 给海面和湿沙共享的波浪加入前后相位，`Waterfall.tsx` 在下落时间坐标上增加横向扰动与短段破碎。`campLayout.ts` 只调整六株营地花的位置为三组顺路布置，数量、索引和保存结构不变；布局约束测试与实际 W 步行浏览器测试覆盖开局。

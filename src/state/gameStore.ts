@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { TimeSetting } from '../game/rendering/timeOfDay'
+import type { NavigationHud } from '../game/features/route/navigation'
 export type Quality = 'low' | 'medium' | 'high'
 export type RegionId = 'camp' | 'wetland' | 'glade' | 'highland' | 'glen' | 'hollow' | 'lake' | 'overlook' | 'beach'
 type Phase = 'title' | 'playing' | 'paused'
@@ -17,10 +18,13 @@ interface GameState {
   /** Region-name banner (low-frequency: once per region entry); `id` restarts its animation. */
   region: { name: RegionId; id: number } | null; showRegion: (name: RegionId) => void
   /** Lanterns lit so far and fireflies carried, for the HUD; written only when they change. */
-  journey: { lit: number; total: number; carried: number }; setJourney: (journey: { lit: number; total: number; carried: number }) => void
+  journey: { lit: number; total: number; carried: number; wetlandLit: number }; setJourney: (journey: { lit: number; total: number; carried: number; wetlandLit: number }) => void
   /** Light seeds found (HUD and ending card). */
   seeds: { found: number; total: number }; setSeeds: (seeds: { found: number; total: number }) => void
+  objective: NavigationHud | null; setObjective: (objective: NavigationHud) => void
+  sunlight: SunlightHud | null; setSunlight: (sunlight: SunlightHud | null) => void
 }
+export interface SunlightHud { index: number; heading: number; growth: number; status: string; daylight: boolean; grown: boolean }
 export const useGameStore = create<GameState>()(persist((set) => ({
   phase: 'title', quality: 'high', volume: 0.7, timeOfDay: 'journey', pointerLocked: false, pausedAt: 0,
   start: () => set({ phase: 'playing' }), pause: () => { document.exitPointerLock?.(); set({ phase: 'paused', pausedAt: performance.now() }) },
@@ -31,8 +35,10 @@ export const useGameStore = create<GameState>()(persist((set) => ({
   endingCard: false, setEndingCard: (endingCard) => set({ endingCard }),
   worldReady: false, setWorldReady: (worldReady) => set({ worldReady }),
   region: null, showRegion: (name) => set(s => ({ region: { name, id: (s.region?.id ?? 0) + 1 } })),
-  journey: { lit: 0, total: 0, carried: 0 }, setJourney: (journey) => set({ journey }),
+  journey: { lit: 0, total: 0, carried: 0, wetlandLit: 0 }, setJourney: (journey) => set({ journey }),
   seeds: { found: 0, total: 0 }, setSeeds: (seeds) => set({ seeds }),
+  objective: null, setObjective: (objective) => set({ objective }),
+  sunlight: null, setSunlight: (sunlight) => set({ sunlight }),
 }), {
   name: 'lumenwood-settings-v1', partialize: ({ quality, volume, timeOfDay }) => ({ quality, volume, timeOfDay }),
   // v1 stored a fixed time; the journey's own sunset is the new default, so earlier saves start from it once.

@@ -1,7 +1,9 @@
 import { LANTERN_COST, LANTERN_RANGE, lanterns, zoneLanterns, type Zone } from './routeLayout'
+import { createSunlight, type SunlightProgress } from '../sunlight/progress'
 // Route progress for one play session (no save yet). Pure functions over a plain object, so the rules are unit-tested;
 // the shared instance below is owned by the frame loop like `atmosphere`, never React state.
 export interface RouteProgress {
+  sunlight: SunlightProgress
   /** Flowers that have already released their firefly (each releases once). */
   released: Set<number>
   /** Session time (s) each flower released its firefly (drives the colour returning around it). */
@@ -26,7 +28,7 @@ export interface RouteProgress {
 }
 export type SecretId = 'glen' | 'hollow' | 'lake' | 'overlook'
 export function createProgress(): RouteProgress {
-  return { released: new Set(), releasedAt: new Map(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null, highland: null }, shortAt: lanterns.map(() => null), finaleAt: null, captions: new Set(), endingSeen: false, seedsAt: new Map(), secretsAt: new Map() }
+  return { sunlight: createSunlight(), released: new Set(), releasedAt: new Map(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null, highland: null }, shortAt: lanterns.map(() => null), finaleAt: null, captions: new Set(), endingSeen: false, seedsAt: new Map(), secretsAt: new Map() }
 }
 /** A flower woke: it releases one follower the first time only. Returns true when a firefly was released. */
 export function releaseFirefly(p: RouteProgress, flower: number, now = 0) {

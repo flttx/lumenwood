@@ -9,7 +9,7 @@ import { CAMP, HIGHLAND } from '../world/regions'
 // Air effects from the concept art (scene upgrade): shafts of light falling through the canopy over trails and clearings,
 // and low mist lying over the wetland pools and the camp's hollows. Code effects (no assets), one draw call each, no scene
 // fog on them (they fade with distance in the shader instead, so far quads never show as slabs).
-const SHAFT_HEIGHT = 26, SHAFT_WIDTH = 3.2, SHAFT_LEAN = 0.32
+const SHAFT_HEIGHT = 26, SHAFT_WIDTH = 2.5, SHAFT_LEAN = 0.32
 const shaftVertex = `varying vec2 vUv; varying float vFade;
 void main() {
   vUv = uv;
@@ -22,7 +22,8 @@ const shaftFragment = `uniform vec3 uColor; uniform float uOpacity; uniform floa
 void main() {
   float edge = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x);
   float fall = smoothstep(0.0, 0.55, vUv.y) * smoothstep(1.0, 0.8, vUv.y);
-  float shimmer = 0.75 + 0.25 * sin(vUv.y * 9.0 - uTime * 0.6 + vUv.x * 4.0);
+  float threads = 0.55 + 0.45 * pow(0.5 + 0.5 * sin(vUv.x * 37.0 + sin(vUv.y * 6.0) * 1.2), 2.0);
+  float shimmer = (0.8 + 0.2 * sin(vUv.y * 9.0 - uTime * 0.6 + vUv.x * 4.0)) * threads;
   gl_FragColor = vec4(uColor * edge * fall * shimmer * uOpacity * vFade, 1.0);
   #include <colorspace_fragment>
 }`
@@ -34,11 +35,12 @@ void main() {
   vFade = smoothstep(3.0, 10.0, -centre.z) * (1.0 - smoothstep(60.0, 110.0, -centre.z));
   gl_Position = projectionMatrix * (centre + vec4(position.xy * size, 0.0, 0.0));
 }`
-const mistFragment = `uniform vec3 uColor; uniform float uOpacity; varying vec2 vUv; varying float vFade;
+const mistFragment = `uniform vec3 uColor; uniform float uOpacity; uniform float uTime; varying vec2 vUv; varying float vFade;
 void main() {
   vec2 p = (vUv - 0.5) * vec2(2.0, 2.0);
   float t = max(0.0, 1.0 - length(p * vec2(1.0, 1.6)));
-  gl_FragColor = vec4(uColor, uOpacity * t * t * vFade);
+  float drift = 0.65 + 0.35 * sin(p.x * 7.0 + uTime * 0.13) * sin(p.y * 9.0 - uTime * 0.11);
+  gl_FragColor = vec4(uColor, uOpacity * t * t * t * drift * vFade);
   #include <colorspace_fragment>
 }`
 
@@ -75,7 +77,7 @@ export function AirEffects() {
     const shaftMaterial = new ShaderMaterial({ uniforms: { uColor: { value: new Color() }, uOpacity: { value: 0 }, uTime: { value: 0 } }, vertexShader: shaftVertex, fragmentShader: shaftFragment, transparent: true, depthWrite: false, blending: AdditiveBlending })
     const shaftMesh = new InstancedMesh(new PlaneGeometry(SHAFT_WIDTH, SHAFT_HEIGHT).translate(0, SHAFT_HEIGHT / 2, 0), shaftMaterial, shafts.length)
     shaftMesh.frustumCulled = false
-    const mistMaterial = new ShaderMaterial({ uniforms: { uColor: { value: new Color() }, uOpacity: { value: 0 } }, vertexShader: mistVertex, fragmentShader: mistFragment, transparent: true, depthWrite: false })
+    const mistMaterial = new ShaderMaterial({ uniforms: { uColor: { value: new Color() }, uOpacity: { value: 0 }, uTime: { value: 0 } }, vertexShader: mistVertex, fragmentShader: mistFragment, transparent: true, depthWrite: false })
     const mistMesh = new InstancedMesh(new PlaneGeometry(1, 1), mistMaterial, mist.length)
     mistMesh.frustumCulled = false
     const m = new Matrix4(), q = new Quaternion(), s = new Vector3()
@@ -94,10 +96,11 @@ export function AirEffects() {
     shaftMesh.instanceMatrix.needsUpdate = true
     shaftMaterial.uniforms.uTime.value = clock.elapsedTime
     shaftMaterial.uniforms.uColor.value.copy(scratch.day).lerp(scratch.dusk, dusk)
-    shaftMaterial.uniforms.uOpacity.value = (0.22 - 0.14 * dusk) * (1 - 0.5 * atmosphere.wetland)
+    shaftMaterial.uniforms.uOpacity.value = (0.18 - 0.1 * dusk) * (1 - 0.5 * atmosphere.wetland)
     // Mist takes the fog colour, lightened, and thickens in the wetlands and at twilight.
-    mistMaterial.uniforms.uColor.value.setHex(p.fog).lerp(scratch.white, 0.25)
-    mistMaterial.uniforms.uOpacity.value = 0.22 + 0.2 * atmosphere.wetland + 0.12 * dusk
+    mistMaterial.uniforms.uTime.value = clock.elapsedTime
+    mistMaterial.uniforms.uColor.value.setHex(p.fog).lerp(scratch.white, 0.12)
+    mistMaterial.uniforms.uOpacity.value = 0.06 + 0.14 * atmosphere.wetland + 0.13 * dusk
   })
   return <><primitive object={parts.shaftMesh}/><primitive object={parts.mistMesh}/></>
 }

@@ -39,8 +39,9 @@ function PauseScreen() {
 
 function EndingCard() {
   const setEndingCard = useGameStore(s => s.setEndingCard)
+  const resume = useGameStore(s => s.resume)
   const seeds = useGameStore(s => s.seeds)
-  const close = () => { setEndingCard(false); requestLock(canvas()) }
+  const close = () => { soundscape.start(); setEndingCard(false); resume(); requestLock(canvas()) }
   return <div className="screen ending-screen">
     <Motes count={40} seed={31}/>
     <div className="panel centred">

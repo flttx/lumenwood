@@ -17,10 +17,13 @@ import { soundscape } from '../audio/engine'
 import { lanternColliders } from '../features/route/routeLayout'
 import { Character } from './Character'
 import { useGameStore } from '../../state/gameStore'
+import { sunlightCircles, sunlightDeckHeight } from '../features/sunlight/layout'
+import { pushOutOfSunRavine } from '../features/sunlight/collision'
+import { route } from '../features/route/progress'
 const ACCELERATION = 12, DECELERATION = 9, TURN_RATE = 14
 // Footstep cadence (s per step) and the speed below which no steps sound; wading steps are the water's own splashes.
 const WALK_STEP = 0.42, RUN_STEP = 0.3, STEP_MIN_SPEED = 0.6
-const circleColliders = [...mushroomColliders, ...echoColliders, shrineCollider, ...treeColliders, ...lanternColliders, ...deepPoolColliders, ...rockColliders, ...stoneColliders, ...shrubColliders, ...stumpColliders, ...signpostColliders, ...campCircleColliders, treeCollider]
+const circleColliders = [...sunlightCircles, ...mushroomColliders, ...echoColliders, shrineCollider, ...treeColliders, ...lanternColliders, ...deepPoolColliders, ...rockColliders, ...stoneColliders, ...shrubColliders, ...stumpColliders, ...signpostColliders, ...campCircleColliders, treeCollider]
 const boxColliders = [cabinCollider, ...campBoxColliders, ...logColliders, ...fenceColliders, ...bridgeRailColliders]
 export function Player({ input, position, velocity }: { input: InputState; position: Vector3; velocity: Vector3 }) {
   const group = useRef<Group>(null!)
@@ -40,12 +43,13 @@ export function Player({ input, position, velocity }: { input: InputState; posit
       position.x += velocity.x * dt; position.z += velocity.z * dt
       // The cabin clearing has no trees or posts, so resolving the cabin box after the trunks cannot push back into a trunk.
       const hitTree = resolveCollisions(position, PLAYER_RADIUS, circleColliders), hitCabin = boxColliders.reduce((hit, box) => pushOutOfBox(position, PLAYER_RADIUS, box) || hit, false)
+      const hitRavine = pushOutOfSunRavine(position, PLAYER_RADIUS, route.sunlight.grownAt !== null)
       const clamped = clampToRegions(position, walkableRegions())
       // Keep only the motion that actually happened so speed does not build up against obstacles.
-      if (hitTree || hitCabin || clamped) { velocity.x = (position.x - px) / dt; velocity.z = (position.z - pz) / dt }
+      if (hitTree || hitCabin || hitRavine || clamped) { velocity.x = (position.x - px) / dt; velocity.z = (position.z - pz) / dt }
     }
     // Wading: the feet follow the pool floor; the light bridge carries the player level over the channel.
-    position.y = onBridge(position.x, position.z) ? bridgeDeck(position.z) : Math.max(heightAt(position.x, position.z), deckHeight(position.x, position.z))
+    position.y = onBridge(position.x, position.z) ? bridgeDeck(position.z) : Math.max(heightAt(position.x, position.z), deckHeight(position.x, position.z), sunlightDeckHeight(position.x, position.z, route.sunlight.grownAt !== null))
     group.current.position.copy(position)
     const moving = Math.hypot(velocity.x, velocity.z)
     if (moving < STEP_MIN_SPEED) stepTimer.current = 0.12 // the first step lands shortly after setting off

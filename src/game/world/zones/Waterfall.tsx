@@ -51,20 +51,22 @@ float wfNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 
 const curtainBody = (speed: number, opacity: number, ropes: number, shade: number) => `
   float t = uWfTime * ${speed.toFixed(2)};
   vec2 q = vWfUv; // u across, v = fall time (0 at the lip)
-  float streak = wfNoise(vec2(q.x * 17.0, q.y * 3.2 - t * 3.0)) * 0.6 + wfNoise(vec2(q.x * 43.0, q.y * 7.5 - t * 4.4)) * 0.4;
+  float fall = q.y - t * 0.85;
+  float across = q.x + (wfNoise(vec2(q.x * 9.0, fall * 4.0)) - 0.5) * 0.055;
+  float streak = wfNoise(vec2(across * 14.0, fall * 4.0)) * 0.6 + wfNoise(vec2(across * 31.0 + 1.0, fall * 14.0)) * 0.4;
   float tongue = 1.0 - smoothstep(0.06, 0.34, q.y + (wfNoise(vec2(q.x * 9.0, t * 0.7)) - 0.5) * 0.1);
   float side = q.x < 0.5 ? 0.0 : 7.0;
   float edge = abs(q.x * 2.0 - 1.0) + (wfNoise(vec2(side, q.y * 5.0 - t * 2.2)) - 0.5) * 0.22;
-  vec3 white = mix(vec3(0.42, 0.58, 0.58), vec3(0.94, 0.97, 0.96), smoothstep(0.4, 0.78, streak) * 0.65 + smoothstep(0.6, 1.0, q.y) * 0.35);
+  vec3 white = mix(vec3(0.16, 0.28, 0.3), vec3(0.58, 0.7, 0.69), smoothstep(0.45, 0.78, streak) * 0.75 + smoothstep(0.6, 1.0, q.y) * 0.25);
   vec3 glass = mix(vec3(0.2, 0.34, 0.35), vec3(0.55, 0.7, 0.7), smoothstep(0.45, 0.8, wfNoise(vec2(q.x * 7.0, q.y * 2.0 - t * 1.5))));
-  float ropeField = wfNoise(vec2(q.x * 13.0, q.y * 0.8 - t * 0.25)) * 0.7 + wfNoise(vec2(q.x * 31.0, q.y * 1.6 - t * 0.4)) * 0.3;
+  float ropeField = wfNoise(vec2(across * 13.0, fall * 3.5)) * 0.7 + wfNoise(vec2(across * 31.0, fall * 7.0)) * 0.3;
   float rope = smoothstep(0.36, 0.6, ropeField), rim = 1.0 - smoothstep(0.0, 0.06, abs(ropeField - 0.48));
   float parted = ${ropes.toFixed(2)} * (1.0 - tongue) * smoothstep(0.12, 0.35, q.y);
   vec3 body = mix(white, glass, tongue * 0.9);
   body = mix(body, mix(vec3(0.24, 0.4, 0.42), body, 0.45), 1.0 - ${shade.toFixed(2)});
   diffuseColor.rgb = body * ${shade.toFixed(2)} * mix(1.0, 0.88 + 0.24 * rope + 0.15 * rim, parted);
   diffuseColor.rgb = mix(diffuseColor.rgb, uWfGold, uWfGlow * (0.3 + 0.5 * smoothstep(0.4, 0.8, streak)));
-  diffuseColor.a = mix(0.36 + 0.55 * smoothstep(0.3, 0.75, streak), 0.72, tongue) * (1.0 - smoothstep(0.72, 1.0, edge + (streak - 0.5) * 0.2))
+  diffuseColor.a = mix(0.2 + 0.5 * smoothstep(0.3, 0.75, streak), 0.48, tongue) * (1.0 - smoothstep(0.72, 1.0, edge + (streak - 0.5) * 0.2))
     * mix(1.0, 0.06 + 0.94 * rope, parted) * ${opacity.toFixed(2)};`
 
 function curtainMaterial(key: string, color: number, body: string, shared: Record<string, { value: unknown }>) {

@@ -7,6 +7,8 @@ import { soundscape, type SoundState } from '../audio/engine'
 import { route } from '../features/route/progress'
 import { flock } from '../features/route/flock'
 import { gates } from '../world/regions'
+import { conduit } from '../features/route/conduit'
+import { hasDaylight, traceSunlight } from '../features/sunlight/progress'
 /** Test/diagnostic hook: enabled in dev, or in any build with `?debug` in the URL. */
 export const debugEnabled = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')
 export interface DebugSnapshot {
@@ -16,6 +18,8 @@ export interface DebugSnapshot {
   route: { carried: number; following: number; lit: number; northGate: boolean; bridge: boolean; finale: boolean; ascent: boolean; highland: boolean }
   /** Light seeds picked up and side-area secrets solved (third pass). */
   seeds: number; secrets: string[]
+  sunlight: { steps: number[]; growth: number; grown: boolean; crossed: boolean; relay: boolean; receiver: boolean }
+  conduit: { near: number; expected: number; aligned: boolean; charge: number }
 }
 export interface DebugApi {
   snapshot: () => DebugSnapshot; teleport: (x: number, z: number) => void; setView: (yaw: number, pitch: number) => void
@@ -33,6 +37,8 @@ export function installDebugApi(deps: { input: InputState; position: Vector3; ve
       const { phase, pointerLocked } = useGameStore.getState()
       return { phase, pointerLocked, position: [position.x, position.z], velocity: [velocity.x, velocity.z], yaw: input.yaw, pitch: input.pitch, cameraDistance: rig.distance, drawCalls: gl.info.render.calls, triangles: gl.info.render.triangles, timeBlend: atmosphere.blend, sound: soundscape.state, chimes: soundscape.chimes, splashes: soundscape.splashes, wetland: atmosphere.wetland, height: position.y, music: soundscape.layers, footsteps: soundscape.footsteps,
         caption: useGameStore.getState().caption?.text ?? null, endingCard: useGameStore.getState().endingCard, seeds: route.seedsAt.size, secrets: [...route.secretsAt.keys()],
+        sunlight: { steps: [...route.sunlight.steps], growth: route.sunlight.growth, grown: route.sunlight.grownAt !== null, crossed: route.sunlight.crossed, relay: traceSunlight(route.sunlight.steps, hasDaylight(atmosphere.time)).relay, receiver: traceSunlight(route.sunlight.steps, hasDaylight(atmosphere.time)).receiver },
+        conduit: { near: conduit.near, expected: conduit.expected, aligned: conduit.aligned, charge: conduit.charge },
         route: { carried: route.carried, following: flock.following, lit: route.litAt.filter(t => t !== null).length, northGate: gates.north, bridge: gates.bridge, finale: route.finaleAt !== null, ascent: gates.ascent, highland: route.completedAt.highland !== null } }
     },
     teleport: (x, z) => { position.set(x, 0, z); velocity.set(0, 0, 0) },

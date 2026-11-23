@@ -1,5 +1,7 @@
 import { useGameStore, type RegionId } from '../state/gameStore'
 import { Leaf, LanternGlyph } from './decor'
+import { Objective } from './Objective'
+import { SunlightPanel } from './SunlightPanel'
 const regionNames: Record<RegionId, [string, string]> = {
   camp: ['林间营地', 'The Forest Camp'],
   wetland: ['萤光湿地', 'The Glimmering Wetland'],
@@ -14,16 +16,20 @@ const regionNames: Record<RegionId, [string, string]> = {
 
 /** In-play overlay: brand, lantern tally, region banner, guidance caption and the control hint. */
 export function Hud() {
-  const { pointerLocked, caption, region, journey, seeds } = useGameStore()
+  const pointerLocked = useGameStore(s => s.pointerLocked), caption = useGameStore(s => s.caption)
+  const region = useGameStore(s => s.region), journey = useGameStore(s => s.journey), seeds = useGameStore(s => s.seeds)
   return <div className="hud">
     <div className="hud-top">
       <div className="brand"><span className="logo-mini">流光之森</span><span>LUMENWOOD</span></div>
       {journey.total > 0 && <div className="tally" aria-label={`已点亮灯火 ${journey.lit} / ${journey.total}，携带萤火 ${journey.carried}`}>
         <div className="lanterns">{Array.from({ length: journey.total }, (_, i) => <LanternGlyph key={i} lit={i < journey.lit}/>)}</div>
         <div className="carried"><i/>萤火 {journey.carried}</div>
+        {(region?.name === 'wetland' || region?.name === 'lake') && journey.wetlandLit < 3 && <div className="carried">湿地灯火 {journey.wetlandLit}/3 · 点亮全部开启光桥</div>}
         {seeds.found > 0 && <div className="carried seeds" aria-label={`光之种子 ${seeds.found} / ${seeds.total}`}><i/>光之种子 {seeds.found}/{seeds.total}</div>}
       </div>}
     </div>
+    <Objective/>
+    <SunlightPanel/>
     {region && <div key={region.id} className="region-banner" aria-hidden="true">
       <div className="rule"><Leaf/></div>
       <div className="region-name">{regionNames[region.name][0]}</div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, Group, Mesh, PlaneGeometry, Points, ShaderMaterial } from 'three'
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, Group, Mesh, NormalBlending, PlaneGeometry, Points, ShaderMaterial } from 'three'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { lightSource, lightSources } from '../../rendering/LocalLights'
 import { random } from '../../shared/random'
@@ -21,8 +21,8 @@ void main() {
   float width = (1.0 - p.y) * (0.55 + 0.45 * smoothstep(0.0, 0.25, p.y));
   float body = smoothstep(width, width * 0.35, abs(x)) * smoothstep(1.0, 0.45 + 0.4 * n, p.y) * smoothstep(0.0, 0.08, p.y);
   vec3 col = mix(vec3(1.0, 0.25, 0.04), vec3(1.0, 0.62, 0.18), smoothstep(0.15, 0.6, body));
-  col = mix(col, vec3(1.0, 0.92, 0.7), smoothstep(0.7, 1.0, body) * (1.0 - p.y));
-  gl_FragColor = vec4(col * body * uPower * 1.1, 1.0);
+  col = mix(col, vec3(1.0, 0.73, 0.3), smoothstep(0.7, 1.0, body) * (1.0 - p.y));
+  gl_FragColor = vec4(col * uPower * 1.65, body * 0.9);
 }`
 const sparkVertex = `uniform float uTime; uniform float uSize; attribute vec3 aSpark; varying float vLife;
 void main() {
@@ -53,7 +53,7 @@ export function CampfireEffects({ x, y, z }: { x: number; y: number; z: number }
     const group = new Group(), uniforms = { uTime: { value: 0 }, uPower: { value: 1 } }
     // Three crossed planes so the flame has body from every side.
     const flames = [0, 1, 2].map(i => {
-      const material = new ShaderMaterial({ uniforms: { ...uniforms, uSeed: { value: i * 7.3 } }, vertexShader: flameVertex, fragmentShader: flameFragment, transparent: true, depthWrite: false, blending: AdditiveBlending, side: DoubleSide })
+      const material = new ShaderMaterial({ uniforms: { ...uniforms, uSeed: { value: i * 7.3 } }, vertexShader: flameVertex, fragmentShader: flameFragment, transparent: true, depthWrite: false, blending: NormalBlending, side: DoubleSide })
       const mesh = new Mesh(new PlaneGeometry(0.9, FLAME_HEIGHT).translate(0, FLAME_HEIGHT / 2 + 0.12, 0), material)
       mesh.rotation.y = (i * Math.PI) / 3
       group.add(mesh)

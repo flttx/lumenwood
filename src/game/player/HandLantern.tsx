@@ -75,8 +75,8 @@ uniform float uGlow;`)
     parent.getWorldQuaternion(g.quaternion).invert().multiply(swing)
     // The flame: steady glow by day, a flickering real light and halo after dusk.
     const night = atmosphere.blend, flicker = 0.88 + 0.08 * Math.sin(clock.elapsedTime * 13.1) + 0.04 * Math.sin(clock.elapsedTime * 29.7)
-    parts.glow.value = (0.4 + 1.1 * night) * flicker
-    parts.halo.material.opacity = (0.1 + 0.4 * night) * flicker
+    parts.glow.value = (0.3 + 0.8 * night) * flicker
+    parts.halo.material.opacity = (0.06 + 0.2 * night) * flicker
     const light = parts.source.position
     parts.halo.getWorldPosition(light); parent.getWorldPosition(parts.local)
     const ox = light.x - parts.local.x, oz = light.z - parts.local.z, len = Math.hypot(ox, oz) || 1

@@ -32,10 +32,22 @@ describe('applyZoneTint', () => {
 describe('journey time', () => {
   it('afternoon in the camp, dusk in the wetlands, night on the highland and full night at the end', () => {
     expect(journeyBlend(0, 0)).toBe(0)
-    expect(journeyBlend(3, 0)).toBeCloseTo(1 / 3) // camp lit: late afternoon
+    expect(journeyBlend(3, 0)).toBeCloseTo(0.72) // camp lit: sunset
     const wetland = journeyBlend(3, 1)
     expect(wetland).toBeGreaterThan(0.8); expect(wetland).toBeLessThan(1.1) // dusk
     expect(journeyBlend(6, 1, 1)).toBeGreaterThan(1.5) // the highland is night
     expect(journeyBlend(9, 0, 1)).toBe(2)
+  })
+  it('preserves the wetland dusk after the daytime reward instead of adding its offset to every later stage', () => {
+    expect(journeyBlend(0, 0, 0, 9, true)).toBe(0.3)
+    expect(journeyBlend(3, 1, 0, 9, true)).toBeCloseTo(0.95)
+    expect(journeyBlend(4, 1, 0, 9, true)).toBeGreaterThan(1)
+    expect(journeyBlend(6, 1, 0, 9, true)).toBeCloseTo(1.35)
+    expect(journeyBlend(6, 0, 1, 9, true)).toBeCloseTo(1.6)
+    expect(journeyBlend(9, 0, 1, 9, true)).toBe(2)
+  })
+  it('does not rewind to day when returning from a visited wetland or highland', () => {
+    expect(journeyBlend(3, 0, 0, 9, true, 1)).toBeCloseTo(0.95)
+    expect(journeyBlend(6, 0, 0, 9, true, 2)).toBeCloseTo(1.6)
   })
 })

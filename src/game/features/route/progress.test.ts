@@ -30,6 +30,15 @@ describe('route progress', () => {
     ;[...camp].reverse().forEach((i, n) => { expect(p.completedAt.camp).toBeNull(); expect(tryLight(p, i, 0.5, n)).toBe('lit') })
     expect(p.completedAt.camp).toBe(camp.length - 1)
   })
+  it('opens the wetland bridge after the third wetland lantern and its delay', () => {
+    const p = createProgress(), wetland = zoneLanterns('wetland')
+    flowers.forEach((flower, i) => { if (flower.zone === 'wetland') releaseFirefly(p, i) })
+    wetland.slice(0, 2).forEach(i => expect(tryLight(p, i, 1, 10)).toBe('lit'))
+    expect(gateOpen(p, 'wetland', 100)).toBe(false)
+    expect(tryLight(p, wetland[2], 1, 12)).toBe('lit')
+    expect(gateOpen(p, 'wetland', 12 + GATE_DELAY - 0.01)).toBe(false)
+    expect(gateOpen(p, 'wetland', 12 + GATE_DELAY)).toBe(true)
+  })
   it('each zone has exactly enough flowers for its lanterns', () => {
     expect(glowFlowers.length).toBe(zoneLanterns('camp').length * LANTERN_COST)
     expect(flowers.filter(f => f.zone === 'wetland').length).toBe(zoneLanterns('wetland').length * LANTERN_COST)
@@ -37,6 +46,19 @@ describe('route progress', () => {
 })
 
 describe('route layout', () => {
+  it('the camp introduces a nearby flower pair and keeps successive light rewards on a short route', () => {
+    const camp = lanterns.filter(l => l.zone === 'camp')
+    let previous = { x: 0, z: 0 }, total = 0
+    expect(Math.hypot(glowFlowers[0].x, glowFlowers[0].z)).toBeLessThan(7)
+    for (const [i, node] of camp.entries()) {
+      for (const point of [glowFlowers[i * 2], glowFlowers[i * 2 + 1], node]) {
+        const distance = Math.hypot(point.x - previous.x, point.z - previous.z)
+        expect(distance).toBeLessThan(25)
+        total += distance; previous = point
+      }
+    }
+    expect(total).toBeLessThan(100) // excludes the old repeated camp ↔ cabin search loop, without imposing a play time
+  })
   it('lanterns stand on dry ground beside the trail, clear of trunks and flowers', () => {
     for (const l of lanterns) {
       expect(pathWeight(l.x, l.z)).toBeLessThan(0.5) // not on the trail itself

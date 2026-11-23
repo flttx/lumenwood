@@ -20,4 +20,12 @@ describe('occludedDistance', () => {
     expect(occludedDistance({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 1 }, 6.5, [trunk, { ...trunk, z: 1.5 }])).toBeCloseTo(1.1)
     expect(occludedDistance({ x: 0, y: 1, z: 2.8 }, { x: 0, y: 0, z: 1 }, 6.5, [trunk])).toBe(6.5)
   })
+  it('detects a camera entering a raised crown through its bottom or top cap', () => {
+    const crown = { x: 0, z: 0, radius: 3, base: 2, height: 2 }
+    const d = Math.SQRT1_2
+    expect(occludedDistance({ x: 0, y: 1, z: 0 }, { x: 0, y: d, z: d }, 6, [crown])).toBeCloseTo(1 / d)
+    expect(occludedDistance({ x: 0, y: 5, z: 0 }, { x: 0, y: -1, z: 0 }, 6, [crown])).toBeCloseTo(1)
+    expect(occludedDistance({ x: 0, y: 1, z: 0 }, { x: 0, y: 0, z: 1 }, 6, [crown])).toBe(6)
+    expect(occludedDistance({ x: 4, y: 1, z: 0 }, { x: 0, y: 1, z: 0 }, 6, [crown])).toBe(6)
+  })
 })

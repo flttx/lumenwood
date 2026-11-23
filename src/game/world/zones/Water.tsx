@@ -59,10 +59,10 @@ void main() {
   float fresnel = pow(1.0 - clamp(toEye.y, 0.0, 1.0), 4.0);
   // Small waves: analytic slopes of a few travelling sines (no texture), plus the slopes of the wading rings.
   vec2 p = vWorld.xz, slope = vec2(0.0);
-  slope += vec2(0.37, 0.0) * cos(p.x * 3.7 + uTime * 0.9) * sin(p.y * 3.1 - uTime * 0.7);
-  slope += vec2(0.0, 0.31) * sin(p.x * 3.7 + uTime * 0.9) * cos(p.y * 3.1 - uTime * 0.7);
-  slope += vec2(0.3, 0.3) * cos((p.x + p.y) * 6.3 + uTime * 1.6);
-  slope += vec2(0.12, -0.2) * cos(dot(p, vec2(0.7, -1.1)) * 1.3 + uTime * 0.5);
+  float fine = 1.0 - smoothstep(0.2, 0.8, max(fwidth(p.x), fwidth(p.y)));
+  slope += vec2(0.06, 0.08) * cos(dot(p, vec2(0.6, 0.8)) * 0.9 + uTime * 0.32);
+  slope += vec2(-0.048, 0.036) * cos(dot(p, vec2(-0.8, 0.6)) * 1.7 - uTime * 0.42);
+  slope += vec2(0.008, 0.018) * cos(dot(p, vec2(0.4, 0.9)) * 3.2 + uTime * 0.6) * fine;
   float rings = 0.0;
   for (int i = 0; i < ${MAX_RIPPLES}; i++) {
     vec4 r = uRipples[i];
@@ -80,13 +80,13 @@ void main() {
   vec3 body = mix(uWater * 1.35, uWater * 0.7, smoothstep(0.1, 1.2, depth));
   vec3 color;
   if (uReflect > 0.5) {
-    vec2 uv = vRefl.xy / vRefl.w + n.xz * 0.6 * (0.4 + 0.6 * fresnel);
+    vec2 uv = vRefl.xy / vRefl.w + n.xz * 0.12 * (0.4 + 0.6 * fresnel);
     vec3 mirrored = texture2D(uReflection, uv).rgb;
-    float r = 0.3 + 0.62 * pow(1.0 - clamp(dot(toEye, n), 0.0, 1.0), 2.5);
+    float r = 0.24 + 0.62 * pow(1.0 - clamp(dot(toEye, n), 0.0, 1.0), 2.5);
     color = mix(body, mirrored, r);
   } else {
-    float shimmer = sin(vWorld.x * 3.7 + uTime * 0.9) * sin(vWorld.z * 3.1 - uTime * 0.7) + 0.5 * sin((vWorld.x + vWorld.z) * 6.3 + uTime * 1.6);
-    color = mix(body, uSky, 0.06 + 0.5 * fresnel) + uSky * 0.025 * shimmer * (0.3 + fresnel);
+    float shimmer = sin(dot(p, vec2(0.6, 0.8)) * 0.9 + uTime * 0.32) + 0.4 * sin(dot(p, vec2(-0.8, 0.6)) * 1.7 - uTime * 0.42);
+    color = mix(body * (1.0 + 0.1 * shimmer), uSky, 0.08 + 0.4 * fresnel) + uSky * 0.035 * shimmer * (0.3 + fresnel);
   }
   // Sun glint on the wave facets, and a soft highlight on the wading rings.
   float glint = pow(max(dot(reflect(-toEye, n), uSunDir), 0.0), 240.0);

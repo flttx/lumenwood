@@ -13,8 +13,9 @@ import { grassClearings } from '../world/zones/sceneryLayout'
 // with no CPU work per frame. Height and density come from a baked field (grassField.ts). The blades use a lit material
 // (sun, sky, tree shadows, fog), glow at the tips when backlit by the low sun, sway in the wind, and are pushed down and
 // aside by the player: a short trail of recent footsteps fades out, so trampled grass springs back over a couple of seconds.
-const RADIUS = 30, SEGMENTS = 3, TRAIL = 8, TRAIL_STEP = 0.35, TRAIL_RECOVER = 1.8
-const BASE = new Color(0x223a1a), TIP = new Color(0x84a24a), TIP_DRY = new Color(0xb09f56), TIP_GLOW = new Color(0xffd27a)
+const RADIUS = 23, SEGMENTS = 3, TRAIL = 8, TRAIL_STEP = 0.35, TRAIL_RECOVER = 1.8
+const BASE = new Color(0x304321), TIP = new Color(0x789447), TIP_DRY = new Color(0x97875c), TIP_GLOW = new Color(0xffd27a)
+const DAY_BASE = new Color(0x285535), DAY_TIP = new Color(0x77aa52), DAY_DRY = new Color(0x9caa68), DAY_GLOW = new Color(0xe4edb3)
 /** The grass reads the player's position from here (World wires it once), keeping Grass free of per-frame React props. */
 export const trailTarget = { position: new Vector3() }
 
@@ -27,9 +28,17 @@ function bladeGeometry(count: number) {
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3))
   geometry.setAttribute('normal', new BufferAttribute(new Float32Array(normals), 3))
   geometry.setIndex(index)
-  const rand = random(19), data = new Float32Array(count * 4)
-  for (let i = 0; i < count; i++) data.set([(rand() * 2 - 1) * RADIUS, (rand() * 2 - 1) * RADIUS, rand(), rand()], i * 4)
+  const rand = random(19), data = new Float32Array(count * 4), shapes = new Float32Array(count * 4)
+  // Four narrow blades share a root patch. Keep the instance budget, but replace the even field of broad cards with tufts.
+  let cx = 0, cz = 0, seed = 0
+  for (let i = 0; i < count; i++) {
+    if (i % 4 === 0) { cx = (rand() * 2 - 1) * RADIUS; cz = (rand() * 2 - 1) * RADIUS; seed = rand() }
+    const angle = rand() * Math.PI * 2, offset = 0.03 + rand() * 0.16
+    data.set([cx + Math.cos(angle) * offset, cz + Math.sin(angle) * offset, seed, rand()], i * 4)
+    shapes.set([rand(), rand(), rand(), rand()], i * 4)
+  }
   geometry.setAttribute('aBlade', new InstancedBufferAttribute(data, 4))
+  geometry.setAttribute('aShape', new InstancedBufferAttribute(shapes, 4))
   geometry.instanceCount = count
   return geometry
 }
@@ -38,13 +47,18 @@ const vertexCommon = `#include <common>
 uniform vec3 uCamera; uniform float uRadius; uniform float uTime; uniform sampler2D uField; uniform vec4 uFieldRect; uniform vec2 uFieldSize;
 uniform vec4 uTrail[${TRAIL}]; uniform vec3 uSunDir;
 attribute vec4 aBlade; // xy slot offset, z random, w random
+attribute vec4 aShape; // orientation, width, lean, shading
 varying float vT; varying float vShade; varying float vDry; varying float vBack; varying float vPatch;
 vec2 fieldAt(vec2 p) {
   vec2 uv = (p - uFieldRect.xy) / uFieldRect.zw * (uFieldSize - 1.0);
   vec2 i = floor(uv), f = uv - i, t = 1.0 / uFieldSize;
   vec2 a = texture2D(uField, (i + 0.5) * t).rg, b = texture2D(uField, (i + vec2(1.5, 0.5)) * t).rg;
   vec2 c = texture2D(uField, (i + vec2(0.5, 1.5)) * t).rg, d = texture2D(uField, (i + 1.5) * t).rg;
-  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  vec2 field = mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+  // Density interpolation must not bleed blades from a flat bank into a steep cell at an interpolated height.
+  float heightSpan = max(max(a.x, b.x), max(c.x, d.x)) - min(min(a.x, b.x), min(c.x, d.x));
+  field.y *= 1.0 - smoothstep(0.45, 0.9, heightSpan);
+  return field;
 }`
 const vertexBody = `
   float span = 2.0 * uRadius;
@@ -57,9 +71,9 @@ const vertexBody = `
   float h00 = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5), h10 = fract(sin(dot(cell + vec2(1, 0), vec2(127.1, 311.7))) * 43758.5);
   float h01 = fract(sin(dot(cell + vec2(0, 1), vec2(127.1, 311.7))) * 43758.5), h11 = fract(sin(dot(cell + vec2(1, 1), vec2(127.1, 311.7))) * 43758.5);
   vPatch = mix(mix(h00, h10, fr.x), mix(h01, h11, fr.x), fr.y);
-  float height = (0.16 + 0.32 * aBlade.w) * keep;
+  float height = (0.13 + 0.29 * aBlade.w) * keep;
   float t = position.y;
-  float angle = aBlade.z * 31.4 + aBlade.w * 7.0;
+  float angle = aShape.x * 6.283185;
   vec2 side = vec2(cos(angle), sin(angle));
   // Trampling: footsteps push blades outward and down; older steps weigh less as the grass springs back.
   vec2 push = vec2(0.0); float flatten = 0.0;
@@ -68,12 +82,12 @@ const vertexBody = `
     float w = uTrail[i].z * (1.0 - smoothstep(0.25, 1.05, d));
     push += (d > 0.001 ? away / d : side) * w; flatten = max(flatten, w);
   }
-  float width = 0.11 * (1.0 - t * 0.8) * keep;
+  float width = (0.036 + 0.026 * aShape.y) * pow(max(1.0 - t, 0.0), 1.15) * keep;
   float gust = sin(uTime * 1.7 + p.x * 0.35 + p.y * 0.21) * 0.6 + sin(uTime * 3.1 + p.x * 1.3) * 0.25;
-  vec2 bend = (vec2(0.8, 0.45) * gust * (1.0 - flatten) + side.yx * (aBlade.w - 0.5) * 0.6) * t * t * height * 0.45 + push * t * height * 0.85;
+  vec2 bend = (vec2(0.8, 0.45) * gust * (1.0 - flatten) * 0.35 + vec2(-side.y, side.x) * (0.3 + aShape.z * 0.65)) * t * t * height + push * t * height * 0.85;
   float lift = t * height * (1.0 - 0.6 * flatten);
   vec3 transformed = vec3(p.x + side.x * position.x * width + bend.x, field.x + lift, p.y + side.y * position.x * width + bend.y);
-  vT = t; vShade = 0.75 + 0.25 * aBlade.w; vDry = aBlade.z;
+  vT = t; vShade = 0.84 + 0.16 * aShape.w; vDry = aShape.z;
   vBack = pow(max(dot(normalize(transformed - cameraPosition), uSunDir), 0.0), 5.0);`
 const fragmentCommon = `#include <common>
 uniform vec3 uBase; uniform vec3 uTip; uniform vec3 uTipDry; uniform vec3 uTipGlow; uniform float uGlow;
@@ -99,15 +113,15 @@ export function Grass() {
       Object.assign(shader.uniforms, uniforms)
       shader.vertexShader = shader.vertexShader.replace('#include <common>', vertexCommon)
         // Normals lean up so blades read as a soft mass rather than flat cards.
-        .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = normalize(vec3(0.0, 1.0, 0.0) + normal * 0.6);')
+        .replace('#include <beginnormal_vertex>', 'vec3 objectNormal = normalize(vec3(cos(aShape.x * 6.283185) * 0.3, 1.0, sin(aShape.x * 6.283185) * 0.3));')
         .replace('#include <begin_vertex>', vertexBody)
       shader.fragmentShader = shader.fragmentShader.replace('#include <common>', fragmentCommon)
         // Both faces of a blade share the up-leaning normal (no back-face flip), so the side away from the camera is not black.
         .replace('#include <normal_fragment_begin>', ShaderChunk.normal_fragment_begin.replace('float faceDirection = gl_FrontFacing ? 1.0 : - 1.0;', 'float faceDirection = 1.0;'))
-        .replace('#include <color_fragment>', 'diffuseColor.rgb = mix(uBase, mix(uTip, uTipDry, smoothstep(0.88, 1.0, vDry)), smoothstep(0.0, 1.0, vT)) * vShade;')
+        .replace('#include <color_fragment>', 'diffuseColor.rgb = mix(uBase, mix(uTip, uTipDry, smoothstep(0.92, 1.0, vDry)), smoothstep(0.0, 1.0, vT)) * vShade * mix(uPatchCool, uPatchWarm, vPatch);')
         .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += uTipGlow * uGlow * vBack * vT * vT;')
     }
-    material.customProgramCacheKey = () => 'lumenwood-grass'
+    material.customProgramCacheKey = () => 'lumenwood-grass-tufts-v2'
     const mesh = new Mesh(bladeGeometry(blades), material)
     mesh.frustumCulled = false // the patch always surrounds the camera
     mesh.userData.noAO = true // blades are placed in the vertex shader; the AO pass's normal render would draw them flat
@@ -121,8 +135,11 @@ export function Grass() {
     uniforms.uCamera.value.copy(camera.position)
     uniforms.uTime.value = clock.elapsedTime
     uniforms.uSunDir.value.copy(atmosphere.sunDirection)
+    const daylight = 1 - atmosphere.blend
+    uniforms.uBase.value.copy(BASE).lerp(DAY_BASE, daylight); uniforms.uTip.value.copy(TIP).lerp(DAY_TIP, daylight)
+    uniforms.uTipDry.value.copy(TIP_DRY).lerp(DAY_DRY, daylight); uniforms.uTipGlow.value.copy(TIP_GLOW).lerp(DAY_GLOW, daylight)
     // Backlit tips glow with the low sun; at twilight the sun is weak and so is the glow.
-    uniforms.uGlow.value = 0.55 * (atmosphere.preset.sunIntensity / 4.2) * (1 - 0.7 * atmosphere.blend)
+    uniforms.uGlow.value = (0.32 - daylight * 0.12) * (atmosphere.preset.sunIntensity / 4.2) * (1 - 0.7 * atmosphere.blend)
     // Trail: slot 0 follows the player; a new footprint is laid every TRAIL_STEP metres and every print fades out.
     const steps = uniforms.uTrail.value, decay = Math.exp(-Math.min(delta, 0.1) / TRAIL_RECOVER), player = trailTarget.position
     for (let i = 1; i < TRAIL; i++) steps[i].z *= decay

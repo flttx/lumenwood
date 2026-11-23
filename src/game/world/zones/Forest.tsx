@@ -13,14 +13,14 @@ import { Scenery } from './Scenery'
 // switch LOD by distance; collision and occlusion stay on code proxies (forestLayout).
 const MODELS: Record<TreeKind, { url: string; lods: string[]; lodDistance: number }> = {
   conifer: { url: `${assetConfig.baseUrl}models/vegetation/VEG-001.glb`, lods: ['VEG-001_LOD0', 'VEG-001_LOD1'], lodDistance: LOD1_DISTANCE },
-  redwood: { url: `${assetConfig.baseUrl}models/vegetation/VEG-003.glb`, lods: ['VEG-003_LOD0', 'VEG-003_LOD1'], lodDistance: 26 },
+  redwood: { url: `${assetConfig.baseUrl}models/vegetation/VEG-003.glb`, lods: ['VEG-003_LOD0', 'VEG-003_LOD1'], lodDistance: 80 },
   fir: { url: `${assetConfig.baseUrl}models/vegetation/VEG-004.glb`, lods: ['VEG-004_LOD0', 'VEG-004_LOD1'], lodDistance: 20 },
   birch: { url: `${assetConfig.baseUrl}models/vegetation/VEG-009.glb`, lods: ['VEG-009_LOD0', 'VEG-009_LOD1'], lodDistance: 22 },
 }
 const KINDS = Object.keys(MODELS) as TreeKind[]
 const VIEW_DISTANCE = 190, TREE_CHUNK = 20
 // Tall trees sway a little at the crown; the shared object keeps Scatter's memo stable.
-const TREE_FOLIAGE = { sway: 0.006 }
+const TREE_FOLIAGE = { sway: 0.006, cameraFade: true }
 const byKind = (kind: TreeKind) => forestTrees.flatMap((t, i) => t.kind === kind ? [{ x: t.x, y: treeBase(t), z: t.z, angle: i * 2.39996, scale: t.scale }] : [])
 const playable = Object.fromEntries(KINDS.map(k => [k, byKind(k)])) as Record<TreeKind, ReturnType<typeof byKind>>
 const backdrop = Object.fromEntries(KINDS.map(k => [k, outerTrees.flatMap((t, i) => t.kind === k ? [{ x: t.x, y: t.y, z: t.z, angle: i * 1.7, scale: t.scale }] : [])])) as Record<TreeKind, ReturnType<typeof byKind>>
@@ -29,9 +29,9 @@ for (const k of KINDS) useGLTF.preload(MODELS[k].url, false, false)
 
 function Trees() {
   return <>{KINDS.map(k => <group key={k}>
-    {playable[k].length > 0 && <Scatter url={MODELS[k].url} lods={MODELS[k].lods} items={playable[k]} chunkSize={TREE_CHUNK} lodDistance={MODELS[k].lodDistance} maxDistance={VIEW_DISTANCE} castShadow foliage={TREE_FOLIAGE}/>}
-    {/* Backdrop trees are always far from the camera, so they use LOD1 only. */}
-    {backdrop[k].length > 0 && <Scatter url={MODELS[k].url} lods={MODELS[k].lods.slice(1)} items={backdrop[k]} chunkSize={48} maxDistance={VIEW_DISTANCE} receiveShadow={false} foliage={TREE_FOLIAGE}/>}
+    {playable[k].length > 0 && <Scatter url={MODELS[k].url} lods={MODELS[k].lods} items={playable[k]} chunkSize={TREE_CHUNK} lodDistance={MODELS[k].lodDistance} maxDistance={VIEW_DISTANCE} castShadow doubleSided={k === 'redwood'} foliage={TREE_FOLIAGE}/>}
+    {/* Backdrop trees can stand just outside a walkable boundary; use the near LOD there too. */}
+    {backdrop[k].length > 0 && <Scatter url={MODELS[k].url} lods={MODELS[k].lods} items={backdrop[k]} chunkSize={48} lodDistance={MODELS[k].lodDistance} maxDistance={VIEW_DISTANCE} receiveShadow={false} doubleSided={k === 'redwood'} foliage={TREE_FOLIAGE}/>}
   </group>)}</>
 }
 

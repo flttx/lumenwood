@@ -14,7 +14,7 @@ export const REVIVE = {
   endingGrow: 8,
 } as const
 /** Enough for every flower and lantern plus the glade. */
-export const MAX_REVIVE = flowers.length + lanterns.length + 1
+export const MAX_REVIVE = flowers.length + lanterns.length + 2
 const ease = (t: number) => { const k = Math.max(0, Math.min(1, t)); return 1 - (1 - k) ** 3 }
 /** 1 while a circle is still growing (fading out as it reaches full size), 0 once grown: the wavefront's strength. */
 const wave = (t: number) => (t >= 0 && t < 1 ? 1 - t : 0)
@@ -38,6 +38,7 @@ export function reviveCircles(p: RouteProgress, now: number, out: Float32Array) 
     push(l.x, l.z, REVIVE.lanternRadius * ease(t) + (REVIVE.zoneRadius - REVIVE.lanternRadius) * ease(z), Math.max(wave(t), wave(z)))
   })
   if (p.finaleAt !== null) { const t = (now - p.finaleAt) / REVIVE.lanternGrow; push(GLADE_CENTRE[0], GLADE_CENTRE[1], REVIVE.gladeRadius * ease(t), wave(t)) }
+  if (p.sunlight.grownAt !== null) { const t = (now - p.sunlight.grownAt) / 3; push(25, 0, 17 * ease(t), wave(t)) }
   const end = p.completedAt[ZONES[ZONES.length - 1]]
   return { count: n, all: end === null ? 0 : ease((now - end) / REVIVE.endingGrow) }
 }

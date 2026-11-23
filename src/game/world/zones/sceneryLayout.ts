@@ -10,6 +10,8 @@ import { basinDepth, brookSegments, channelBanks, CHANNEL, pools, shoreScale, we
 import { SPAWN_CLEARING, forestTrees, standDensity, trunkRadius } from './forestLayout'
 import { lanterns } from '../../features/route/routeLayout'
 import { SHRINE, VISTA_POINT, echoStones, fordStones, giantMushrooms, seeds } from './sideLayout'
+import { sunlightReserved, SUN_MIRRORS, SUN_PLANT } from '../../features/sunlight/layout'
+import { inTreeApproachView } from './landmarkView'
 // Scenery dressing (scene upgrade, 2026-11-12): undergrowth, props and small structures from the second Meshy batch,
 // placed deterministically. Everything keeps clear of trails, water (except reeds), route nodes, flowers and trunks.
 // Grass is kept off the ground under structures and nodes so they sit cleanly.
@@ -18,9 +20,11 @@ export const grassClearings: { x: number; z: number; r: number }[] = [
   ...lanterns.map(l => ({ x: l.x, z: l.z, r: 0.8 })),
   { x: ANCIENT_TREE[0], z: ANCIENT_TREE[1], r: TREE_ROOT_RADIUS + 1 },
   ...campClearings,
+  ...SUN_MIRRORS.map(m => ({ ...m, r: 1.5 })), { ...SUN_PLANT, r: 1.1 },
 ]
 const spots = [...flowers, ...lanterns, ...seeds, ...echoStones]
 function clear(x: number, z: number, room: number) {
+  if (sunlightReserved(x, z, room)) return false
   if (basinDepth(x, z) < 0 || pathWeight(x, z) > 0.25 || Math.hypot(x - cabin.x, z - cabin.z) < 6 + room) return false
   if (Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) < TREE_ROOT_RADIUS + 3 + room) return false
   if (spots.some(s => Math.hypot(s.x - x, s.z - z) < 1.4 + room)) return false
@@ -52,7 +56,7 @@ function undergrowth(seed: number, count: number, areas: Area[], room: number, s
   return out
 }
 // Side areas get their own seeds, so the main areas' dressing is unchanged: a lush glen, a mushroom-carpeted hollow.
-export const ferns = [...undergrowth(201, 1100, [CAMP, HIGHLAND, WETLAND], 0.2, [0.8, 1.5], 0.7, 0.6), ...undergrowth(301, 420, [GLEN, HOLLOW, LAKE, OVERLOOK], 0.2, [0.9, 1.7], 0.6, 0.6)]
+export const ferns = [...undergrowth(201, 1100, [CAMP, HIGHLAND, WETLAND], 0.2, [0.8, 1.5], 0.7, 0.6), ...undergrowth(301, 420, [GLEN, HOLLOW, LAKE, OVERLOOK], 0.2, [0.9, 1.7], 0.6, 0.6)].filter(p => !inTreeApproachView(p.x, p.z, p.scale * 0.9))
 export const mossStones = [...undergrowth(203, 260, [CAMP, HIGHLAND, WETLAND], 0.6, [0.6, 1.4], 0.4, 0.75), ...undergrowth(303, 110, [GLEN, LAKE, OVERLOOK], 0.6, [0.7, 1.6], 0.3, 0.75)]
 export const mushrooms = [...undergrowth(205, 220, [CAMP, WETLAND, HIGHLAND], 0.1, [0.8, 1.6], 0.9, 0.3), ...undergrowth(305, 260, [HOLLOW], 0.1, [1, 2.2], 0.6, 0.3), ...undergrowth(306, 50, [GLEN], 0.1, [0.8, 1.5], 0.9, 0.3)]
 
@@ -153,7 +157,7 @@ export const bridgeRailColliders: BoxCollider[] = footbridges.flatMap(b => [-1, 
 
 // ---- Scene enrichment (2026-11-12): flowering shrubs, wildflowers, stumps and trail signposts ----------------------
 /** VEG-010 flowering shrubs (about 1.4 m) round tree feet and glade edges; solid, like the larger stones. */
-export const shrubs = [...undergrowth(211, 170, [CAMP, WETLAND, HIGHLAND], 0.8, [0.75, 1.15], 0.55, 0.7), ...undergrowth(311, 50, [GLEN, LAKE, OVERLOOK], 0.8, [0.75, 1.15], 0.55, 0.7)].filter(s => standDensity(s.x, s.z) < 0.75)
+export const shrubs = [...undergrowth(211, 170, [CAMP, WETLAND, HIGHLAND], 0.8, [0.75, 1.15], 0.55, 0.7), ...undergrowth(311, 50, [GLEN, LAKE, OVERLOOK], 0.8, [0.75, 1.15], 0.55, 0.7)].filter(s => standDensity(s.x, s.z) < 0.75 && !inTreeApproachView(s.x, s.z, s.scale))
 export const shrubColliders: CircleCollider[] = shrubs.map(s => ({ x: s.x, z: s.z, radius: 0.6 * s.scale }))
 /** VEG-012 mossy stumps (about 0.9 m tall): scattered in the stands, where trees once fell. */
 export const stumps = undergrowth(215, 46, [CAMP, HIGHLAND, WETLAND], 1.0, [0.75, 1.15], 0.35, 1.1)

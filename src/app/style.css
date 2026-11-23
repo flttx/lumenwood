@@ -95,6 +95,15 @@ kbd.wide{min-width:40px}
   background:rgba(12,16,18,.5);border:1px solid rgba(243,207,140,.2);backdrop-filter:blur(4px);white-space:nowrap}
 .hint span{display:flex;align-items:center;gap:6px}.hint .click{color:var(--gold)}
 .hint.fades{animation:hint-out 1.2s ease 9s forwards}
+.objective{position:absolute;left:28px;bottom:94px;width:min(340px,calc(100% - 56px));padding:14px 16px;border-left:2px solid var(--gold-2);border-radius:0 8px 8px 0;background:linear-gradient(90deg,rgba(10,18,20,.86),rgba(10,18,20,.68));box-shadow:0 4px 24px rgba(0,0,0,.15);font-family:var(--sans);text-align:left}
+.objective-progress{font-size:11px;letter-spacing:.08em;color:var(--gold);margin-bottom:7px}
+.objective-title{font-size:15px;font-weight:600;line-height:1.5;color:var(--cream)}
+.objective-detail{font-size:12px;line-height:1.7;color:var(--mist);margin-top:5px}
+.objective-bearing{display:flex;align-items:center;gap:10px;border-top:1px solid rgba(243,207,140,.15);margin-top:12px;padding-top:10px;font-size:11px;color:var(--mist)}
+.objective-compass{display:grid;place-items:center;flex:none;width:34px;height:34px;border:1px solid rgba(243,207,140,.3);border-radius:50%;color:var(--gold)}
+.objective-compass svg{width:25px;height:25px;fill:currentColor}
+.objective-bearing strong{display:block;margin-top:3px;font-size:13px;font-weight:500;color:var(--cream)}
+.objective-bearing strong span{font-size:11px;color:var(--mist)}
 @keyframes hint-out{to{opacity:0;transform:translate(-50%,6px)}}
 
 /* Pause and ending */
@@ -114,9 +123,19 @@ kbd.wide{min-width:40px}
   .title-block{top:44%}.title-foot{flex-direction:column;align-items:flex-start;bottom:16px}.controls{display:none}
   .hint{white-space:normal;flex-wrap:wrap;justify-content:center;width:calc(100% - 32px);border-radius:12px}
   .tally{transform:scale(.85);transform-origin:top right}
+  .objective{left:16px;bottom:100px;width:280px;padding:11px 13px}.objective-title{font-size:14px}
 }
 @media(prefers-reduced-motion:reduce){
   .keyart,.motes span{animation:none}.motes span{opacity:.6}
   .caption{animation-name:caption-still}@keyframes caption-still{0%,85%{opacity:1}100%{opacity:0}}
   .region-banner{animation-name:caption-still}
 }
+
+.sunlight-panel { position:absolute; right:2.5rem; bottom:7rem; width:min(24rem,38vw); padding:1rem 1.25rem; border-left:2px solid #bba16c; background:linear-gradient(90deg,#16271fe8,#16271fb0); color:#eee4ca; font-size:.8rem; line-height:1.7; text-shadow:0 1px 3px #0008; }
+.sunlight-label { color:#e7ce98; font-size:1rem; margin-bottom:.35rem; }
+.sunlight-label small { font-size:.65rem; opacity:.65; margin-left:.5rem; }
+.sunlight-controls { display:flex; align-items:center; gap:.5rem; margin:.5rem 0; }
+.sunlight-controls span { color:#e7ce98; margin-right:auto; }
+.sunlight-panel progress { display:block; width:100%; height:4px; margin-top:.6rem; accent-color:#b9d780; }
+@media(max-width:800px) { .sunlight-panel { right:1rem; bottom:11rem; width:17rem; font-size:.7rem; padding:.65rem .8rem; } }
+.objective-alternate{margin-top:10px;font-size:11px;color:var(--gold);opacity:.85}

@@ -20,7 +20,7 @@ import { ANCIENT_TREE, PLATEAU_HEIGHT, TREE_BANDS } from './highlandLayout'
 const TREE_URL = `${assetConfig.baseUrl}models/vegetation/VEG-002.glb`
 const ROCK_URL = `${assetConfig.baseUrl}models/props/PRP-001.glb`
 // 2026-11-12: veins softened (they read as lava cracks at 7) and the lit crown gains warm orbs of light, as in the concept art.
-const VEIN_COLOR = new Color(0xffc068), VEIN_INTENSITY = 3.6, CANOPY_COLOR = new Color(0xffd28a), CANOPY_TINT = 0xd9e2cc, ENDING_BLAZE = 3
+const VEIN_COLOR = new Color(0xffc068), VEIN_INTENSITY = 1.65, CANOPY_COLOR = new Color(0xffd28a), CANOPY_TINT = 0xd9e2cc, ENDING_BLAZE = 1.1
 export const CROWN_HEIGHT = 17
 useGLTF.preload(TREE_URL, false, false)
 useGLTF.preload(ROCK_URL, false, false)
@@ -52,14 +52,14 @@ function AncientTree() {
   // winding up the trunk and roots. Bark texels are the ones where red clearly beats green; moss and leaves stay dark.
   float bark = smoothstep(1.05, 1.45, diffuseColor.r / max(diffuseColor.g, 0.02));
   float flow = sin(vTreePos.y * 1.6 + sin(vTreePos.x * 1.9) * 2.2 + sin(vTreePos.z * 1.7) * 2.2 - uTime * 0.6);
-  float lines = smoothstep(0.7, 1.0, flow) * 0.8 + 0.06;
-  totalEmissiveRadiance = uVeinColor * uVein * clamp(uLayers - band, 0.0, 1.0) * max(vein, bark * lines * 0.09);
+  float lines = smoothstep(0.9, 1.0, flow) * 0.55 + 0.02;
+  totalEmissiveRadiance = uVeinColor * uVein * clamp(uLayers - band, 0.0, 1.0) * max(vein * (0.4 + 0.6 * smoothstep(-0.4, 0.8, flow)), bark * lines * 0.06);
   float crown = smoothstep(${(TREE_BANDS[1] - 1).toFixed(1)}, ${(TREE_BANDS[1] + 3).toFixed(1)}, vTreeY);
-  totalEmissiveRadiance += uCanopyColor * uCanopy * crown * (0.25 + 0.75 * diffuseColor.g);
+  totalEmissiveRadiance += uCanopyColor * uCanopy * crown * (0.15 + 0.5 * diffuseColor.g);
   // Orbs of light hung through the lit crown: soft spots on a coarse 3D grid, a few cells in each lit, twinkling slowly.
   vec3 cell = floor(vTreePos * 0.9), f = fract(vTreePos * 0.9) - 0.5;
   float seed = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-  float orb = step(0.72, seed) * smoothstep(0.42, 0.12, length(f)) * (0.7 + 0.3 * sin(uTime * 1.3 + seed * 40.0));
+  float orb = step(0.8, seed) * smoothstep(0.31, 0.06, length(f)) * (0.7 + 0.3 * sin(uTime * 1.3 + seed * 40.0));
   totalEmissiveRadiance += uCanopyColor * orb * crown * uOrbs;`)
     }
     material.customProgramCacheKey = () => 'lumenwood-ancient-tree'
@@ -75,9 +75,9 @@ function AncientTree() {
     uniforms.uTime.value = now
     uniforms.uVein.value = VEIN_INTENSITY * (0.6 + 0.4 * night) * (1 + 0.5 * blaze)
     // The canopy band glows gently once lit, and blazes for the ending.
-    uniforms.uCanopy.value = (0.35 * Math.max(0, Math.min(1, layers - 2)) + ENDING_BLAZE * 0.2 * blaze) * (0.5 + 0.5 * night)
+    uniforms.uCanopy.value = (0.12 * Math.max(0, Math.min(1, layers - 2)) + ENDING_BLAZE * 0.09 * blaze) * (0.5 + 0.5 * night)
     // Crown orbs: a few appear with each lit band, all of them by the ending; brighter after dusk.
-    uniforms.uOrbs.value = (1.2 * Math.min(1, layers / 3) + 2.5 * blaze) * (0.35 + 0.65 * night)
+    uniforms.uOrbs.value = (0.45 * Math.min(1, layers / 3) + 0.55 * blaze) * (0.35 + 0.65 * night)
   })
   return <><primitive object={mesh} position={[ANCIENT_TREE[0], PLATEAU_HEIGHT, ANCIENT_TREE[1]]}/><CrownHalo/></>
 }
@@ -87,14 +87,14 @@ function CrownHalo() {
   const { sprite, material } = useMemo(() => {
     const material = new SpriteMaterial({ map: radialGlowTexture(), color: CANOPY_COLOR, transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending, fog: false })
     const sprite = new Sprite(material)
-    sprite.scale.setScalar(34); sprite.visible = false
+    sprite.scale.setScalar(25); sprite.visible = false
     return { sprite, material }
   }, [])
   useFrame(() => {
     const done = route.completedAt.highland, now = routeClock.now
     const blaze = done === null ? 0 : smoothstep(done + 2, done + 9, now)
     sprite.visible = blaze > 0.01
-    material.opacity = blaze * (0.45 + 0.05 * Math.sin(now * 1.3)) * (0.5 + 0.5 * atmosphere.preset.lantern)
+    material.opacity = blaze * (0.1 + 0.015 * Math.sin(now * 1.3)) * (0.5 + 0.5 * atmosphere.preset.lantern)
   })
   return <primitive object={sprite} position={[ANCIENT_TREE[0], PLATEAU_HEIGHT + CROWN_HEIGHT, ANCIENT_TREE[1]]}/>
 }

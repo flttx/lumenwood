@@ -12,7 +12,9 @@ export const cabinOccluder: CylinderOccluder = { x: CABIN_X, z: CABIN_Z, radius:
 // Lantern beside the door in the cabin's local frame (door faces local +Z), read off the reference front view:
 // 0.94 m right of the door axis, 2.15 m up, just proud of the front wall.
 export const LANTERN_OFFSET: [number, number, number] = [0.94, 2.15, 2.6]
-export const glowFlowers = [[2.5, -3], [-3, 2.2], [-1, 5.2], [10.2, -10.6], [9.4, -15.6], [17.4, -10]].map(p => at(p)).map(([x, z], i) => ({ x, z, angle: i * 2.39996 }))
+// Three pairs lead from the spawn to the three lanterns. Stable indices preserve released-flower saves; the camp no
+// longer asks a first-time player to repeatedly return to the cabin for the remaining flowers.
+export const glowFlowers = [[1.4, -1.8], [1.6, 0.4], [-2.8, 9.6], [-6.4, 11.2], [-6, 15.2], [-2.4, 16.8]].map(p => at(p)).map(([x, z], i) => ({ x, z, angle: i * 2.39996 }))
 
 /** A point given in the cabin's local frame (x to the door's right, z out of the door), in world space. */
 function besideCabin(lx: number, lz: number, turn = 0) {

@@ -27,7 +27,7 @@ export function TitleScreen() {
       <h1 className="logo">流光之森</h1>
       <p className="logo-en">Lumenwood <em>Whispers of Light</em></p>
       <p className="tagline">一场关于探索、倾听与共生的森林之旅</p>
-      <p className="description">唤醒花朵，带着萤火点亮灯火，穿过营地与湿地，去往山上的古树。</p>
+      <p className="description">借阳光让藤蔓长成桥，携萤火点亮夜色，去往山上的古树。</p>
       <div className="actions">
         <button className="primary" onClick={() => begin(saved ? 'continue' : 'new')}><Leaf/>{saved ? '继续旅程' : '开始探索'}<span className="arrow">→</span></button>
         {saved && <button className="secondary" onClick={() => begin('new')}>新的旅程</button>}

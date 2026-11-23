@@ -1,6 +1,7 @@
-import { SEA_LEVEL, heightAt, hillWeight, pathWeight } from '../world/terrain/terrain'
+import { SEA_LEVEL, cliffWeight, heightAt, hillWeight, pathWeight } from '../world/terrain/terrain'
 import { basinDepth } from '../world/zones/wetlandLayout'
 import { worldBounds } from '../world/regions'
+import { sunRavineGap } from '../features/sunlight/landform'
 // Grass is code-generated terrain detail (user decision 2026-11-12; see task_plan). This bakes what the grass shader needs
 // into a float field: ground height and grass density per cell. Pure, unit-tested; Grass.tsx uploads it as a texture.
 export const FIELD_MARGIN = 24, FIELD_CELL = 1
@@ -8,6 +9,9 @@ export interface GrassField { minX: number; minZ: number; width: number; depth: 
 
 /** Density 0–1: none on trails, in or at the edge of water, or where `clearings` say so; thinning up the hills. */
 export function grassDensity(x: number, z: number, clearings: readonly { x: number; z: number; r: number }[] = []) {
+  if (sunRavineGap(x, z) > -0.25) return 0
+  const cliff = cliffWeight(x, z)
+  if (cliff > 0.001 && cliff < 0.999) return 0 // no upright grass interpolated through the glen's exposed rock face
   if (basinDepth(x, z) < -0.01 || heightAt(x, z) < SEA_LEVEL + 2.4) return 0 // no grass on the beach and sand
   let d = 1 - pathWeight(x, z)
   d *= 1 - Math.max(0, Math.min(1, (hillWeight(x, z) - 0.35) / 0.4))

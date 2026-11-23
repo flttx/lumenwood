@@ -5,7 +5,7 @@ export function attachInput(input: InputState, element: HTMLElement, isPlaying: 
   const down = (e: KeyboardEvent) => { if (isPlaying()) input.keys.add(e.code) }
   const up = (e: KeyboardEvent) => { input.keys.delete(e.code) }
   const clear = () => input.keys.clear()
-  const mouse = (e: MouseEvent) => { if (isPlaying() && document.pointerLockElement === element) { input.yaw -= e.movementX * 0.0025; input.pitch = Math.max(-0.15, Math.min(0.9, input.pitch + e.movementY * 0.0025)) } }
+  const mouse = (e: MouseEvent) => { if (isPlaying() && document.pointerLockElement === element) { input.yaw -= e.movementX * 0.0025; input.pitch = Math.max(-0.45, Math.min(0.9, input.pitch + e.movementY * 0.0025)) } }
   const click = () => { if (isPlaying()) requestLock(element) }
   window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', clear)
   document.addEventListener('mousemove', mouse); element.addEventListener('click', click)

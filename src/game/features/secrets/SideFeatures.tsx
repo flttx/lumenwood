@@ -53,7 +53,7 @@ function GiantMushrooms() {
     const dusk = atmosphere.preset.fireflies
     items.forEach((it, i) => {
       const awake = secretFx.mushrooms[i]
-      it.material.emissiveIntensity = 0.15 + 0.35 * dusk + awake * (1.4 + 1.6 * dusk)
+      it.material.emissiveIntensity = 0.08 + 0.15 * dusk + awake * (0.8 + 1.2 * dusk)
       ;(it.halo.material as SpriteMaterial).opacity = awake * (0.25 + 0.5 * dusk)
       it.light.level = awake * (0.3 + 0.7 * dusk)
     })

@@ -25,7 +25,7 @@ const FLOWER_ID = 'INT-004', FLOWER_URL = `${assetConfig.baseUrl}models/interact
 const GLOW_RATE = 3
 // Provisional, tuned by eye: pale mint for the wave, warm cream (the emission map's petal colour) for the light.
 const WAVE_COLOR = 0xc6f2d6, HALO_COLOR = 0xffe7b8, LIGHT_COLOR = 0xffd9a0
-const HALO_HEIGHT = 0.85, HALO_SIZE = 1.7, HALO_OPACITY = 0.35, LIGHT_CANDELA = 1.8, LIGHT_RANGE = 6.5, LIGHT_HEIGHT = 1.5
+const HALO_HEIGHT = 0.85, HALO_SIZE = 1.35, HALO_OPACITY = 0.2, LIGHT_CANDELA = 1.8, LIGHT_RANGE = 6.5, LIGHT_HEIGHT = 1.5
 const CHIME_HEIGHT = 0.8
 // Wake burst: sparks per flower, how long they live and how high they climb; the plant swells by POP at the wake.
 const SPARKS = 22, SPARK_LIFE = 2.6, SPARK_RISE = 2.8, POP = 0.08

@@ -1,12 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { FLAT_EDGE, HILL_HEIGHT, SEA_CLIFF_EDGE, SEA_LEVEL, groundColor, heightAt, pathWeight, paths, valueNoise } from './terrain'
+import { CLIFF_FOOT, CLIFF_TOP, FLAT_EDGE, HILL_HEIGHT, SEA_CLIFF_EDGE, SEA_LEVEL, cliffWeight, coveShore, groundColor, heightAt, pathWeight, paths, valueNoise } from './terrain'
 import { OUTER_CLEARANCE, forestTrees, outerTrees } from '../zones/forestLayout'
-import { BEACH, CAMP, GLADE, NORTH_CORRIDOR, OVERLOOK, allRegions, regionDistance, worldBounds } from '../regions'
+import { BEACH, CAMP, GLADE, GLEN, NORTH_CORRIDOR, OVERLOOK, allRegions, regionDistance, worldBounds } from '../regions'
 import { sz } from '../scale'
 import { cabin } from '../zones/campLayout'
+import { inSunRect, SUN_MOAT } from '../../features/sunlight/layout'
+import { WATERFALL } from '../zones/sideLayout'
 describe('terrain', () => {
+  it('keeps the glen bank flat and the waterfall support intact while folding only the outer cliff', () => {
+    for (let z = GLEN.minZ; z <= GLEN.maxZ; z += 0.5) {
+      expect(cliffWeight(GLEN.minX, z)).toBe(0)
+      let previous = 0
+      for (let x = CLIFF_FOOT; x >= CLIFF_TOP - 7; x -= 0.25) {
+        const weight = cliffWeight(x, z)
+        expect(weight).toBeGreaterThanOrEqual(previous - 1e-9); expect(weight).toBeLessThanOrEqual(1)
+        previous = weight
+      }
+    }
+    expect(cliffWeight(CLIFF_FOOT, WATERFALL.z)).toBe(0)
+    expect(cliffWeight((CLIFF_FOOT + CLIFF_TOP) / 2, WATERFALL.z)).toBeCloseTo(0.5)
+    expect(cliffWeight(CLIFF_TOP, WATERFALL.z)).toBe(1)
+    expect(heightAt(WATERFALL.x - 1, WATERFALL.z)).toBeGreaterThan(16)
+  })
   it('the camp and corridor roll gently; the glade stays flat for the light bridge and water', () => {
     for (const r of [CAMP, NORTH_CORRIDOR]) for (let x = r.minX; x <= r.maxX; x += 2) for (let z = r.minZ; z <= r.maxZ; z += 2) {
+      // The blocked daytime ravine is deliberately steep; its walls and bridge are tested with the sample rules.
+      if (inSunRect(x, z, SUN_MOAT, 1.5)) continue
       const h = heightAt(x, z)
       expect(Math.abs(h)).toBeLessThan(1.6)
       expect(Math.abs(heightAt(x + 1, z) - h)).toBeLessThan(0.35); expect(Math.abs(heightAt(x, z + 1) - h)).toBeLessThan(0.35)
@@ -51,6 +70,20 @@ describe('island', () => {
     for (const r of allRegions) for (const [x, z] of [[r.minX, r.minZ], [r.maxX, r.maxZ], [(r.minX + r.maxX) / 2, (r.minZ + r.maxZ) / 2]]) expect(heightAt(x, z)).toBeGreaterThan(SEA_LEVEL + (r === BEACH ? 0.05 : 1.5))
     const { minX, maxX, minZ, maxZ } = worldBounds
     for (const [x, z] of [[minX - 130, 0], [maxX + 130, 100], [0, minZ - 130], [-20, maxZ + 130]]) expect(heightAt(x, z)).toBeLessThan(SEA_LEVEL - 4)
+  })
+  it('the beach has gentle relief and a curving shoreline without flooding its walkable edge', () => {
+    const shore = [-20, -10, 0, 10, 20].map(coveShore)
+    expect(Math.max(...shore) - Math.min(...shore)).toBeGreaterThan(0.25)
+    const across = [-20, -10, 0, 10, 20].map(x => heightAt(x, -75))
+    expect(Math.max(...across) - Math.min(...across)).toBeGreaterThan(0.1)
+    for (let x = BEACH.minX; x <= BEACH.maxX; x += 1) {
+      expect(heightAt(x, BEACH.minZ)).toBeGreaterThan(SEA_LEVEL + 0.05)
+      for (let z = BEACH.minZ; z <= BEACH.maxZ; z += 1) {
+        const h = heightAt(x, z)
+        expect(Math.abs(heightAt(x + 0.5, z) - h)).toBeLessThan(0.3)
+        expect(Math.abs(heightAt(x, z + 0.5) - h)).toBeLessThan(0.3)
+      }
+    }
   })
   it('the overlook ends in a sea cliff', () => {
     expect(heightAt(OVERLOOK.maxX - 1, 299)).toBeGreaterThan(8)

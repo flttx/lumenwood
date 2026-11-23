@@ -15,13 +15,13 @@ export const captions = {
   wetland: '浅水可以涉过，深水要绕开。',
   bridge: '光桥铺好了，去对岸看看。',
   glade: '光柱指向更高的地方。',
-  highland: '古树在等待。点亮它周围的石灯座。',
+  highland: '光脉从根部通往树冠。留在石灯座旁，面向古树并按住 E，引导萤火。',
   cradle1: '古树的根亮了。',
   cradle2: '光沿着树干升起。',
 } as const
 export type CaptionId = keyof typeof captions
 /** Seconds without progress before the next target is pulsed, and between repeated pulses. */
-export const HINT_AFTER = 40
+export const HINT_AFTER = 12
 
 /** Which route zone the player is in, by how far north they are (the glade counts as the wetlands). */
 export function zoneAt(z: number): Zone { return z < sz(22) ? 'camp' : z < sz(75) ? 'wetland' : 'highland' }

@@ -5,6 +5,7 @@ import { reflectionSkips } from '../../rendering/planarReflection'
 import { ANCIENT_TREE, PLATEAU_HEIGHT, TREE_HEIGHT } from '../../world/zones/highlandLayout'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { route, routeClock } from './progress'
+import { smoothstep } from '../../shared/math'
 // The ancient tree as a landmark (third pass, 2026-11-12; A Short Hike's lesson: a goal you can see from the start). A soft
 // column of light rises from its crown above the forest canopy, so it shows between the treetops from the camp onward:
 // faint in daylight, clearer at dusk, brighter for each lit cradle, fullest after the ending.
@@ -26,13 +27,15 @@ export function Beacon() {
   const mesh = useRef<Mesh>(null)
   // Not mirrored in the water (the column would double in every pond).
   useEffect(() => { const m = mesh.current; if (!m) return; reflectionSkips.add(m); return () => { reflectionSkips.delete(m) } }, [])
-  useFrame(({ clock }) => {
+  useFrame(({ clock, camera }) => {
     const lit = route.litAt.filter(t => t !== null).length, done = route.completedAt.highland
     const ending = done === null ? 0 : Math.min(1, (routeClock.now - done) / 8)
     material.uniforms.uTime.value = clock.elapsedTime
     // Kept under the night bloom threshold (0.55): bloom passes a whole pixel once it crosses the threshold, and a 70 m
     // column over clear night sky bloomed into a white-out across the frame.
-    material.uniforms.uStrength.value = (0.1 + 0.1 * atmosphere.blend) * (1 + lit * 0.05) + ending * 0.12
+    const distance = Math.hypot(camera.position.x - ANCIENT_TREE[0], camera.position.z - ANCIENT_TREE[1])
+    const presence = 0.2 + 0.8 * smoothstep(45, 140, distance)
+    material.uniforms.uStrength.value = ((0.1 + 0.1 * atmosphere.blend) * (1 + lit * 0.05) + ending * 0.12) * presence
   })
   return <mesh ref={mesh} geometry={geometry} material={material} position={[ANCIENT_TREE[0], PLATEAU_HEIGHT + TREE_HEIGHT * 0.8, ANCIENT_TREE[1]]} renderOrder={4} frustumCulled={false}/>
 }

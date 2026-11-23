@@ -12,6 +12,7 @@ import { route, routeClock, type SecretId } from '../route/progress'
 import { saveRequest } from '../route/save'
 import { FORD_REACH, MUSHROOM_REACH, SEED_REACH, STONE_REACH, VISTA_HOLD, VISTA_REACH, collectSeed, createSecretState, seedAvailable, solve, stepFord, touchEcho, wakeMushroom } from './secrets'
 import { secretFx } from './fx'
+import { secretSession } from './session'
 // Applies the side areas' rules each frame (secrets.ts) and drives their look (fx.ts), sounds, captions and the overlook's
 // camera moment. Puzzle progress inside an area lasts for the session; solved secrets and picked-up seeds are saved.
 const HUM_EVERY = 11, HUM_STEP = 0.85, HUM_RANGE = 34, GLOW_DECAY = 1.4
@@ -34,6 +35,7 @@ const NOTES = [3, 5, 7] // echo stones' pentatonic steps
 export function SecretsDirector({ player }: { player: Vector3 }) {
   const state = useMemo(() => ({ ...createSecretState(), armedStones: echoStones.map(() => true), armedFord: fordStones.map(() => true), echoAt: echoStones.map(() => -Infinity),
     nextHum: 0, vistaFor: 0, seedsShown: -1 }), [])
+  secretSession.state = state
   useFrame((_, delta) => {
     const store = useGameStore.getState()
     if (store.phase !== 'playing') return

@@ -14,7 +14,7 @@ import { heightAt } from '../terrain/terrain'
 // chunked instanced layer (rendering/Scatter) drawn only near the camera. Layouts live in sceneryLayout.ts.
 const url = (folder: string, id: string) => `${assetConfig.baseUrl}models/${folder}/${id}.glb`
 interface Layer { id: string; folder: string; items: readonly ScatterItem[]; maxDistance: number; castShadow?: boolean; lods?: string[]; foliage?: { sway: number } }
-const PLANT = { sway: 0.05 }, SHRUB = { sway: 0.025 }
+const PLANT = { sway: 0.05, cameraFade: true }, SHRUB = { sway: 0.025, cameraFade: true }
 // Ferns and mushrooms carry a decimated LOD1 (scripts/blender/optimize_tree.py) used beyond NEAR_DETAIL metres.
 const NEAR_DETAIL = 12
 const bridgeItems = footbridges.map(b => ({ x: b.x, y: BRIDGE_BASE, z: b.z, angle: b.angle, scale: 1 })) // sceneryLayout.deckHeight assumes this
@@ -50,7 +50,7 @@ function Mushrooms() {
     if (!(mesh instanceof Mesh) || !(mesh.material instanceof MeshStandardMaterial)) throw new Error(`${MUSHROOM_URL} has no standard mesh named VEG-007_LOD0`)
     return mesh.material
   }, [scene])
-  useFrame(() => { material.emissiveIntensity = 0.35 + 1.1 * atmosphere.preset.fireflies })
+  useFrame(() => { material.emissiveIntensity = 0.1 + 0.32 * atmosphere.preset.fireflies })
   return <Scatter url={MUSHROOM_URL} lods={['VEG-007_LOD0', 'VEG-007_LOD1']} items={mushrooms} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={40}/>
 }
 

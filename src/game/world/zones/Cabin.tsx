@@ -8,7 +8,7 @@ import { cabin, LANTERN_OFFSET } from './campLayout'
 // ARC-001 landmark; collision and camera occlusion use the code proxies in campLayout. At twilight a code point light and
 // a small additive halo sit at the modelled lantern beside the door.
 const CABIN_URL = `${assetConfig.baseUrl}models/architecture/ARC-001.glb`
-const LANTERN_INTENSITY = 7
+const LANTERN_INTENSITY = 5
 useGLTF.preload(CABIN_URL, false, false)
 export function Cabin() {
   const { scene } = useGLTF(CABIN_URL, false, false)
@@ -17,7 +17,7 @@ export function Cabin() {
   useFrame(() => {
     const k = atmosphere.preset.lantern
     if (light.current) { light.current.intensity = k * LANTERN_INTENSITY; light.current.visible = k > 0.01 }
-    if (halo.current) halo.current.opacity = k * 0.8
+    if (halo.current) halo.current.opacity = k * 0.5
   })
   return <group position={[cabin.x, 0, cabin.z]} rotation={[0, cabin.angle, 0]}>
     <primitive object={scene}/>

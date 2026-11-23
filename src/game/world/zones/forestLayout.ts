@@ -10,6 +10,7 @@ import { flowers } from './floraLayout'
 import { lanterns } from '../../features/route/routeLayout'
 import { random } from '../../shared/random'
 import { smoothstep } from '../../shared/math'
+import { sunlightReserved } from '../../features/sunlight/layout'
 // Deterministic tree layout shared by rendering, collision and camera occlusion (scene upgrade, 2026-11-12). Three species:
 // VEG-003 giant redwoods and VEG-004 tall firs make the towering canopy of the concept art; VEG-001 conifers are the young
 // understory. Trunk radii and heights per species are measured from the optimised meshes (scale 1).
@@ -54,6 +55,7 @@ const inside = (a: Area, x: number, z: number) => x > a.minX + 2 && x < a.maxX -
 /** Ground, trail, flower/lantern and neighbour checks shared by every placement pass. */
 function fits(tree: TreeSpot, area: Area, ok: Ok, others: TreeSpot[]) {
   const { x, z } = tree, radius = trunkRadius(tree)
+  if (sunlightReserved(x, z, radius + 1)) return false
   if (!inside(area, x, z) || nearestPathPoint(x, z).distance < TRAIL_CLEARANCE + radius || !ok(x, z, radius)) return false
   if ([...flowers, ...lanterns, ...seeds, ...echoStones].some(s => Math.hypot(s.x - x, s.z - z) < 3 + radius) || Math.hypot(SHRINE[0] - x, SHRINE[1] - z) < 6 + radius) return false
   return others.every(t => Math.hypot(t.x - x, t.z - z) >= trunkRadius(t) + radius + gapBetween(t.kind, tree.kind))

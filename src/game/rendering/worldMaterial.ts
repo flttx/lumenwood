@@ -13,6 +13,8 @@ export const worldUniforms = {
   uSunColor: { value: new Color() },
   uRimColor: { value: new Color() },
   uTranslucency: { value: 1 },
+  uDaylight: { value: 1 },
+  uFocusView: { value: new Vector3() },
 }
 
 export interface FoliageOptions {
@@ -20,6 +22,7 @@ export interface FoliageOptions {
   height: number
   /** Sway at the top, as a fraction of the height. */
   sway: number
+  cameraFade?: boolean
 }
 
 const vertexPars = `#include <common>
@@ -34,9 +37,20 @@ const vertexBody = `#include <begin_vertex>
   float foliageWave = sin(uTime * 0.8 + foliagePhase) * 0.65 + sin(uTime * 2.1 + foliagePhase * 1.7 + position.y * 0.35) * 0.2;
   transformed.xz += vec2(1.0, 0.6) * foliageWave * uFoliageSway * uFoliageHeight * vFoliageK * vFoliageK;`
 const fragmentPars = `#include <common>
-uniform vec3 uSunView; uniform vec3 uSunColor; uniform vec3 uRimColor; uniform float uTranslucency; varying float vFoliageK;`
+uniform vec3 uSunView; uniform vec3 uSunColor; uniform vec3 uRimColor; uniform vec3 uFocusView; uniform float uTranslucency; uniform float uDaylight; uniform float uCameraFade; varying float vFoliageK;`
 const colorBody = `#include <color_fragment>
   float leaf = smoothstep(0.015, 0.09, diffuseColor.g - max(diffuseColor.r, diffuseColor.b) * 0.92);
+  // Day keeps green leaf pigment under cream sunlight; bark and evening palettes retain their texture colours.
+  diffuseColor.rgb *= mix(vec3(1.0), vec3(0.82, 1.1, 0.94), leaf * uDaylight);
+  if (uCameraFade > 0.5) {
+    vec3 leafView = -vViewPosition;
+    float along = dot(leafView, uFocusView) / max(dot(uFocusView, uFocusView), 0.01);
+    float corridor = length(leafView - uFocusView * clamp(along, 0.0, 1.0));
+    float obstruction = (1.0 - smoothstep(0.55, 1.25, corridor)) * step(0.0, along) * (1.0 - step(1.05, along));
+    float visibility = mix(1.0, min(smoothstep(0.45, 1.8, length(vViewPosition)), 1.0 - obstruction * 0.9), leaf);
+    float pixelNoise = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+    if (pixelNoise > visibility) discard;
+  }
   diffuseColor.rgb *= mix(0.62, 1.06, smoothstep(0.0, 0.8, vFoliageK));`
 const emissiveBody = `#include <emissivemap_fragment>
   vec3 foliageView = normalize(-vViewPosition); // camera → fragment, view space
@@ -50,7 +64,7 @@ export function applyFoliage(material: Material, options: FoliageOptions) {
   if (material.userData.foliage) return
   material.userData.foliage = true
   const m = material as MeshStandardMaterial
-  const own = { uFoliageHeight: { value: options.height }, uFoliageSway: { value: options.sway } }
+  const own = { uFoliageHeight: { value: options.height }, uFoliageSway: { value: options.sway }, uCameraFade: { value: options.cameraFade ? 1 : 0 } }
   m.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
     Object.assign(shader.uniforms, worldUniforms, own)
     shader.vertexShader = shader.vertexShader.replace('#include <common>', vertexPars).replace('#include <begin_vertex>', vertexBody)

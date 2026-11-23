@@ -22,7 +22,7 @@ import { route, routeClock } from '../features/route/progress'
 const GradeShader = {
   uniforms: {
     tDiffuse: { value: null }, uShade: { value: new Color() }, uLight: { value: new Color() },
-    uContrast: { value: 1 }, uSaturation: { value: 1 }, uVignette: { value: 0 }, uAspect: { value: 1 }, uTime: { value: 0 }, uGrain: { value: 0.035 }, uFringe: { value: 0.0018 },
+    uContrast: { value: 1 }, uSaturation: { value: 1 }, uVignette: { value: 0 }, uAspect: { value: 1 }, uTime: { value: 0 }, uGrain: { value: 0.012 }, uFringe: { value: 0 },
   },
   vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: `uniform sampler2D tDiffuse; uniform vec3 uShade; uniform vec3 uLight; uniform float uContrast; uniform float uSaturation;
@@ -54,6 +54,9 @@ void main() {
 const aoSkips = (o: Object3D) => {
   if (o.userData.noAO === true || (o as { isPoints?: boolean }).isPoints || (o as { isSprite?: boolean }).isSprite || (o as { isLine?: boolean }).isLine) return true
   if (!(o instanceof Mesh)) return false
+  // The opaque sea must supply its flat surface to the normal/depth pass. Hiding it exposes buried terrain seams,
+  // whose AO would otherwise be multiplied over the visible water as a large rectangular dark patch.
+  if (o.userData.aoSurface === true) return false
   const materials: Material[] = Array.isArray(o.material) ? o.material : [o.material]
   return materials.some(m => m.transparent || m instanceof ShaderMaterial)
 }
@@ -65,7 +68,7 @@ class GroundingAO extends GTAOPass {
 }
 
 /** How faded the not-yet-restored world is (0 none, 1 fully): a hint of what lighting it brings back, not a grey world. */
-const FADED = 0.55
+const FADED = 0.38
 
 export function PostFX() {
   const { gl, scene, camera, size } = useThree()
@@ -107,7 +110,7 @@ export function PostFX() {
     const air = fx.air.settings
     air.mist = p.mist; air.falloff = p.mistFalloff; air.rays = p.rays; air.raysOn = bloomOn
     const revived = reviveCircles(route, routeClock.now, air.revive)
-    air.reviveCount = revived.count; air.reviveAll = revived.all; air.faded = FADED
+    air.reviveCount = revived.count; air.reviveAll = revived.all; air.faded = 0.22 + (FADED - 0.22) * atmosphere.blend
     // Cloud shadows only where the sun is strong enough to cast them.
     air.cloud = 0.28 * Math.min(1, p.sunIntensity / 4.2) * (1 - atmosphere.blend); air.time = performance.now() / 1000
     air.mistColor.setHex(p.fog)

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { bakeGrassField, grassDensity } from './grassField'
-import { heightAt } from '../world/terrain/terrain'
+import { CLIFF_FOOT, CLIFF_TOP, heightAt } from '../world/terrain/terrain'
+import { WATERFALL } from '../world/zones/sideLayout'
 import { pools } from '../world/zones/wetlandLayout'
 describe('grass field', () => {
   it('no grass on the trail or in water, full grass in open forest floor', () => {
@@ -11,6 +12,9 @@ describe('grass field', () => {
   })
   it('clearings cut grass out around structures', () => {
     expect(grassDensity(15, 8, [{ x: 15, z: 8, r: 2 }])).toBe(0)
+  })
+  it('does not plant upright blades through the waterfall cliff face', () => {
+    for (let x = CLIFF_TOP + 0.2; x < CLIFF_FOOT - 0.1; x += 0.2) expect(grassDensity(x, WATERFALL.z)).toBe(0)
   })
   it('bakes height and density per cell', () => {
     const f = bakeGrassField([], 4)

@@ -1,4 +1,5 @@
 import type { RouteProgress, SecretId } from '../route/progress'
+import { SUN_REWARD_INDEX } from '../sunlight/layout'
 import { ECHO_ORDER, fordStones, giantMushrooms, seeds } from '../../world/zones/sideLayout'
 // Light seeds and side-area secrets (third pass, 2026-11-12; the user found the journey too short). Pure rules over plain
 // state, so they are unit-tested; Secrets.tsx applies them each frame and draws the results.
@@ -46,7 +47,7 @@ export function solve(p: RouteProgress, id: SecretId, now: number) {
 /** A seed shows once its secret (if any) is solved and until it is picked up. */
 export function seedAvailable(p: RouteProgress, i: number) {
   const secret = seeds[i].secret
-  return !p.seedsAt.has(i) && (!secret || p.secretsAt.has(secret))
+  return !p.seedsAt.has(i) && (!secret || p.secretsAt.has(secret)) && (i !== SUN_REWARD_INDEX || p.sunlight.grownAt !== null)
 }
 /** Picks up seed `i` if available; returns the memory line to show, or null. */
 export function collectSeed(p: RouteProgress, i: number, now: number) {

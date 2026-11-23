@@ -37,5 +37,5 @@ export const seeds: SeedSpot[] = [
   { x: HOLLOW_HEART[0], z: HOLLOW_HEART[1], secret: 'hollow' }, { x: HOLLOW.maxX - 5, z: HOLLOW.maxZ - 5 },
   { x: SHRINE[0] + 2.4, z: SHRINE[1] - 1.5, secret: 'lake' }, { x: -90, z: LAKE.maxZ - 5 },
   { x: VISTA_POINT[0] - 1.5, z: VISTA_POINT[1] + 2, secret: 'overlook' },
-  { x: 47, z: 44 }, { x: -17, z: -80 }, { x: 26, z: 145 }, { x: -58, z: 326 },
+  { x: 22, z: 0.5 }, { x: -17, z: -80 }, { x: 26, z: 145 }, { x: -58, z: 326 },
 ]
