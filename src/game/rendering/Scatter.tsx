@@ -42,6 +42,7 @@ export function Scatter({ url, lods, items, chunkSize = 32, lodDistance = 30, ma
     const matrix = new Matrix4(), rotation = new Quaternion(), position = new Vector3(), scale = new Vector3()
     return chunkItems(items, chunkSize).map(chunk => ({
       chunk,
+      lod: -1,
       levels: meshes.map(source => {
         const instanced = new InstancedMesh(source.geometry, source.material, chunk.items.length)
         chunk.items.forEach((item, i) => instanced.setMatrixAt(i, matrix.compose(position.set(item.x, item.y, item.z), rotation.setFromAxisAngle(up, item.angle), scale.setScalar(item.scale))))
@@ -58,9 +59,13 @@ export function Scatter({ url, lods, items, chunkSize = 32, lodDistance = 30, ma
   useFrame(({ camera }, delta) => {
     if ((timer.current += delta) < CHECK_INTERVAL) return
     timer.current = 0
-    for (const { chunk, levels } of chunks) {
-      const lod = chunkLod(Math.hypot(chunk.cx - camera.position.x, chunk.cz - camera.position.z), chunk.radius, lodDistance, maxDistance, levels.length > 1)
-      levels.forEach((level, i) => { level.visible = i === lod })
+    for (const entry of chunks) {
+      const { chunk, levels } = entry
+      const lod = chunkLod(Math.hypot(chunk.cx - camera.position.x, chunk.cz - camera.position.z), chunk.radius, lodDistance, maxDistance, levels.length > 1, entry.lod, 2)
+      if (lod !== entry.lod) {
+        entry.lod = lod
+        levels.forEach((level, i) => { level.visible = i === lod })
+      }
     }
   })
   return <>{chunks.flatMap(c => c.levels.map((level, i) => <primitive key={`${c.chunk.key}:${i}`} object={level}/>))}</>

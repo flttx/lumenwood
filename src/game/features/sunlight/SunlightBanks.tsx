@@ -21,12 +21,14 @@ const ferns = [[15.6, -8], [15.5, -3], [16, 2], [18.8, 6.4], [23, 8.6], [29, 6],
   .filter(([x, z]) => sunRavineGap(x, z) < -0.4).map(([x, z], i) => placed(x, z, 0.75 + (i % 3) * 0.13, i * 2.399))
 const flowers = [[10.2, -19.2], [16.6, -18.8], [28.8, -18.4], [31.8, -9], [18, 5.8], [26.5, 7.8]]
   .filter(([x, z]) => sunRavineGap(x, z) < -0.4).map(([x, z], i) => placed(x, z, 0.7 + i % 2 * 0.2, i * 2.399))
-const foliage = { sway: 0.04 }
+const foliage = { sway: 0.04, cameraFade: true }
+const ROCK_LODS = ['PRP-002'], OUTCROP_LODS = ['PRP-001']
+const FERN_LODS = ['VEG-006_LOD0', 'VEG-006_LOD1'], FLOWER_LODS = ['VEG-011_LOD0', 'VEG-011_LOD1']
 export function SunlightBanks() {
   return <group name="Sunlight-Meshy-Bank-Dressing">
-    <Scatter url={model('props', 'PRP-002')} lods={['PRP-002']} items={rocks} maxDistance={65} castShadow/>
-    <Scatter url={model('props', 'PRP-001')} lods={['PRP-001']} items={outcrops} maxDistance={70} castShadow/>
-    <Scatter url={model('vegetation', 'VEG-006')} lods={['VEG-006_LOD0', 'VEG-006_LOD1']} items={ferns} maxDistance={45} lodDistance={20} foliage={foliage}/>
-    <Scatter url={model('vegetation', 'VEG-011')} lods={['VEG-011_LOD0', 'VEG-011_LOD1']} items={flowers} maxDistance={40} lodDistance={18} foliage={foliage}/>
+    <Scatter url={model('props', 'PRP-002')} lods={ROCK_LODS} items={rocks} maxDistance={65} castShadow/>
+    <Scatter url={model('props', 'PRP-001')} lods={OUTCROP_LODS} items={outcrops} maxDistance={70} castShadow/>
+    <Scatter url={model('vegetation', 'VEG-006')} lods={FERN_LODS} items={ferns} maxDistance={45} lodDistance={20} foliage={foliage}/>
+    <Scatter url={model('vegetation', 'VEG-011')} lods={FLOWER_LODS} items={flowers} maxDistance={40} lodDistance={18} foliage={foliage}/>
   </group>
 }

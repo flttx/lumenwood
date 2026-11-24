@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ambienceMix, chimeFrequency, nextChirpDelay, nextCroakDelay } from './soundscape'
+import { ambienceMix, chimeFrequency, nextChirpDelay, nextCroakDelay, nextOwlDelay } from './soundscape'
 describe('soundscape helpers', () => {
   it('chimes follow the C major pentatonic and wrap', () => {
     expect(chimeFrequency(0)).toBeCloseTo(523.25)
@@ -21,5 +21,14 @@ describe('soundscape helpers', () => {
   })
   it('spaces bird phrases between 1.6 and 5.6 s', () => {
     expect(nextChirpDelay(0)).toBe(1.6); expect(nextChirpDelay(0.999)).toBeLessThan(5.6)
+  })
+  it('adds highland pine wind, gust surge, and bounded distant night owl spacing', () => {
+    const calm = ambienceMix(0.5, 0, 0, 0)
+    const windyHigh = ambienceMix(1, 0, 1, 1)
+    expect(calm.pine).toBe(0)
+    expect(windyHigh.pine).toBeGreaterThan(0.5)
+    expect(windyHigh.wind).toBeGreaterThan(calm.wind)
+    expect(nextOwlDelay(0)).toBe(14)
+    expect(nextOwlDelay(0.999)).toBeLessThan(28)
   })
 })

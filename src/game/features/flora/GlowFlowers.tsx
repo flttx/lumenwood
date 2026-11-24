@@ -10,11 +10,13 @@ import { radialGlowTexture, softRing } from './glowSprites'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { soundscape } from '../../audio/engine'
 import { releaseFirefly, route, routeClock } from '../route/progress'
+import { boostFlow, resonance } from '../resonance/resonance'
 import { flock } from '../route/flock'
 import { heightAt } from '../../world/terrain/terrain'
 import { lightSource, lightSources } from '../../rendering/LocalLights'
 import { createMoteMaterial } from '../route/moteMaterial'
 import { random } from '../../shared/random'
+import { useGameStore } from '../../../state/gameStore'
 // INT-004 glow lilies (replaced the small INT-001 bell flowers, 2026-11-12). Each copy owns its material so its glow can
 // react on its own; the geometry is shared. Waking a flower sends a light ring across the ground, a burst of sparks spiralling
 // up out of the blossoms and a little bloom of the plant, and plays a spatial chime from its position. Flowers that still
@@ -43,14 +45,14 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
     return { geometry, material: createMoteMaterial(0xffe1b0), seeds }
   }, [])
   useEffect(() => () => { sparks.geometry.dispose(); sparks.material.dispose() }, [sparks])
-  const flowers = useMemo(() => {
+  const { flowers, ringGeometry } = useMemo(() => {
     const source = scene.getObjectByName(FLOWER_ID)
     if (!(source instanceof Mesh) || !(source.material instanceof MeshStandardMaterial)) throw new Error(`${FLOWER_URL} has no standard mesh named ${FLOWER_ID}`)
     const geometry = source.geometry, base = source.material
     const ringGeometry = softRing(), glowMap = radialGlowTexture()
     // No scene fog on additive glows: fog would add fog colour across the whole quad and show its edges in thick mist.
     const additive = { transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending, fog: false } as const
-    return flowerSpots.map((spot, index) => {
+    const flowers = flowerSpots.map((spot, index) => {
       const material = base.clone()
       material.emissiveIntensity = GLOW_BASE
       const ringMaterial = new MeshBasicMaterial({ ...additive, color: WAVE_COLOR, vertexColors: true }), ring = new Mesh(ringGeometry, ringMaterial)
@@ -58,49 +60,70 @@ export function GlowFlowers({ player }: { player: Vector3 }) {
       ring.visible = halo.visible = false
       halo.scale.setScalar(HALO_SIZE)
       const y = heightAt(spot.x, spot.z), source = lightSource([spot.x, y + LIGHT_HEIGHT, spot.z], LIGHT_COLOR, LIGHT_CANDELA, LIGHT_RANGE)
-      return { ...spot, y, index, mesh: new Mesh(geometry, material), material, ring, ringMaterial, halo, haloMaterial, source, awake: false, age: Infinity, level: GLOW_BASE }
+      return { ...spot, y, index, mesh: new Mesh(geometry, material), material, ring, ringMaterial, halo, haloMaterial, source, awake: false, age: Infinity, level: GLOW_BASE, sparksCleared: true }
     })
+    return { flowers, ringGeometry }
   }, [scene])
   useEffect(() => {
     flowers.forEach(f => lightSources.add(f.source))
-    return () => flowers.forEach(f => lightSources.delete(f.source))
-  }, [flowers])
+    return () => {
+      ringGeometry.dispose()
+      flowers.forEach(f => { lightSources.delete(f.source); f.material.dispose(); f.ringMaterial.dispose(); f.haloMaterial.dispose() })
+    }
+  }, [flowers, ringGeometry])
   useFrame(({ clock }, delta) => {
-    const dt = Math.min(delta, 0.1), k = dampFactor(GLOW_RATE, dt), t = clock.elapsedTime
-    // Twilight multiplies the glow so the flowers read as light sources once the sun is down.
+    const playing = useGameStore.getState().phase === 'playing'
+    const dt = playing ? Math.min(delta, 0.1) : 0, k = dampFactor(GLOW_RATE, dt), t = clock.elapsedTime
     const { flowerGlow, flowerHalo } = atmosphere.preset
     const sp = sparks.geometry.attributes.position as BufferAttribute, sa = sparks.geometry.attributes.aAlpha as BufferAttribute
     sparks.material.uniforms.uTime.value = t; sparks.material.uniforms.uSize.value = 70 * dpr
     sparks.material.uniforms.uOpacity.value = 0.6 + 0.4 * atmosphere.preset.fireflies
+    let dirtySparks = false
     for (const f of flowers) {
-      const distance = Math.hypot(player.x - f.x, player.z - f.z), awake = nextAwake(f.awake, distance)
-      if (awake && !f.awake) {
-        f.age = 0; soundscape.chime(f.index, f.x, f.y + CHIME_HEIGHT, f.z)
-        // The first waking also frees a guide firefly that joins the player (the firefly route, P3).
-        if (releaseFirefly(route, f.index, routeClock.now)) flock.spawn(f.x, f.y + HALO_HEIGHT, f.z)
+      const distance = Math.hypot(player.x - f.x, player.z - f.z)
+      if (playing) {
+        const awake = nextAwake(f.awake, distance)
+        const remote = resonance.remoteWake.delete(f.index)
+        if ((awake && !f.awake) || remote) {
+          f.age = 0; f.sparksCleared = false
+          // Chaining flowers under luminous flow lifts the chime along the pentatonic scale.
+          soundscape.chime(f.index + Math.min(4, resonance.combo), f.x, f.y + CHIME_HEIGHT, f.z)
+          boostFlow(resonance, routeClock.now, route.seedsAt.size, 1)
+          // Glade ring flowers are celebratory/decorative; only camp/wetland/highland flowers release route followers
+          // so glade exploration cannot leak 5 surplus fireflies into the highland plateau or strand counts on HUD.
+          if (f.zone !== 'glade' && releaseFirefly(route, f.index, routeClock.now)) flock.spawn(f.x, f.y + HALO_HEIGHT, f.z)
+        }
+        f.awake = awake || remote
       }
-      f.awake = awake
       const wave = lightWave(f.age)
-      f.age += dt
+      if (playing) f.age += dt
       f.ring.visible = wave !== null
       if (wave) { f.ring.scale.setScalar(Math.max(wave.radius, 0.01)); f.ringMaterial.opacity = wave.opacity * 0.9 }
       f.level += (glowTarget(distance) + WAVE_FLASH * (wave?.opacity ?? 0) - f.level) * k
-      f.material.emissiveIntensity = f.level * flowerGlow
-      // Bloom: a quick swell and settle at the wake.
+      // Unharvested route flowers pulse gently even in daytime so players can tell which blossoms still hold a firefly.
+      const waiting = f.zone !== 'glade' && !route.released.has(f.index)
+      const dayPulse = waiting ? (0.3 + 0.3 * Math.sin(t * 2.4 + f.index)) * (1 - atmosphere.blend) : 0
+      f.material.emissiveIntensity = f.level * flowerGlow + dayPulse
       f.mesh.scale.setScalar(1 + POP * Math.sin(Math.min(1, f.age / 0.9) * Math.PI) * Math.exp(-f.age))
-      for (let i = 0; i < SPARKS; i++) {
-        const [angle, radius, speed, delay] = sparks.seeds[f.index * SPARKS + i], life = (f.age - delay) / SPARK_LIFE, n = f.index * SPARKS + i
-        if (!(life >= 0 && life < 1)) { sa.setX(n, 0); continue }
-        const a = angle + life * 5 * speed, r = radius * (1 + life * 1.6), h = HALO_HEIGHT + SPARK_RISE * speed * (1 - (1 - life) ** 2)
-        sp.setXYZ(n, f.x + Math.cos(a) * r, f.y + h, f.z + Math.sin(a) * r); sa.setX(n, Math.min(1, life * 8) * (1 - life))
+      if (f.age <= SPARK_LIFE + 0.6 || !f.sparksCleared) {
+        let active = false
+        for (let i = 0; i < SPARKS; i++) {
+          const [angle, radius, speed, delay] = sparks.seeds[f.index * SPARKS + i], life = (f.age - delay) / SPARK_LIFE, n = f.index * SPARKS + i
+          if (!(life >= 0 && life < 1)) { sa.setX(n, 0); continue }
+          active = true
+          const a = angle + life * 5 * speed, r = radius * (1 + life * 1.6), h = HALO_HEIGHT + SPARK_RISE * speed * (1 - (1 - life) ** 2)
+          sp.setXYZ(n, f.x + Math.cos(a) * r, f.y + h, f.z + Math.sin(a) * r); sa.setX(n, Math.min(1, life * 8) * (1 - life))
+        }
+        f.sparksCleared = !active
+        dirtySparks = true
       }
-      // Resting flowers keep a faint light so they can be spotted from afar; one still holding its firefly breathes.
-      const waiting = !route.released.has(f.index), breathe = waiting ? 0.75 + 0.25 * Math.sin(t * 2.1 + f.index) : 1
+      const breathe = waiting ? 0.75 + 0.25 * Math.sin(t * 2.1 + f.index) : 1
       const light = flowerHalo * breathe * (0.4 + 0.6 * Math.min(1, f.level / GLOW_PEAK))
-      f.halo.visible = light > 0.01
-      f.haloMaterial.opacity = light * HALO_OPACITY; f.source.level = light
+      f.halo.visible = light > 0.01 || (waiting && (1 - atmosphere.blend) > 0.1)
+      f.haloMaterial.opacity = light > 0.01 ? light * HALO_OPACITY : waiting ? (0.04 + 0.04 * Math.sin(t * 2.4 + f.index)) * (1 - atmosphere.blend) : 0
+      f.source.level = light
     }
-    sp.needsUpdate = sa.needsUpdate = true
+    if (dirtySparks) sp.needsUpdate = sa.needsUpdate = true
   })
   return <><points geometry={sparks.geometry} material={sparks.material} frustumCulled={false}/>{flowers.map(f => <group key={`${f.x},${f.z}`} position={[f.x, 0, f.z]}>
     <primitive object={f.mesh} position={[0, f.y, 0]} rotation={[0, f.angle, 0]}/><primitive object={f.ring} position={[0, f.y + 0.04, 0]}/>

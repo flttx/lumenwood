@@ -17,4 +17,15 @@ describe('scatter chunks', () => {
     expect(chunkLod(104, 5, 30, 100, true)).toBe(1) // edge still within view
     expect(chunkLod(106, 5, 30, 100, true)).toBe(-1)
   })
+  it('applies hysteresis around the LOD and view boundaries so minor camera jitter does not flap models', () => {
+    // At edge distance 31 (just past lodDistance 30), a chunk currently in LOD0 holds LOD0 until lodDistance + 2.
+    expect(chunkLod(36, 5, 30, 100, true, 0, 2)).toBe(0)
+    expect(chunkLod(38, 5, 30, 100, true, 0, 2)).toBe(1)
+    // Coming back to edge distance 29 (just under lodDistance 30), a chunk in LOD1 holds LOD1 until lodDistance - 2.
+    expect(chunkLod(34, 5, 30, 100, true, 1, 2)).toBe(1)
+    expect(chunkLod(32, 5, 30, 100, true, 1, 2)).toBe(0)
+    // Visible chunk holds visibility until maxDistance + hysteresis.
+    expect(chunkLod(106, 5, 30, 100, true, 1, 2)).toBe(1)
+    expect(chunkLod(108, 5, 30, 100, true, 1, 2)).toBe(-1)
+  })
 })

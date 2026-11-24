@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { CLIFF_FOOT, CLIFF_TOP, FLAT_EDGE, HILL_HEIGHT, SEA_CLIFF_EDGE, SEA_LEVEL, cliffWeight, coveShore, groundColor, heightAt, pathWeight, paths, valueNoise } from './terrain'
+import { CLIFF_FOOT, CLIFF_TOP, FLAT_EDGE, HILL_HEIGHT, NORTH_CLIFF_EDGE, SEA_CLIFF_EDGE, SEA_LEVEL, cliffWeight, coveShore, groundColor, heightAt, pathWeight, paths, valueNoise } from './terrain'
 import { OUTER_CLEARANCE, forestTrees, outerTrees } from '../zones/forestLayout'
-import { BEACH, CAMP, GLADE, GLEN, NORTH_CORRIDOR, OVERLOOK, allRegions, regionDistance, worldBounds } from '../regions'
+import { BEACH, CAMP, GLADE, GLEN, GLEN_LAKE_TRAIL, HIGHLAND, NORTH_CORRIDOR, OVERLOOK, REEF_CAUSEWAY, STAR_CLIFF, VALE, allRegions, regionDistance, worldBounds } from '../regions'
+import { PLATEAU_HEIGHT } from '../zones/highlandLayout'
 import { sz } from '../scale'
 import { cabin } from '../zones/campLayout'
 import { inSunRect, SUN_MOAT } from '../../features/sunlight/layout'
@@ -57,6 +58,7 @@ describe('terrain', () => {
   })
   it('backdrop trees stay clear of every region, gated corridor included', () => {
     expect(outerTrees.length).toBeGreaterThan(200); expect(outerTrees.length).toBeLessThan(800)
+    expect(outerTrees.some(t => t.kind === 'redwood' && t.x > CAMP.minX && t.x < CAMP.maxX && t.z > CAMP.maxZ && t.z < CAMP.maxZ + 7)).toBe(true)
     for (const t of outerTrees) expect(regionDistance(t.x, t.z)).toBeGreaterThanOrEqual(OUTER_CLEARANCE)
   })
   it('the north trail runs through the corridor into the wetlands', () => {
@@ -66,10 +68,24 @@ describe('terrain', () => {
 
 describe('island', () => {
   it('every walkable area stays above the sea; the land falls to the seabed out past the coast', () => {
-    // The beach runs down to the waterline; everything else stands well clear of the sea.
-    for (const r of allRegions) for (const [x, z] of [[r.minX, r.minZ], [r.maxX, r.maxZ], [(r.minX + r.maxX) / 2, (r.minZ + r.maxZ) / 2]]) expect(heightAt(x, z)).toBeGreaterThan(SEA_LEVEL + (r === BEACH ? 0.05 : 1.5))
+    // The beach and reef causeway slope cleanly above the waterline; everything else stands well clear of the sea.
+    for (const r of allRegions) for (const [x, z] of [[r.minX, r.minZ], [r.maxX, r.maxZ], [(r.minX + r.maxX) / 2, (r.minZ + r.maxZ) / 2]]) expect(heightAt(x, z)).toBeGreaterThan(SEA_LEVEL + (r === BEACH || r === REEF_CAUSEWAY ? 0.05 : 1.5))
     const { minX, maxX, minZ, maxZ } = worldBounds
     for (const [x, z] of [[minX - 130, 0], [maxX + 130, 100], [0, minZ - 130], [-20, maxZ + 130]]) expect(heightAt(x, z)).toBeLessThan(SEA_LEVEL - 4)
+  })
+  it('tidewater reef rises dry beyond the sandspit, starlight terrace lifts above the plateau, and interior loops stay gentle', () => {
+    expect(heightAt(0, -97)).toBeGreaterThan(SEA_LEVEL + 0.35)
+    expect(heightAt(0, -116)).toBeGreaterThan(SEA_LEVEL + 1.8)
+    expect(heightAt(0, -170)).toBeLessThan(SEA_LEVEL - 4)
+    expect(heightAt(-10, 365)).toBeGreaterThan(PLATEAU_HEIGHT + 1.5)
+    expect(heightAt(-10, NORTH_CLIFF_EDGE + 15)).toBeLessThan(SEA_LEVEL - 4)
+    for (const r of [VALE, GLEN_LAKE_TRAIL]) for (let x = r.minX + 1; x <= r.maxX - 1; x += 4) for (let z = r.minZ + 1; z <= r.maxZ - 1; z += 4) {
+      const h = heightAt(x, z)
+      expect(Math.abs(h)).toBeLessThan(1.6)
+      expect(Math.abs(heightAt(x + 1, z) - h)).toBeLessThan(0.35)
+      expect(Math.abs(heightAt(x, z + 1) - h)).toBeLessThan(0.35)
+    }
+    expect(STAR_CLIFF.minZ).toBeGreaterThan(HIGHLAND.maxZ)
   })
   it('the beach has gentle relief and a curving shoreline without flooding its walkable edge', () => {
     const shore = [-20, -10, 0, 10, 20].map(coveShore)

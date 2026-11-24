@@ -10,7 +10,7 @@ import { gates } from '../world/regions'
 import { conduit } from '../features/route/conduit'
 import { hasDaylight, traceSunlight } from '../features/sunlight/progress'
 /** Test/diagnostic hook: enabled in dev, or in any build with `?debug` in the URL. */
-export const debugEnabled = import.meta.env.DEV || new URLSearchParams(window.location.search).has('debug')
+export const debugEnabled = import.meta.env.DEV || (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug'))
 export interface DebugSnapshot {
   phase: string; pointerLocked: boolean; position: [number, number]; velocity: [number, number]
   yaw: number; pitch: number; cameraDistance: number; drawCalls: number; triangles: number; timeBlend: number

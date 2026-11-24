@@ -4,7 +4,7 @@ export function Objective() {
   const objective = useGameStore(s => s.objective)
   if (!objective) return null
   return <section className="objective" aria-label="当前目标">
-    <div className="objective-copy" aria-live="polite">
+    <div key={objective.id} className="objective-copy" aria-live="polite">
       <div className="objective-progress">{objective.progress}</div>
       <div className="objective-title">{objective.title}</div>
       <div className="objective-detail">{objective.detail}</div>

@@ -18,7 +18,7 @@ const MODELS: Record<TreeKind, { url: string; lods: string[]; lodDistance: numbe
   birch: { url: `${assetConfig.baseUrl}models/vegetation/VEG-009.glb`, lods: ['VEG-009_LOD0', 'VEG-009_LOD1'], lodDistance: 22 },
 }
 const KINDS = Object.keys(MODELS) as TreeKind[]
-const VIEW_DISTANCE = 190, TREE_CHUNK = 20
+const VIEW_DISTANCE = 190, TREE_CHUNK = 28
 // Tall trees sway a little at the crown; the shared object keeps Scatter's memo stable.
 const TREE_FOLIAGE = { sway: 0.006, cameraFade: true }
 const byKind = (kind: TreeKind) => forestTrees.flatMap((t, i) => t.kind === kind ? [{ x: t.x, y: treeBase(t), z: t.z, angle: i * 2.39996, scale: t.scale }] : [])

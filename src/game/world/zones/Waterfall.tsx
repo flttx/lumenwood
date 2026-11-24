@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, Float32BufferAttribute, MeshStandardMaterial, PlaneGeometry, RingGeometry, ShaderMaterial, Vector3, type Material, type WebGLProgramParametersWithUniforms } from 'three'
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CircleGeometry, Color, DoubleSide, Float32BufferAttribute, MeshStandardMaterial, PlaneGeometry, ShaderMaterial, Vector3, type Material, type WebGLProgramParametersWithUniforms } from 'three'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { heightAt } from '../terrain/terrain'
 import { WATERFALL } from './sideLayout'
@@ -65,6 +65,7 @@ const curtainBody = (speed: number, opacity: number, ropes: number, shade: numbe
   vec3 body = mix(white, glass, tongue * 0.9);
   body = mix(body, mix(vec3(0.24, 0.4, 0.42), body, 0.45), 1.0 - ${shade.toFixed(2)});
   diffuseColor.rgb = body * ${shade.toFixed(2)} * mix(1.0, 0.88 + 0.24 * rope + 0.15 * rim, parted);
+  diffuseColor.rgb += vec3(0.55, 0.72, 0.95) * uWfNight * smoothstep(0.45, 0.85, streak) * 0.24;
   diffuseColor.rgb = mix(diffuseColor.rgb, uWfGold, uWfGlow * (0.3 + 0.5 * smoothstep(0.4, 0.8, streak)));
   diffuseColor.a = mix(0.2 + 0.5 * smoothstep(0.3, 0.75, streak), 0.48, tongue) * (1.0 - smoothstep(0.72, 1.0, edge + (streak - 0.5) * 0.2))
     * mix(1.0, 0.06 + 0.94 * rope, parted) * ${opacity.toFixed(2)};`
@@ -74,7 +75,7 @@ function curtainMaterial(key: string, color: number, body: string, shared: Recor
   material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms) => {
     Object.assign(shader.uniforms, shared)
     shader.vertexShader = 'varying vec2 vWfUv;\n' + shader.vertexShader.replace('#include <uv_vertex>', '#include <uv_vertex>\nvWfUv = uv;')
-    shader.fragmentShader = `uniform float uWfTime; uniform vec3 uWfGold; uniform float uWfGlow; varying vec2 vWfUv;\n${noiseLib}\n`
+    shader.fragmentShader = `uniform float uWfTime; uniform vec3 uWfGold; uniform float uWfGlow; uniform float uWfNight; varying vec2 vWfUv;\n${noiseLib}\n`
       + shader.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n' + body)
   }
   material.customProgramCacheKey = () => key // each layer has its own body: never share a cached program
@@ -107,7 +108,7 @@ void main() {
   vAlpha = sin(3.14159 * life) * 0.13;
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   gl_Position = projectionMatrix * mv;
-  gl_PointSize = min(uPixels * (1.6 + life * 3.0) / max(-mv.z, 0.1), 900.0);
+  gl_PointSize = min(uPixels * (1.6 + life * 3.0) / max(-mv.z, 0.2), 320.0);
 }`
 const mistFragment = `uniform float uLight; varying float vAlpha;
 void main() {
@@ -117,14 +118,15 @@ void main() {
   #include <colorspace_fragment>
 }`
 // Churned white water spreading from the plunge; direction-vector sampling (no atan seam).
-const foamFragment = `uniform float uTime; uniform float uLight; varying vec2 vLocal;
+const foamFragment = `uniform float uTime; uniform float uLight; uniform float uNight; varying vec2 vLocal;
 ${noiseLib}
 void main() {
   vec2 q = vLocal / 6.0; float r = length(q);
   vec2 dir = q / max(r, 1e-3) * smoothstep(0.0, 0.35, r);
   float churn = wfNoise(dir * 2.2 + vec2(r * 5.0 - uTime * 1.4)) * 0.55 + wfNoise(q * 7.0 + uTime * 0.6) * 0.25 + wfNoise(q * 16.0 - uTime * 0.9) * 0.2;
   float alpha = smoothstep(0.5, 0.82, churn + (1.0 - r) * 0.25) * (1.0 - smoothstep(0.1, 0.95, r)) * 0.75;
-  gl_FragColor = vec4(vec3(0.93, 0.96, 0.95) * uLight, alpha);
+  vec3 tint = mix(vec3(0.93, 0.96, 0.95), vec3(0.76, 0.88, 1.0), uNight * 0.45);
+  gl_FragColor = vec4(tint * uLight, alpha);
   #include <colorspace_fragment>
 }`
 // Rainbow: a faint arc in the spray, spectrum across its width, only on bright afternoons.
@@ -150,17 +152,17 @@ function seeded(count: number) {
 
 export function Waterfall() {
   const parts = useMemo(() => {
-    const shared = { uWfTime: { value: 0 }, uWfGold: { value: new Color(0xffc56a) }, uWfGlow: { value: 0 } }
+    const shared = { uWfTime: { value: 0 }, uWfGold: { value: new Color(0xffc56a) }, uWfGlow: { value: 0 }, uWfNight: { value: 0 } }
     const foot = new Vector3(footX(), WATER_LEVEL, WATERFALL.z)
     // The inner curtain nearer the rock is darker and slower, so the fall has depth face-on and from the side.
     const inner = { geometry: curtain(-0.2, 0.82), material: curtainMaterial('lumenwood-falls-inner', 0x87a39e, curtainBody(0.7, 0.72, 0, 0.6), shared) }
     // Base colour kept below white: lit by the full afternoon sun the curtain otherwise crosses the bloom threshold.
     const outer = { geometry: curtain(0, 1), material: curtainMaterial('lumenwood-falls-outer', 0xa9c3bd, curtainBody(1, 1, 1, 1), shared) }
-    const light = { uLight: { value: 1 }, uTime: { value: 0 }, uPixels: { value: 900 } }
+    const light = { uLight: { value: 1 }, uTime: { value: 0 }, uPixels: { value: 900 }, uNight: { value: 0 } }
     const spray = { geometry: seeded(SPRAY), material: new ShaderMaterial({ uniforms: { ...light, uWidth: { value: WATERFALL.width * 0.75 } }, vertexShader: sprayVertex, fragmentShader: sprayFragment, transparent: true, depthWrite: false }) }
     const mist = { geometry: seeded(MIST), material: new ShaderMaterial({ uniforms: light, vertexShader: mistVertex, fragmentShader: mistFragment, transparent: true, depthWrite: false }) }
-    const foam = { geometry: new RingGeometry(0.4, 6, 48, 6).rotateX(-Math.PI / 2), material: new ShaderMaterial({ uniforms: light, vertexShader: passVertex, fragmentShader: foamFragment, transparent: true, depthWrite: false }) }
-    const bow = { geometry: new PlaneGeometry(13, 6).translate(0, 3, 0), material: new ShaderMaterial({ uniforms: { uStrength: { value: 0 } }, vertexShader: passVertex, fragmentShader: bowFragment, transparent: true, depthWrite: false, blending: AdditiveBlending }) }
+    const foam = { geometry: new CircleGeometry(6, 48).rotateX(-Math.PI / 2), material: new ShaderMaterial({ uniforms: light, vertexShader: passVertex, fragmentShader: foamFragment, transparent: true, depthWrite: false }) }
+    const bow = { geometry: new PlaneGeometry(13, 6).translate(0, 3, 0), material: new ShaderMaterial({ uniforms: { uStrength: { value: 0 } }, vertexShader: passVertex, fragmentShader: bowFragment, transparent: true, depthWrite: false, blending: AdditiveBlending, side: DoubleSide }) }
     return { shared, light, foot, inner, outer, spray, mist, foam, bow }
   }, [])
   useEffect(() => () => {
@@ -168,9 +170,9 @@ export function Waterfall() {
   }, [parts])
   useFrame(({ clock, size, viewport }) => {
     const p = atmosphere.preset, t = clock.elapsedTime
-    parts.shared.uWfTime.value = t; parts.shared.uWfGlow.value = secretFx.waterfallGlow
+    parts.shared.uWfTime.value = t; parts.shared.uWfGlow.value = secretFx.waterfallGlow; parts.shared.uWfNight.value = atmosphere.night
     // Sprites and droplets are unlit: they follow the light level (sun by day, moon at night) so they never glow.
-    parts.light.uTime.value = t; parts.light.uPixels.value = size.height * viewport.dpr
+    parts.light.uTime.value = t; parts.light.uPixels.value = size.height * viewport.dpr; parts.light.uNight.value = atmosphere.night
     parts.light.uLight.value = 0.16 + 0.84 * Math.min(1, (p.sunIntensity * 0.18 + p.hemiIntensity * 0.25) / 1.1)
     // The rainbow needs a high bright sun: afternoons only.
     parts.bow.material.uniforms.uStrength.value = 0.14 * (1 - atmosphere.blend) * Math.min(1, p.sunIntensity / 4)

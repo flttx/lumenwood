@@ -5,8 +5,8 @@ export const WALK_SPEED = 3.8
 export const RUN_SPEED = 7
 export const PLAYER_RADIUS = 0.35
 export function movementAxis(keys: Set<string>) {
-  let x = Number(keys.has('KeyD')) - Number(keys.has('KeyA'))
-  let z = Number(keys.has('KeyS')) - Number(keys.has('KeyW'))
+  let x = Number(keys.has('KeyD') || keys.has('ArrowRight')) - Number(keys.has('KeyA') || keys.has('ArrowLeft'))
+  let z = Number(keys.has('KeyS') || keys.has('ArrowDown')) - Number(keys.has('KeyW') || keys.has('ArrowUp'))
   const length = Math.hypot(x, z)
   if (length) { x /= length; z /= length }
   return { x, z }

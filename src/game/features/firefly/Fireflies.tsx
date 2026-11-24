@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, ShaderMaterial, type Points } from 'three'
 import { atmosphere } from '../../rendering/timeOfDay'
@@ -11,7 +11,7 @@ void main() {
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vBlink = 0.35 + 0.65 * pow(0.5 + 0.5 * sin(uTime * (1.2 + aPhase.y) + aPhase.x * 40.0), 3.0);
   // Capped and faded right at the lens: a firefly drifting past the camera used to bloom into a white-out.
-  gl_PointSize = min(uSize / -mv.z, 48.0);
+  gl_PointSize = min(uSize / max(-mv.z, 0.1), 48.0);
   vBlink *= smoothstep(0.6, 2.2, -mv.z);
   gl_Position = projectionMatrix * mv;
 }`
@@ -38,6 +38,7 @@ export function Fireflies({ homes = fireflyHomes, seed = 11 }: { homes?: () => F
     })
     return { geometry, material }
   }, [homes, seed])
+  useEffect(() => () => { geometry.dispose(); material.dispose() }, [geometry, material])
   useFrame(({ clock }) => {
     const opacity = atmosphere.preset.fireflies
     if (points.current) points.current.visible = opacity > 0.01 // no draw call by day

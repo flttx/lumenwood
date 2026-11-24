@@ -5,6 +5,8 @@ import { Euler, InstancedMesh, Matrix4, Mesh, MeshStandardMaterial, Quaternion, 
 import { assetConfig } from '../../assets/config'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { trailTarget } from '../../rendering/Grass'
+import { reflectionSkips } from '../../rendering/planarReflection'
+import { useGameStore } from '../../../state/gameStore'
 import { random } from '../../shared/random'
 import { heightAt } from '../../world/terrain/terrain'
 import { CAMP, HIGHLAND } from '../../world/regions'
@@ -59,7 +61,12 @@ function Rabbits() {
     mesh.frustumCulled = false // instances roam the whole map; there are only a few
     return { rabbits, mesh, rand, m: new Matrix4(), q: new Quaternion(), e: new Euler(0, 0, 0, 'YXZ'), p: new Vector3(), s: new Vector3() }
   }, [scene])
+  useEffect(() => {
+    reflectionSkips.add(herd.mesh)
+    return () => { reflectionSkips.delete(herd.mesh); herd.mesh.dispose() }
+  }, [herd])
   useFrame(({ clock }, delta) => {
+    if (useGameStore.getState().phase !== 'playing') return
     const { rabbits, mesh, rand, m, q, e, p, s } = herd, dt = Math.min(delta, 0.1), player = trailTarget.position, t = clock.elapsedTime
     rabbits.forEach((r, i) => {
       // Only rabbits near the player need to think.
@@ -98,11 +105,15 @@ function Birds() {
     const crossings: (Crossing | null)[] = Array.from({ length: FLOCKS }, () => null)
     return { mesh, material, time, crossings, m: new Matrix4(), q: new Quaternion(), e: new Euler(0, 0, 0, 'YXZ'), p: new Vector3(), zero: new Vector3(0, 0, 0), one: new Vector3(1, 1, 1) }
   }, [scene])
-  useEffect(() => () => { flock.material.dispose(); flock.mesh.geometry.dispose() }, [flock])
+  useEffect(() => {
+    reflectionSkips.add(flock.mesh)
+    return () => { reflectionSkips.delete(flock.mesh); flock.material.dispose(); flock.mesh.geometry.dispose(); flock.mesh.dispose() }
+  }, [flock])
   useFrame(({ clock }) => {
     const { mesh, time, crossings, m, q, e, p, zero, one } = flock, t = clock.elapsedTime, day = 1 - atmosphere.blend, player = trailTarget.position
-    time.value = t
     mesh.visible = day > 0.5 // songbirds by day only
+    if (!mesh.visible || useGameStore.getState().phase !== 'playing') return
+    time.value = t
     for (let f = 0; f < FLOCKS; f++) {
       // A new crossing is aimed past wherever the player is when it begins.
       const current = crossings[f], next = crossingFor(f, t, player)

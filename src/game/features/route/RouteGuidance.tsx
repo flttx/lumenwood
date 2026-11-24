@@ -15,7 +15,7 @@ import { ANCIENT_TREE } from '../../world/zones/highlandLayout'
 
 /** Persistent instructions update at most four times a second; only changed, quantised values enter React state. */
 export function RouteGuidance({ player }: { player: Vector3 }) {
-  const memory = useMemo(() => ({ timer: 0, id: '', signature: '', forward: new Vector3(), pulseAt: -Infinity, pulseId: '', main: false, area: '' }), [])
+  const memory = useMemo(() => ({ timer: 0, id: '', routeId: '', signature: '', forward: new Vector3(), pulseAt: -Infinity, pulseId: '', main: false, area: '' }), [])
   useEffect(() => {
     const toggle = (e: KeyboardEvent) => {
       if (e.code !== 'KeyT' || e.repeat || useGameStore.getState().phase !== 'playing' || !sideAreaAt(player.x, player.z)) return
@@ -29,10 +29,11 @@ export function RouteGuidance({ player }: { player: Vector3 }) {
     if (store.phase !== 'playing') return
     memory.timer -= delta
     if (memory.timer > 0) return
-    memory.timer = 0.25
-    const local = sideObjective(route, player.x, player.z, secretSession.state), area = sideAreaAt(player.x, player.z) ?? ''
+    memory.timer = conduit.charge > 0 && conduit.charge < 1 ? 0.1 : 0.25
+    const local = sideObjective(route, player.x, player.z, secretSession.state, routeClock.now), area = sideAreaAt(player.x, player.z) ?? ''
     if (area !== memory.area) { memory.main = false; memory.area = area }
-    const objective = (!memory.main ? local : null) ?? sunlightObjective(route, player.x, player.z, atmosphere.time) ?? routeObjective(route, player.x, player.z, routeClock.now, memory.id)
+    const objective = (!memory.main ? local : null) ?? sunlightObjective(route, player.x, player.z, atmosphere.time) ?? routeObjective(route, player.x, player.z, routeClock.now, memory.routeId)
+    if (!objective.id.startsWith('conduit-')) memory.routeId = objective.id
     if (local && memory.main) objective.alternateHint = '按 T 查看此地的线索'
     if (!local && objective.id.startsWith('lantern-') && conduit.near >= 0 && route.carried >= 2) {
       if (conduit.near !== conduit.expected) objective.detail = '这座光脉尚未接通，先前往当前指引的灯座。'
@@ -46,7 +47,7 @@ export function RouteGuidance({ player }: { player: Vector3 }) {
       }
     }
     navigationFocus.target = objective.target
-    if (store.worldReady && objective.id !== memory.pulseId && objective.target && routeClock.now - memory.pulseAt > 3) {
+    if (store.worldReady && objective.id !== memory.pulseId && !objective.id.startsWith('conduit-') && objective.target && routeClock.now - memory.pulseAt > 3) {
       const { x, z } = objective.target
       Object.assign(hint, { x, z, y: heightAt(x, z), at: routeClock.now })
       memory.pulseAt = routeClock.now

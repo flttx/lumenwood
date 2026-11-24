@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { BufferAttribute, BufferGeometry, type Object3D, type Points } from 'three'
 import { atmosphere } from '../../rendering/timeOfDay'
@@ -58,6 +58,11 @@ export function RouteParticles() {
       scratch: [0, 0, 0],
     }
   }, [])
+  useEffect(() => () => {
+    for (const p of [parts.guide, parts.trail, parts.column, parts.swarm, ...parts.streams]) {
+      p.geometry.dispose(); p.material.dispose()
+    }
+  }, [parts])
   useFrame((_, delta) => {
     const now = routeClock.now, opacity = 0.55 + 0.45 * atmosphere.preset.fireflies
     const { guide, trail, streams, seeds, column, swarm, scratch } = parts

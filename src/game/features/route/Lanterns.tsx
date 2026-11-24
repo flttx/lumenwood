@@ -8,7 +8,8 @@ import { radialGlowTexture } from '../flora/glowSprites'
 import { smoothstep } from '../../shared/math'
 import { lightSource, lightSources } from '../../rendering/LocalLights'
 import { route, routeClock } from './progress'
-import { lanternPlacements, type NodeKind } from './routeLayout'
+import { LANTERN_COST, lanternPlacements, type NodeKind } from './routeLayout'
+import { nextCradle } from './conduit'
 // Route light nodes: INT-002 lantern posts and INT-003 moss-stone cradles. Dark until lit; then the glass or hollow (the
 // model's Emission map) warms up as the fireflies arrive. After dusk each lit node is a real light source (LocalLights) that
 // warms the ground, grass and trunks around it; a faint halo adds the glow in the air (bloom does the rest).
@@ -55,15 +56,18 @@ export function Lanterns({ kind }: { kind: NodeKind }) {
   }, [nodes])
   useFrame(() => {
     const now = routeClock.now, night = atmosphere.preset.lantern
+    const activeCradle = kind === 'cradle' && route.carried >= LANTERN_COST ? nextCradle(route) : -1
     nodes.forEach(p => {
       const i = p.index, lit = lanternBrightness(route.litAt[i], now)
       // Reaching a dark node without enough fireflies makes it stutter briefly: a hint, not an error.
       const since = route.shortAt[i] === null ? Infinity : now - route.shortAt[i]!
-      const flicker = since < SHORT_FLICKER ? 0.5 * (1 - since / SHORT_FLICKER) * (0.5 + 0.5 * Math.sin(since * 40)) : 0
+      const flicker = since < SHORT_FLICKER ? 0.65 * (1 - since / SHORT_FLICKER) * (0.5 + 0.5 * Math.sin(since * 40)) : 0
+      // Diegetic order cue: the next Highland cradle pulses gently once the player carries enough fireflies.
+      const beckon = i === activeCradle && lit < 0.01 ? 0.35 + 0.25 * Math.sin(now * 2.8) : 0
       const breathe = 1 + 0.06 * Math.sin(now * 2.1 + i * 1.7)
-      p.material.emissiveIntensity = (lit * style.litEmissive * breathe + flicker) * (0.6 + 0.4 * night)
+      p.material.emissiveIntensity = (lit * style.litEmissive * breathe + flicker + beckon) * (0.6 + 0.4 * night)
       // By day a lit node keeps a faint halo so the player can still tell which ones are done.
-      const light = lit * (0.3 + 0.7 * night) * breathe
+      const light = Math.max(lit * (0.3 + 0.7 * night) * breathe, beckon * 0.4)
       p.halo.visible = light > 0.01
       p.haloMaterial.opacity = light * 0.22
       p.source.level = lit * night * breathe

@@ -1,5 +1,18 @@
 # 工程架构
 
+## 2026-11-23 四维综合优化补记（已实现）
+
+- **会话复位与状态健壮性**：新增 `src/game/session.ts` 集中复位游玩瞬态状态（航线、萤火群、关口、时段、镜头演出、提示、秘密、光脉、出生点与音频）；`gameStore.ts` 引入 `createSafeStorage`（容错 + 写入去重）、`sanitizeSettings` 白名单校验、FIFO 字幕队列（`captionQueue`/`advanceCaption`）与区域横幅显隐位；`World.tsx` 改由纯 `useMemo` 读取出生点并处理 `pagehide` 存盘与 WebGL `webglcontextlost`/`webglcontextrestored` 恢复；`App.tsx` 的 `ErrorBoundary` 包裹整页且 `camera.near` 提到 `0.25`；`vite.config.ts` 按 `three`/`r3f`/`react` 拆分生产包。
+- **渲染管线与 GPU 生命周期**：`PostFX.tsx` 改用直连 RenderTarget 管线（MSAA + 深度主目标 + 无 MSAA/无深度 ping-pong），高画质 `GTAOPass` 改为半分辨率纯深度模式（不再整场景重绘法线/深度），修复小窗除零与 DPR 调整，并完整 `.dispose()` 全部 Pass/RT；`Precompile.tsx` 在匹配线性 HDR 的半浮点离屏目标上预编译；`Sea.tsx` 拆分为近岸细海湾与远海粗网格（减面约 96%）、使用 WebGL2 兼容 `HalfFloatType` 海床纹理与解析梯度噪声；`Ground.tsx` 将近地切分为视锥剔除瓦片；`worldMaterial.ts` 修复后挂载 `cameraFade` 竞态；`Water.tsx` 加入反射距离门控、递归保护与低画质渐变着色；`Cabin.tsx` 点光并入 `LocalLights`；`Scatter.tsx` 增加 LOD ±2 m 滞回；各渲染与粒子模块补齐 `.dispose()`。
+- **操控、镜头、音频与界面解耦**：`input.ts` 支持灵敏度/上下逆向设置与未锁指针拖拽环视；`camera/arm.ts` 用平滑过渡取代树冠 2.8 m 跳变，`FollowCamera.tsx` 补外围树与高地岩遮挡、三点地形/桥面防穿地与动态 FOV；`audio/engine.ts` 修复瞬态恢复失败锁死、加入淡入淡出暂停、提高脚步/水花 `refDistance` 并扩展交互音效；`LoadingVeil.tsx` 淡出后卸载内部动画节点；`style.css` 将 `.objective` 移至左上防止 720p 叠字并支持短屏滚动。
+- **玩法连贯性扩展模块**：新增 `features/resonance/resonance.ts`（纯规则单测：唤光半径/远距唤花/流光时长随种子成长、冷却与倍速）、`ResonanceDirector.tsx`（F/右键共鸣脉冲、延时空间回声柱、远距唤花、高地蓄光脉冲协同与流光拖尾）、`WetlandRelay.tsx`（湿地跨水折射光弧与涉水传导提示）、`features/secrets/ResonanceArcs.tsx`（四处支线到古树树冠的天际光弧）与 `features/campfire/HearthDirector.tsx`（营地篝火近距记忆回溯）；全部高频状态留于帧循环共享对象，仅在连行计数/秘密数/篝火近距变化时写入 Zustand store，新几何与着色器均完整 `.dispose()`。
+- **2026-11-24 场景、音效与动效协同架构**：新增 `rendering/wind.ts`（纯函数驱动全球风向与阵风，同步至 `worldMaterial.ts`、`Grass.tsx`、`AmbientLife.tsx`、`AirEffects.tsx` 与 `audio/engine.ts` 风声滤波器）；`Grass.tsx` 接入 `resonance` 唤光半径在草尖形成实时发光涟漪；`audio/engine.ts` 新增程序化 2.1 s 立体声 `ConvolverNode` 森林混响、母带 `DynamicsCompressorNode` 软限幅、高地松涛与夜间猫头鹰、以及藤桥/光桥/迷雾/种子入灯连续事件音效；`Character.tsx` 与 `HandLantern.tsx` 叠加转弯倾身/坡度贴合/唤光脉冲次级惯性；`FollowCamera.tsx` 提供尊重 `prefers-reduced-motion` 且经 `safeCameraArm` 约束的事件微镜头呼吸；`VineBridge.tsx`/`VineLeaves.tsx` 与 `Seeds.tsx`/`flock.ts` 改为着色器错峰蔓生、弹性出叶、贝塞尔入灯与螺旋飞行。
+- **2026-11-24 地图环路与岛内扩展架构**：
+  - `world/regions.ts`：`worldBounds` 延展至约 `242 × 498 m`（X `[-130, 112]`，Z `[-124, 374]`）。新增常开新区域 `VALE_PASS`/`VALE`、`REEF_CAUSEWAY`/`REEF`、`STAR_PASS`/`STAR_CLIFF`，以及三条随原有关口联合门控的连通走廊 `GLEN_LAKE_TRAIL`、`HOLLOW_VALE_TRAIL`（随 `northOpen`）与 `EAST_RIDGE_TRAIL`（随 `ascentOpen`），并由 `FireflyRoute.tsx` 挂载对应 `GateMist`、由 `navigation.ts` 提供分区双端退出引导。
+  - `terrain.ts` / `surf.ts` / `Sea.tsx` / `grassField.ts`：`beachProfile()` 仅在 `WATERLINE`（`Z < -86`）以南叠加干地沙堤与 `REEF` 岩石台（原 `BEACH` 剖面零改动），同步外扩 `COVE_RECT`/`COVE_MESH`/`coveSurge` 并排除海岸以南草片；高地以北叠加 `starLift` 与 `northSeaCliffWeight` 北海崖，追加 5 条林径于 `paths` 末尾（不改动 `paths[0..1]`）。
+  - `forestLayout.ts` & `Forest.tsx`：`outerTrees` 改为基于世界整数晶格 `(ix, iz)` 的确定性哈希随机，解耦 `worldBounds` 外延与既定营地边缘红杉位置；可走树木 `TREE_CHUNK` 调至 `28` 以平衡新增区域后的绘制调用数。
+  - `features/route/progress.ts` / `save.ts` / `features/secrets/*` & `sideLayout.ts`：`SecretId`/`SECRET_IDS` 扩展为 6 处，`seeds` 在保留 `0..11` 索引（v2 存档零破坏）的前提下追加 `12..15`；`secrets.ts` 与 `SecretsDirector.tsx` / `SideFeatures.tsx` / `ResonanceArcs.tsx` 新增阳石林谷限时 4 柱唤光联动、望海石台 3 柱与北崖星台 `KeyE` 交互（复用已有 Meshy GLB 与 `LocalLights`、`reflectionSkips` 并在卸载时完整 `.dispose()`）。
+
 ## 2026-11-15 整体优化补记（已实现）
 
 第二次打磨：`Sea.tsx` 将粗糙天空反射与细波法线分开，并以 `userData.aoSurface` 明确参加 GTAO 的平面法线/深度渲染，阻止水下地形接缝的 AO 被乘到海面；该通道不重现细小浪面位移。`terrain.cliffWeight` 的外侧退台不进入 GLEN 可走岸边，落水口附近保留旧剖面；`Ground.tsx` 用独立 0.5 m 崖壁网格替换主网格同区域，细网格边界插值到粗边以避免裂缝。`groundMaterial` 分别投影地面 xz 与岩面 zy，混合材质权重，不混合绝对坐标；岩面用风化色与不规则裂隙。`grassField` 排除岩面，`Grass.fieldAt` 按已读取四点的高度差抑制陡单元密度，避免密度插值带入悬草，无额外纹理采样。`landmarkView.ts` 给古树入口的蕨类/灌木布局留出视线通道，保留其他位置的随机序列；灌木碰撞仍从同一最终布局生成。

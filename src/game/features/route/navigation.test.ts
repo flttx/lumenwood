@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { flowers } from '../../world/zones/floraLayout'
-import { ASCENT, BRIDGE, CAMP, GLEN, GLEN_PASS, HIGHLAND, LAKE_PASS, NORTH_CORRIDOR, WETLAND, rectDistance } from '../../world/regions'
+import { seeds } from '../../world/zones/sideLayout'
+import { ASCENT, BRIDGE, CAMP, GLEN, GLEN_LAKE_TRAIL, GLEN_PASS, HIGHLAND, LAKE, LAKE_PASS, NORTH_CORRIDOR, REEF, STAR_CLIFF, VALE_PASS, WETLAND, rectDistance } from '../../world/regions'
 import { createProgress, releaseFirefly, tryLight, type RouteProgress } from './progress'
 import { directionLabel, routeObjective, targetBearing } from './navigation'
 import { zoneLanterns, type Zone } from './routeLayout'
@@ -73,11 +74,20 @@ describe('persistent route guidance', () => {
     expect(o.target!.z).toBeGreaterThan(LAKE_PASS.minZ)
     expect(o.target!.z).toBeLessThan(LAKE_PASS.maxZ)
   })
+  it('returns from expansion zones and interconnecting loops smoothly onto the main route', () => {
+    const p = createProgress(); finish(p, 'camp')
+    const valeExit = routeObjective(p, 73, 126, 10)
+    expect(valeExit.target!.z).toBeGreaterThan(VALE_PASS.minZ); expect(valeExit.target!.z).toBeLessThan(VALE_PASS.maxZ)
+    const loopExit = routeObjective(p, (GLEN_LAKE_TRAIL.minX + GLEN_LAKE_TRAIL.maxX) / 2, 65, 10)
+    expect(loopExit.target!.z).toBeGreaterThan(LAKE.minZ)
+    expect(routeObjective(createProgress(), (REEF.minX + REEF.maxX) / 2, -116, 0).target!.z).toBeGreaterThan(REEF.maxZ)
+    expect(routeObjective(p, (STAR_CLIFF.minX + STAR_CLIFF.maxX) / 2, 360, 10).target!.z).toBeLessThan(HIGHLAND.maxZ)
+  })
   it('ends mandatory guidance after the ancient tree is lit', () => {
     const p = createProgress(); finish(p, 'camp'); finish(p, 'wetland'); finish(p, 'highland')
     p.seedsAt.set(0, 0)
     const o = routeObjective(p, 0, 0, 100)
-    expect(o.target).toBeNull(); expect(o.title).toContain('自由探索'); expect(o.progress).toContain('1/12')
+    expect(o.target).toBeNull(); expect(o.title).toContain('自由探索'); expect(o.progress).toContain(`1/${seeds.length}`)
   })
   it('keeps screen-relative arrow directions correct when the camera turns', () => {
     expect(targetBearing(0, -10, 0, -1)).toBe(0)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { advanceSunlight, createSunlight, hasDaylight, parseSunlight, rotateSunMirror, safeSunlightSpawn, traceSunlight } from './progress'
-import { sunlightDeckHeight, SUN_REWARD_INDEX } from './layout'
+import { SUN_PLANT, sunlightDeckHeight, SUN_REWARD_INDEX } from './layout'
 import { pushOutOfSunRavine } from './collision'
 import { sunIslandDistance, sunOuterDistance, sunRavineDepth, sunRavineGap } from './landform'
 import { heightAt } from '../../world/terrain/terrain'
@@ -101,6 +101,8 @@ describe('daytime sunlight crossing', () => {
     expect(sunlightObjective(p, 0, 0, 0)?.id).toBe('sun-first')
     p.sunlight.steps[0] = 2
     expect(sunlightObjective(p, 13, -17, 0)?.id).toBe('sun-second')
+    p.sunlight.steps[1] = 0
+    expect(sunlightObjective(p, 13, -17, 0)).toMatchObject({ id: 'sun-grow', target: { x: SUN_PLANT.x, z: SUN_PLANT.z } })
     expect(seedAvailable(p, SUN_REWARD_INDEX)).toBe(false)
     p.sunlight.grownAt = 5; p.sunlight.growth = 1
     expect(seedAvailable(p, SUN_REWARD_INDEX)).toBe(true)

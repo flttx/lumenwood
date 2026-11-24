@@ -33,9 +33,32 @@ export const OVERLOOK_PASS: Rect = { minX: sz(18) - 0.5, maxX: 62.5, minZ: 296, 
 export const OVERLOOK: Rect = { minX: 62, maxX: 92, minZ: 280, maxZ: 318 }
 /** Crescent cove south of the camp (2026-11-13; the user wanted to reach the sea): a sandy beach down to the waterline. */
 export const BEACH: Rect = { minX: -24, maxX: 24, minZ: -86, maxZ: -WORLD_LIMIT + 0.5 }
-export const sideRegions: readonly Rect[] = [GLEN_PASS, GLEN, HOLLOW_PASS, HOLLOW, LAKE_PASS, LAKE, OVERLOOK_PASS, OVERLOOK, BEACH]
+// Map expansion (2026-11-24): interconnected side-area loops + three interior/coastal zones reusing existing assets.
+/** West ridge trail connecting the waterfall glen's north end directly to the mirror lake (opens with north gate). */
+export const GLEN_LAKE_TRAIL: Rect = { minX: -101, maxX: -93, minZ: 37.5, maxZ: 92.5 }
+/** Sunstone Vale east of the wetlands: an airy birch sanctuary with glowing stone pillars. */
+export const VALE_PASS: Rect = { minX: 29.5, maxX: 48.5, minZ: 96, maxZ: 104 }
+export const VALE: Rect = { minX: 48, maxX: 98, minZ: 92, maxZ: 156 }
+/** East woodland shortcut connecting the mushroom hollow to the sunstone vale (opens with north gate). */
+export const HOLLOW_VALE_TRAIL: Rect = { minX: 94, maxX: 102, minZ: -2.5, maxZ: 92.5 }
+/** East highland return ridge descending gently from the cliff overlook back into the vale (opens with ascent gate). */
+export const EAST_RIDGE_TRAIL: Rect = { minX: 72, maxX: 82, minZ: 155.5, maxZ: 280.5 }
+/** Tidewater Reef south of the crescent cove: a shallow sandspit and stepping-stone causeway out to a coastal terrace. */
+export const REEF_CAUSEWAY: Rect = { minX: -4.5, maxX: 4.5, minZ: -108.5, maxZ: -85.5 }
+export const REEF: Rect = { minX: -18, maxX: 18, minZ: -124, maxZ: -108 }
+/** Starlight Terrace north of the ancient tree plateau: a wind-swept northern cliff overlooking sea and aurora. */
+export const STAR_PASS: Rect = { minX: -15, maxX: -5, minZ: 334.5, maxZ: 348.5 }
+export const STAR_CLIFF: Rect = { minX: -34, maxX: 14, minZ: 348, maxZ: 374 }
+export const sideRegions: readonly Rect[] = [
+  GLEN_PASS, GLEN, HOLLOW_PASS, HOLLOW, LAKE_PASS, LAKE, OVERLOOK_PASS, OVERLOOK, BEACH,
+  VALE_PASS, VALE, REEF_CAUSEWAY, REEF, STAR_PASS, STAR_CLIFF,
+]
 /** Every region that shapes the terrain, gated or not. */
-export const allRegions: readonly Rect[] = [CAMP, NORTH_CORRIDOR, WETLAND, BRIDGE, GLADE, ASCENT, HIGHLAND, ...sideRegions]
+export const allRegions: readonly Rect[] = [
+  CAMP, NORTH_CORRIDOR, WETLAND, BRIDGE, GLADE, ASCENT, HIGHLAND,
+  GLEN_LAKE_TRAIL, HOLLOW_VALE_TRAIL, EAST_RIDGE_TRAIL,
+  ...sideRegions,
+]
 /** Frame-loop-owned gate state (not React state); the route system opens gates, the player reads them. */
 export const gates = { north: false, bridge: false, ascent: false }
 const combos = new Map<number, Rect[]>()
@@ -43,7 +66,12 @@ export function walkableRegions(northOpen = gates.north, bridgeOpen = gates.brid
   const key = +northOpen | (+bridgeOpen << 1) | (+ascentOpen << 2)
   let rects = combos.get(key)
   if (!rects) {
-    rects = [CAMP, WETLAND, GLADE, HIGHLAND, ...sideRegions, ...(northOpen ? [NORTH_CORRIDOR] : []), ...(bridgeOpen ? [BRIDGE] : []), ...(ascentOpen ? [ASCENT] : [])]
+    rects = [
+      CAMP, WETLAND, GLADE, HIGHLAND, ...sideRegions,
+      ...(northOpen ? [NORTH_CORRIDOR, GLEN_LAKE_TRAIL, HOLLOW_VALE_TRAIL] : []),
+      ...(bridgeOpen ? [BRIDGE] : []),
+      ...(ascentOpen ? [ASCENT, EAST_RIDGE_TRAIL] : []),
+    ]
     combos.set(key, rects)
   }
   return rects

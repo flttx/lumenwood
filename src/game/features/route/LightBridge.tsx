@@ -7,6 +7,7 @@ import { atmosphere } from '../../rendering/timeOfDay'
 import { lightSource, lightSources } from '../../rendering/LocalLights'
 import { random } from '../../shared/random'
 import { GATE_DELAY, route, routeClock } from './progress'
+import { soundscape } from '../../audio/engine'
 import { createMoteMaterial } from './moteMaterial'
 // The light bridge over the wetland channel (a magic effect, built in code; 2026-11-12 rework of the earlier glowing
 // pads). An arched deck of translucent light laid in planks, a ribbon handrail on each side on slender light posts, a
@@ -89,7 +90,7 @@ export function LightBridge() {
     motes.frustumCulled = false; group.add(motes)
     const sources = [0.2, 0.5, 0.8].map(t => lightSource([CX, BRIDGE_ARCH * Math.sin(Math.PI * t) + 0.8, BRIDGE.minZ + t * LENGTH], 0xffcf88, 2.2, 9))
     group.visible = false
-    return { group, uniforms, reflectionUniforms, posts, moteGeometry, moteMaterial, seeds, sources, materials: [deckMaterial, reflectionMaterial, railMaterial] }
+    return { group, uniforms, reflectionUniforms, posts, moteGeometry, moteMaterial, seeds, sources, materials: [deckMaterial, reflectionMaterial, railMaterial], lastStep: -1 }
   }, [])
   useEffect(() => {
     parts.sources.forEach(s => lightSources.add(s))
@@ -102,9 +103,15 @@ export function LightBridge() {
   useFrame(() => {
     const done = route.completedAt.wetland, now = routeClock.now
     parts.group.visible = done !== null
-    if (done === null) { parts.sources.forEach(s => { s.level = 0 }); return }
+    if (done === null) { parts.lastStep = -1; parts.sources.forEach(s => { s.level = 0 }); return }
     // Laid south to north while the stream travels, finished as the gate opens (GATE_DELAY).
     const built = Math.min(1, Math.max(0, (now - done) / (GATE_DELAY * 0.95)))
+    const step = Math.floor(built * 8)
+    if (now - done < GATE_DELAY + 1.5 && step > parts.lastStep && built > 0.01 && built < 0.999) {
+      parts.lastStep = step
+      const zPos = BRIDGE.minZ + built * LENGTH
+      soundscape.event('bridgeBuild', CX, bridgeDeck(zPos), zPos, built)
+    }
     const night = 0.55 + 0.45 * atmosphere.preset.fireflies
     parts.uniforms.uBuilt.value = built; parts.uniforms.uTime.value = now; parts.uniforms.uOpacity.value = night
     parts.reflectionUniforms.uOpacity.value = 0.15 * night

@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { AdditiveBlending, Color, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, ShaderMaterial, Vector3 } from 'three'
+import { AdditiveBlending, Color, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, ShaderMaterial, Vector2, Vector3 } from 'three'
 import { atmosphere } from './timeOfDay'
+import { wind } from './wind'
+import { reflectionSkips } from './planarReflection'
 import { random } from '../shared/random'
 import { heightAt, paths, rolling } from '../world/terrain/terrain'
 import { pools } from '../world/zones/wetlandLayout'
@@ -27,20 +29,27 @@ void main() {
   gl_FragColor = vec4(uColor * edge * fall * shimmer * uOpacity * vFade, 1.0);
   #include <colorspace_fragment>
 }`
-const mistVertex = `varying vec2 vUv; varying float vFade;
+const mistVertex = `varying vec2 vUv; varying float vFade; varying float vSeed;
 void main() {
   vUv = uv;
+  vSeed = float(gl_InstanceID) * 1.37;
   vec4 centre = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
   vec2 size = vec2(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz));
   vFade = smoothstep(3.0, 10.0, -centre.z) * (1.0 - smoothstep(60.0, 110.0, -centre.z));
   gl_Position = projectionMatrix * (centre + vec4(position.xy * size, 0.0, 0.0));
 }`
-const mistFragment = `uniform vec3 uColor; uniform float uOpacity; uniform float uTime; varying vec2 vUv; varying float vFade;
+const mistFragment = `uniform vec3 uColor; uniform float uOpacity; uniform float uTime; uniform vec2 uWindDir; uniform float uWindGust;
+varying vec2 vUv; varying float vFade; varying float vSeed;
+float mHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float mNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mHash(i), mHash(i + vec2(1, 0)), f.x), mix(mHash(i + vec2(0, 1)), mHash(i + vec2(1, 1)), f.x), f.y); }
 void main() {
   vec2 p = (vUv - 0.5) * vec2(2.0, 2.0);
-  float t = max(0.0, 1.0 - length(p * vec2(1.0, 1.6)));
-  float drift = 0.65 + 0.35 * sin(p.x * 7.0 + uTime * 0.13) * sin(p.y * 9.0 - uTime * 0.11);
-  gl_FragColor = vec4(uColor, uOpacity * t * t * t * drift * vFade);
+  vec2 flow = uWindDir * (uTime * (0.06 + 0.08 * uWindGust)) + vec2(vSeed);
+  float n = mNoise(vUv * 3.8 + flow) * 0.65 + mNoise(vUv * 8.2 - flow * 1.4 + 3.1) * 0.35;
+  float radial = max(0.0, 1.0 - length(p * vec2(0.95, 1.45)));
+  float wisp = smoothstep(0.18, 0.85, radial * (0.72 + 0.55 * n));
+  gl_FragColor = vec4(uColor, uOpacity * wisp * wisp * vFade);
   #include <colorspace_fragment>
 }`
 
@@ -77,30 +86,45 @@ export function AirEffects() {
     const shaftMaterial = new ShaderMaterial({ uniforms: { uColor: { value: new Color() }, uOpacity: { value: 0 }, uTime: { value: 0 } }, vertexShader: shaftVertex, fragmentShader: shaftFragment, transparent: true, depthWrite: false, blending: AdditiveBlending })
     const shaftMesh = new InstancedMesh(new PlaneGeometry(SHAFT_WIDTH, SHAFT_HEIGHT).translate(0, SHAFT_HEIGHT / 2, 0), shaftMaterial, shafts.length)
     shaftMesh.frustumCulled = false
-    const mistMaterial = new ShaderMaterial({ uniforms: { uColor: { value: new Color() }, uOpacity: { value: 0 }, uTime: { value: 0 } }, vertexShader: mistVertex, fragmentShader: mistFragment, transparent: true, depthWrite: false })
+    const mistMaterial = new ShaderMaterial({ uniforms: { uColor: { value: new Color() }, uOpacity: { value: 0 }, uTime: { value: 0 }, uWindDir: { value: new Vector2(0.86, 0.5) }, uWindGust: { value: 0.4 } }, vertexShader: mistVertex, fragmentShader: mistFragment, transparent: true, depthWrite: false })
     const mistMesh = new InstancedMesh(new PlaneGeometry(1, 1), mistMaterial, mist.length)
     mistMesh.frustumCulled = false
     const m = new Matrix4(), q = new Quaternion(), s = new Vector3()
     mist.forEach((p, i) => mistMesh.setMatrixAt(i, m.compose(new Vector3(p.x, p.y, p.z), q.identity(), s.set(p.size, p.size * 0.28, 1))))
     return { shafts, shaftMesh, shaftMaterial, mistMesh, mistMaterial }
   }, [])
+  useEffect(() => {
+    reflectionSkips.add(parts.shaftMesh); reflectionSkips.add(parts.mistMesh)
+    return () => {
+      reflectionSkips.delete(parts.shaftMesh); reflectionSkips.delete(parts.mistMesh)
+      parts.shaftMesh.geometry.dispose(); parts.shaftMaterial.dispose(); parts.shaftMesh.dispose()
+      parts.mistMesh.geometry.dispose(); parts.mistMaterial.dispose(); parts.mistMesh.dispose()
+    }
+  }, [parts])
   const scratch = useMemo(() => ({ m: new Matrix4(), yaw: new Quaternion(), lean: new Quaternion(), pos: new Vector3(), one: new Vector3(1, 1, 1), up: new Vector3(0, 1, 0), z: new Vector3(0, 0, 1), day: new Color(0xffe2a6), dusk: new Color(0x9fb2e0), white: new Color(0xffffff) }), [])
   useFrame(({ camera, clock }) => {
     const { shafts, shaftMesh, shaftMaterial, mistMaterial } = parts, p = atmosphere.preset, dusk = atmosphere.blend
-    // Shafts turn about the vertical toward the camera and lean along the sun's direction.
-    shafts.forEach((shaft, i) => {
-      scratch.yaw.setFromAxisAngle(scratch.up, Math.atan2(camera.position.x - shaft.x, camera.position.z - shaft.z))
-      scratch.lean.setFromAxisAngle(scratch.z, SHAFT_LEAN * Math.sin(p.sunAzimuth - Math.atan2(camera.position.x - shaft.x, camera.position.z - shaft.z) + Math.PI / 2))
-      shaftMesh.setMatrixAt(i, scratch.m.compose(scratch.pos.set(shaft.x, shaft.y, shaft.z), scratch.yaw.multiply(scratch.lean), scratch.one))
-    })
-    shaftMesh.instanceMatrix.needsUpdate = true
-    shaftMaterial.uniforms.uTime.value = clock.elapsedTime
-    shaftMaterial.uniforms.uColor.value.copy(scratch.day).lerp(scratch.dusk, dusk)
-    shaftMaterial.uniforms.uOpacity.value = (0.18 - 0.1 * dusk) * (1 - 0.5 * atmosphere.wetland)
+    // Canopy sunbeams belong to daytime/golden hour only; fade completely to 0 at night so no diagonal stripes cross the night sky.
+    const shaftOpacity = (0.18 - 0.14 * dusk) * Math.max(0, 1 - atmosphere.night * 1.4) * (1 - 0.5 * atmosphere.wetland)
+    shaftMesh.visible = shaftOpacity > 0.004
+    if (shaftMesh.visible) {
+      shafts.forEach((shaft, i) => {
+        const angle = Math.atan2(camera.position.x - shaft.x, camera.position.z - shaft.z)
+        scratch.yaw.setFromAxisAngle(scratch.up, angle)
+        scratch.lean.setFromAxisAngle(scratch.z, SHAFT_LEAN * Math.sin(p.sunAzimuth - angle + Math.PI / 2))
+        shaftMesh.setMatrixAt(i, scratch.m.compose(scratch.pos.set(shaft.x, shaft.y, shaft.z), scratch.yaw.multiply(scratch.lean), scratch.one))
+      })
+      shaftMesh.instanceMatrix.needsUpdate = true
+      shaftMaterial.uniforms.uTime.value = clock.elapsedTime
+      shaftMaterial.uniforms.uColor.value.copy(scratch.day).lerp(scratch.dusk, dusk)
+      shaftMaterial.uniforms.uOpacity.value = shaftOpacity
+    }
     // Mist takes the fog colour, lightened, and thickens in the wetlands and at twilight.
     mistMaterial.uniforms.uTime.value = clock.elapsedTime
+    mistMaterial.uniforms.uWindDir.value.set(wind.dirX, wind.dirZ)
+    mistMaterial.uniforms.uWindGust.value = wind.gust
     mistMaterial.uniforms.uColor.value.setHex(p.fog).lerp(scratch.white, 0.12)
-    mistMaterial.uniforms.uOpacity.value = 0.06 + 0.14 * atmosphere.wetland + 0.13 * dusk
+    mistMaterial.uniforms.uOpacity.value = 0.065 + 0.145 * atmosphere.wetland + 0.13 * dusk
   })
   return <><primitive object={parts.shaftMesh}/><primitive object={parts.mistMesh}/></>
 }

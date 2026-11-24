@@ -1,10 +1,12 @@
 import { Suspense, useEffect, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, InstancedBufferAttribute, InstancedBufferGeometry, Mesh, Points, ShaderMaterial, Vector3 } from 'three'
+import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, InstancedBufferAttribute, InstancedBufferGeometry, Mesh, Points, ShaderMaterial, Vector2, Vector3 } from 'three'
 import { atmosphere } from '../../rendering/timeOfDay'
+import { wind } from '../../rendering/wind'
 import { random } from '../../shared/random'
 import { heightAt } from '../../world/terrain/terrain'
 import { trailTarget } from '../../rendering/Grass'
+import { reflectionSkips } from '../../rendering/planarReflection'
 import { butterflyHomes, dragonflyHomes, type Home } from './ambientLayout'
 import { Wildlife } from './Wildlife'
 // Ambient life (scene enrichment, 2026-11-12): falling leaves, dust motes drifting in the sun, butterflies over the glades
@@ -31,19 +33,20 @@ function updateLight(u: LightUniforms) {
 
 // ---- Falling leaves -------------------------------------------------------------------------------------------------
 const LEAF_RADIUS = 22, LEAF_FALL = 15, LEAVES = 220
-const leafVertex = `uniform float uTime; uniform vec3 uCenter; uniform float uRadius; uniform float uScale;
+const leafVertex = `uniform float uTime; uniform vec3 uCenter; uniform float uRadius; uniform float uScale; uniform vec2 uWindDir; uniform float uWindGust;
 attribute vec4 aLeaf; // xz slot, phase, random
 varying vec2 vUv; varying vec3 vNormal; varying vec3 vView; varying float vTint;
 vec3 rotate(vec3 v, vec3 k, float a) { return v * cos(a) + cross(k, v) * sin(a) + k * dot(k, v) * (1.0 - cos(a)); }
 void main() {
   float span = 2.0 * uRadius;
   vec2 slot = aLeaf.xy + span * floor((uCenter.xz - aLeaf.xy) / span + 0.5);
-  float speed = 0.55 + 0.45 * aLeaf.w, fall = mod(uTime * speed + aLeaf.z * ${LEAF_FALL.toFixed(1)}, ${LEAF_FALL.toFixed(1)});
-  // Leaves sway side to side as they fall and drift with the wind.
-  vec2 sway = vec2(sin(uTime * 1.3 + aLeaf.z * 17.0), cos(uTime * 1.1 + aLeaf.w * 13.0)) * 0.6 + vec2(0.6, 0.3) * fall * 0.18;
+  float speed = (0.55 + 0.45 * aLeaf.w) * (0.85 + 0.35 * uWindGust), fall = mod(uTime * speed + aLeaf.z * ${LEAF_FALL.toFixed(1)}, ${LEAF_FALL.toFixed(1)});
+  // Leaves sway and drift coherently along the shared wind vector, accelerating during gusts.
+  vec2 crossWind = vec2(-uWindDir.y, uWindDir.x);
+  vec2 sway = crossWind * sin(uTime * (1.2 + 0.7 * uWindGust) + aLeaf.z * 17.0) * 0.65 + uWindDir * (fall * (0.16 + 0.24 * uWindGust) + cos(uTime * 1.1 + aLeaf.w * 13.0) * 0.35);
   vec3 centre = vec3(slot.x + sway.x, uCenter.y + ${(LEAF_FALL - 2).toFixed(1)} - fall, slot.y + sway.y);
   vec3 axis = normalize(vec3(aLeaf.w - 0.5, 0.6, aLeaf.z - 0.5));
-  float spin = uTime * (1.2 + 2.2 * aLeaf.w) + aLeaf.z * 40.0;
+  float spin = uTime * (1.2 + 2.2 * aLeaf.w + 1.1 * uWindGust) + aLeaf.z * 40.0;
   float near = 1.0 - smoothstep(uRadius * 0.6, uRadius, distance(slot, uCenter.xz));
   vec3 local = rotate(vec3(position.x, 0.0, position.y) * uScale * near * (0.8 + 0.5 * aLeaf.w), axis, spin);
   vNormal = rotate(vec3(0.0, 1.0, 0.0), axis, spin);
@@ -75,18 +78,23 @@ function Leaves() {
     geometry.setAttribute('aLeaf', new InstancedBufferAttribute(data, 4))
     geometry.instanceCount = LEAVES
     const material = new ShaderMaterial({
-      uniforms: { uTime: { value: 0 }, uCenter: { value: new Vector3() }, uRadius: { value: LEAF_RADIUS }, uScale: { value: 0.07 }, ...light },
+      uniforms: { uTime: { value: 0 }, uCenter: { value: new Vector3() }, uRadius: { value: LEAF_RADIUS }, uScale: { value: 0.07 }, uWindDir: { value: new Vector2(0.86, 0.5) }, uWindGust: { value: 0.4 }, ...light },
       vertexShader: leafVertex, fragmentShader: leafFragment, side: DoubleSide,
     })
     const mesh = new Mesh(geometry, material)
     mesh.frustumCulled = false
     return { mesh, material, light }
   }, [])
-  useEffect(() => () => { mesh.geometry.dispose(); material.dispose() }, [mesh, material])
+  useEffect(() => {
+    reflectionSkips.add(mesh)
+    return () => { reflectionSkips.delete(mesh); mesh.geometry.dispose(); material.dispose() }
+  }, [mesh, material])
   useFrame(({ clock }) => {
     const u = material.uniforms, player = trailTarget.position
     u.uTime.value = clock.elapsedTime
     u.uCenter.value.set(player.x, heightAt(player.x, player.z), player.z)
+    u.uWindDir.value.set(wind.dirX, wind.dirZ)
+    u.uWindGust.value = wind.gust
     // Fewer leaves in the open wetland, and fewer at twilight.
     u.uScale.value = 0.07 * (1 - 0.6 * atmosphere.wetland) * (1 - 0.4 * atmosphere.blend)
     updateLight(light)
@@ -106,7 +114,7 @@ void main() {
   vec4 mv = viewMatrix * vec4(p, 1.0);
   vTwinkle = (0.4 + 0.6 * pow(0.5 + 0.5 * sin(uTime * (0.8 + aMote.w * 2.0) + aMote.z * 50.0), 4.0))
     * (1.0 - smoothstep(${(MOTE_RADIUS * 0.55).toFixed(1)}, ${MOTE_RADIUS.toFixed(1)}, distance(p.xz, uCenter.xz)));
-  gl_PointSize = uSize / -mv.z;
+  gl_PointSize = min(uSize / max(-mv.z, 0.15), 24.0);
   gl_Position = projectionMatrix * mv;
 }`
 const moteFragment = `uniform vec3 uColor; varying float vTwinkle;
@@ -131,10 +139,14 @@ function Motes() {
     points.frustumCulled = false
     return { points, material }
   }, [])
-  useEffect(() => () => { points.geometry.dispose(); material.dispose() }, [points, material])
+  useEffect(() => {
+    reflectionSkips.add(points)
+    return () => { reflectionSkips.delete(points); points.geometry.dispose(); material.dispose() }
+  }, [points, material])
   useFrame(({ clock }) => {
     const u = material.uniforms, player = trailTarget.position, day = 1 - atmosphere.blend
     points.visible = day > 0.02
+    if (!points.visible) return
     u.uTime.value = clock.elapsedTime
     u.uCenter.value.set(player.x, heightAt(player.x, player.z), player.z)
     u.uSize.value = 9 * dpr
@@ -227,11 +239,15 @@ function Fliers({ homes, style, tints, seed }: { homes: Home[]; style: FlierStyl
     mesh.frustumCulled = false // positions come from the shader
     return { mesh, material, light }
   }, [homes, style, tints, seed])
-  useEffect(() => () => { mesh.geometry.dispose(); material.dispose() }, [mesh, material])
+  useEffect(() => {
+    reflectionSkips.add(mesh)
+    return () => { reflectionSkips.delete(mesh); mesh.geometry.dispose(); material.dispose() }
+  }, [mesh, material])
   useFrame(({ clock }) => {
     const u = material.uniforms, day = 1 - atmosphere.blend
     // Day creatures: they shrink away at dusk (and cost no draw call once gone).
     mesh.visible = day > 0.02
+    if (!mesh.visible) return
     u.uTime.value = clock.elapsedTime
     u.uVisible.value = Math.min(1, day * 1.5)
     updateLight(light)

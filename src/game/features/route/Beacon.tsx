@@ -25,17 +25,24 @@ export function Beacon() {
     material: new ShaderMaterial({ uniforms: { uColor: { value: new Color(0xffd894) }, uStrength: { value: 0 }, uTime: { value: 0 } }, vertexShader, fragmentShader, blending: AdditiveBlending, transparent: true, depthWrite: false, fog: false }),
   }), [])
   const mesh = useRef<Mesh>(null)
-  // Not mirrored in the water (the column would double in every pond).
-  useEffect(() => { const m = mesh.current; if (!m) return; reflectionSkips.add(m); return () => { reflectionSkips.delete(m) } }, [])
+  // Not mirrored in the water (the column would double in every pond); dispose GPU resources on unmount.
+  useEffect(() => {
+    const m = mesh.current
+    if (m) reflectionSkips.add(m)
+    return () => { if (m) reflectionSkips.delete(m); geometry.dispose(); material.dispose() }
+  }, [geometry, material])
   useFrame(({ clock, camera }) => {
-    const lit = route.litAt.filter(t => t !== null).length, done = route.completedAt.highland
+    let lit = 0
+    for (let i = 0; i < route.litAt.length; i++) if (route.litAt[i] !== null) lit++
+    const done = route.completedAt.highland
     const ending = done === null ? 0 : Math.min(1, (routeClock.now - done) / 8)
     material.uniforms.uTime.value = clock.elapsedTime
     // Kept under the night bloom threshold (0.55): bloom passes a whole pixel once it crosses the threshold, and a 70 m
     // column over clear night sky bloomed into a white-out across the frame.
     const distance = Math.hypot(camera.position.x - ANCIENT_TREE[0], camera.position.z - ANCIENT_TREE[1])
     const presence = 0.2 + 0.8 * smoothstep(45, 140, distance)
-    material.uniforms.uStrength.value = ((0.1 + 0.1 * atmosphere.blend) * (1 + lit * 0.05) + ending * 0.12) * presence
+    const secretLift = 1 + 0.08 * route.secretsAt.size
+    material.uniforms.uStrength.value = ((0.1 + 0.1 * atmosphere.blend) * (1 + lit * 0.05) + ending * 0.12) * presence * secretLift
   })
   return <mesh ref={mesh} geometry={geometry} material={material} position={[ANCIENT_TREE[0], PLATEAU_HEIGHT + TREE_HEIGHT * 0.8, ANCIENT_TREE[1]]} renderOrder={4} frustumCulled={false}/>
 }

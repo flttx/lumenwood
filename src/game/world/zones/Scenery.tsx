@@ -39,7 +39,9 @@ const layers: Layer[] = [
   { id: 'PRP-007', folder: 'props', items: [placed(woodpile)], maxDistance: 90, castShadow: true },
 ]
 const MUSHROOM_URL = url('vegetation', 'VEG-007')
-for (const l of layers) useGLTF.preload(url(l.folder, l.id), false, false)
+const MUSHROOM_LODS = ['VEG-007_LOD0', 'VEG-007_LOD1']
+const resolvedLayers = layers.map(l => ({ ...l, url: url(l.folder, l.id), resolvedLods: l.lods ?? [l.id] }))
+for (const l of resolvedLayers) useGLTF.preload(l.url, false, false)
 useGLTF.preload(MUSHROOM_URL, false, false)
 
 /** VEG-007's Emission map lights the caps' undersides; like the flowers, they glow brighter once the sun is down. */
@@ -51,12 +53,12 @@ function Mushrooms() {
     return mesh.material
   }, [scene])
   useFrame(() => { material.emissiveIntensity = 0.1 + 0.32 * atmosphere.preset.fireflies })
-  return <Scatter url={MUSHROOM_URL} lods={['VEG-007_LOD0', 'VEG-007_LOD1']} items={mushrooms} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={40}/>
+  return <Scatter url={MUSHROOM_URL} lods={MUSHROOM_LODS} items={mushrooms} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={40}/>
 }
 
 export function Scenery() {
   return <>
-    {layers.map(l => <Scatter key={l.id} url={url(l.folder, l.id)} lods={l.lods ?? [l.id]} items={l.items} chunkSize={24} lodDistance={NEAR_DETAIL} maxDistance={l.maxDistance} castShadow={l.castShadow} foliage={l.foliage}/>)}
+    {resolvedLayers.map(l => <Scatter key={l.id} url={l.url} lods={l.resolvedLods} items={l.items} chunkSize={l.items.length < 60 ? 64 : 24} lodDistance={NEAR_DETAIL} maxDistance={l.maxDistance} castShadow={l.castShadow} foliage={l.foliage}/>)}
     <Mushrooms/>
     <CampfireEffects x={campfire.x} y={heightAt(campfire.x, campfire.z)} z={campfire.z}/>
   </>

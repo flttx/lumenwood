@@ -1,4 +1,4 @@
-import { BEACH, BRIDGE, GLADE, GLEN, LAKE, OVERLOOK, WETLAND, regionDistance } from '../regions'
+import { BEACH, BRIDGE, GLADE, GLEN, LAKE, OVERLOOK, REEF, STAR_CLIFF, WETLAND, rectDistance, regionDistance } from '../regions'
 import { cabin } from '../zones/campLayout'
 import { smoothstep } from '../../shared/math'
 import { WATER_LEVEL, basinDepth, wetlandPath } from '../zones/wetlandLayout'
@@ -55,20 +55,27 @@ export function cliffWeight(x: number, z: number) {
 }
 // The island (third pass, 2026-11-12; the user: "beyond the forest is the sea; the forest is an island"). Past the hills the
 // land falls to a seabed; the coastline wanders with noise between about 45 and 75 m from the walkable areas, so beaches,
-// headlands and coves form on their own. East of the overlook the plateau drops straight into the sea.
+// headlands and coves form on their own. East of the overlook and north of the starlight terrace the plateau drops straight into the sea.
 export const SEA_LEVEL = -3.5, SEABED = -16
 export const SEA_CLIFF_EDGE = OVERLOOK.maxX + 2
+export const NORTH_CLIFF_EDGE = STAR_CLIFF.maxZ + 2
 /** 0–1: the sea cliff below the overlook (full drop SEA_CLIFF_EDGE + 9 m out), fading out along the coast either side. */
 export function seaCliffWeight(x: number, z: number) {
   return smoothstep(SEA_CLIFF_EDGE, SEA_CLIFF_EDGE + 9, x) * (1 - smoothstep(OVERLOOK.maxZ + 25, OVERLOOK.maxZ + 60, z)) * (1 - smoothstep(OVERLOOK.minZ - 25, OVERLOOK.minZ - 60, z))
 }
+/** 0–1: the northern sea cliff dropping sheer beyond Starlight Terrace. */
+export function northSeaCliffWeight(x: number, z: number) {
+  return smoothstep(NORTH_CLIFF_EDGE, NORTH_CLIFF_EDGE + 10, z)
+    * (1 - smoothstep(STAR_CLIFF.maxX + 18, STAR_CLIFF.maxX + 48, x))
+    * (1 - smoothstep(STAR_CLIFF.minX - 18, STAR_CLIFF.minX - 48, x))
+}
 /** 0–1: how far the land has fallen toward the seabed (0 on the island, 1 out at sea). */
 export function seaWeight(x: number, z: number, distance = regionDistance(x, z)) {
   const from = 34 + 26 * valueNoise(x * 0.013 + 5, z * 0.013 - 2)
-  return Math.max(smoothstep(from, from + 48, distance), seaCliffWeight(x, z))
+  return Math.max(smoothstep(from, from + 48, distance), seaCliffWeight(x, z), northSeaCliffWeight(x, z))
 }
 // The crescent cove (2026-11-13): south of the camp the land runs down as a sandy beach to the waterline at the cove's
-// south edge (about 0.15 m above the sea), then shelves to the seabed; the hills either side frame it.
+// south edge (about 0.15 m above the sea), then shelves to the seabed (with a shallow sandspit out to Tidewater Reef).
 const COVE_TOP = BEACH.maxZ - 6, WATERLINE = BEACH.minZ
 /** 0–1: inside the cove's beach (fading out into the hills on either side and into the camp to the north). */
 export function coveWeight(x: number, z: number) {
@@ -78,7 +85,11 @@ export function coveWeight(x: number, z: number) {
 export function coveShore(x: number) {
   return WATERLINE - 0.3 - 2.8 * valueNoise(x * 0.045 + 3.4, 1.7) - 0.6 * (1 + Math.sin(x * 0.14 + 0.8))
 }
-/** A sloping cove with low wind-shaped dunes, tapering smoothly into a shallow submerged shelf. */
+/** 0–1: coastal rock terrace south of the sandspit. */
+export function reefWeight(x: number, z: number) {
+  return 1 - smoothstep(0, 14, rectDistance(x, z, REEF))
+}
+/** A sloping cove with low wind-shaped dunes, tapering smoothly into a shallow submerged shelf and Tidewater Reef. */
 export function beachProfile(x: number, z: number) {
   const shore = coveShore(x)
   const inland = smoothstep(shore + 1.5, shore + 9, z) * (1 - smoothstep(COVE_TOP - 4, COVE_TOP + 3, z))
@@ -87,22 +98,33 @@ export function beachProfile(x: number, z: number) {
   const t = Math.min(1, Math.max(0, (COVE_TOP - z) / (COVE_TOP - WATERLINE)))
   // Ease the slope to horizontal at the waterline to avoid a sharp normal crease.
   const slope = (SEA_LEVEL + 0.15) * (t + t * t - t * t * t)
-  // At the walkable edge all terrain remains dry. Beyond it the shelf reaches the actual sea level smoothly.
+  // At the walkable edge all terrain remains dry. Beyond it the shelf meets sea level, with a dry spit out to the reef.
   if (z >= WATERLINE) return slope + dunes
   const edge = SEA_LEVEL + 0.15
-  if (z >= shore) return edge + (SEA_LEVEL - edge) * smoothstep(WATERLINE, shore, z)
-  return SEA_LEVEL + (SEABED - SEA_LEVEL) * smoothstep(shore, shore - 45, z)
+  const base = z >= shore
+    ? edge + (SEA_LEVEL - edge) * smoothstep(WATERLINE, shore, z)
+    : SEA_LEVEL + (SEABED - SEA_LEVEL) * smoothstep(shore, shore - 45, z)
+  const rw = reefWeight(x, z)
+  const spitW = (1 - smoothstep(5.0, 11.5, Math.abs(x))) * smoothstep(WATERLINE, WATERLINE - 2.5, z) * (1 - smoothstep(-107, -111, z))
+  if (rw <= 0 && spitW <= 0) return base
+  const spitH = SEA_LEVEL + 0.42 + 1.63 * smoothstep(-101, -108, z)
+  const dome = 1 - smoothstep(0, 13, Math.hypot(x, z + 116))
+  const reefH = SEA_LEVEL + 2.05 + 0.25 * dome + 0.2 * (valueNoise(x * 0.14 + 5, z * 0.14 - 3) - 0.5)
+  const w = 1 - (1 - spitW) * (1 - rw)
+  const target = (spitH * spitW + reefH * rw) / Math.max(spitW + rw, 1e-5)
+  return base + (target - base) * w
 }
 /** Ground height: hills outside the regions, rolling swells on land, pools and channel below 0, the highland rise, the
  *  glen's cliff, the cove's beach, and the island's shores falling to the seabed. */
 export function heightAt(x: number, z: number) {
   const distance = regionDistance(x, z), rim = smoothstep(FLAT_EDGE, HILL_FULL, distance), basin = basinDepth(x, z)
   const hills = rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))
-  let land = hills + basin + elevation(z) + rolling(x, z) + CLIFF_HEIGHT * cliffWeight(x, z) * (0.85 + 0.15 * valueNoise(z * 0.3, 2))
+  const starLift = 2.6 * smoothstep(340, 356, z) * (1 - smoothstep(26, 48, Math.abs(x + 10)))
+  let land = hills + basin + elevation(z) + starLift + rolling(x, z) + CLIFF_HEIGHT * cliffWeight(x, z) * (0.85 + 0.15 * valueNoise(z * 0.3, 2))
   const cove = z < COVE_TOP + 4 ? coveWeight(x, z) : 0
   if (cove > 0) land += (beachProfile(x, z) - land) * cove
   if (cove > 0.99) return land
-  if (distance < 30 && x < SEA_CLIFF_EDGE) return sunlightGround(x, z, land) // interior, including the daytime sample
+  if (distance < 30 && x < SEA_CLIFF_EDGE && z < NORTH_CLIFF_EDGE) return sunlightGround(x, z, land) // interior, including the daytime sample
   const sea = seaWeight(x, z, distance)
   return land + (SEABED - land) * sea * sea * (3 - 2 * sea)
 }
@@ -139,6 +161,12 @@ export const paths: [number, number][][] = [
   // South from the spawn down to the cove's beach (2026-11-13).
   [[0, 0], [3, -14], [1, -30], [-2, -46], [0, -62], [1, -76]],
   [[10, -16], [13, -17], [22.5, -17], [22.5, -14]],
+  // Interconnected side loops & expansion trails (2026-11-24).
+  [[-97, 30], [-97, 50], [-96.5, 72], [-97, 93]],
+  [[19, 98], [32, 100], [48, 100], [60, 108], [67, 118]],
+  [[97, -34], [98, -12], [98, 20], [98, 55], [98, 86], [90, 98], [78, 114]],
+  [[73, 138], [76, 152], [77, 180], [77, 215], [77, 250], [77, 278], [77, 296]],
+  [[-10, 308], [-10, 328], [-10, 344], [-10, 358]],
 ]
 function segmentPoint(px: number, pz: number, [ax, az]: [number, number], [bx, bz]: [number, number]): [number, number] {
   const dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)))
@@ -192,8 +220,11 @@ export function groundColor(x: number, z: number, height = heightAt(x, z)) {
   // Darkens from just above the waterline down, so shores read as wet before the water starts.
   color = mix(color, MUD, smoothstep(0.02, WATER_LEVEL - 0.2, basinDepth(x, z)))
   if (height > SEA_LEVEL + 3.5) return color
-  const seaCliff = seaCliffWeight(x, z), beach = 1 - smoothstep(SEA_LEVEL + 1.2, SEA_LEVEL + 3.5, height)
-  color = mix(color, mix(SAND, strata, seaCliff), beach * (0.8 + 0.2 * valueNoise(x * 0.4, z * 0.4)))
-  color = mix(color, WET_SAND, smoothstep(SEA_LEVEL + 0.6, SEA_LEVEL - 0.2, height) * (1 - seaCliff))
+  const seaCliff = Math.max(seaCliffWeight(x, z), northSeaCliffWeight(x, z)), beach = 1 - smoothstep(SEA_LEVEL + 1.2, SEA_LEVEL + 3.5, height)
+  const reefRock = z < -102 ? smoothstep(SEA_LEVEL + 0.6, SEA_LEVEL + 1.8, height) * (1 - smoothstep(20, 32, Math.abs(x))) : 0
+  const rockFace = Math.max(seaCliff, reefRock)
+  if (reefRock > 0) color = mix(color, strata, reefRock * 0.85)
+  color = mix(color, mix(SAND, strata, rockFace), beach * (0.8 + 0.2 * valueNoise(x * 0.4, z * 0.4)))
+  color = mix(color, WET_SAND, smoothstep(SEA_LEVEL + 0.6, SEA_LEVEL - 0.2, height) * (1 - rockFace))
   return mix(color, SEAFLOOR, smoothstep(SEA_LEVEL - 0.5, SEA_LEVEL - 4, height))
 }

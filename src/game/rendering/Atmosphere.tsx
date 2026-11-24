@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { BackSide, Color, Fog, ShaderMaterial, Vector3 as V3, type DirectionalLight, type HemisphereLight, type Mesh, type Vector3 } from 'three'
 import { useGameStore } from '../../state/gameStore'
@@ -9,6 +9,7 @@ import { smoothstep } from '../shared/math'
 import { sz } from '../world/scale'
 import { dampFactor } from '../player/movement'
 import { worldUniforms } from './worldMaterial'
+import { updateWind, wind } from './wind'
 // Sky, fog and lights for the current time of day. Switching eases over a few seconds; all updates happen in the frame
 // loop on Three.js objects, never through React state.
 // The low afternoon sun throws long shadows from 18–30 m trees, so the shadow frustum covers ±40 m around the player.
@@ -19,7 +20,7 @@ const WETLAND_FROM = sz(30), WETLAND_FULL = sz(40), ZONE_RATE = 1.5
 const HIGHLAND_FROM = sz(84), HIGHLAND_FULL = sz(100)
 const skyVertex = 'varying vec3 vDir; void main() { vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'
 const skyFragment = `uniform vec3 top; uniform vec3 horizon; uniform vec3 sunDir; uniform vec3 sunColor; uniform float glow; uniform float night;
-uniform vec3 haze; uniform vec3 moonDir; uniform float moon; uniform float time;
+uniform vec3 haze; uniform vec3 moonDir; uniform float moon; uniform float aurora; uniform float time;
 uniform vec3 meteorFrom; uniform vec3 meteorTo; uniform float meteorT;
 varying vec3 vDir;
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -75,12 +76,23 @@ void main() {
     float d = length(dir - (tail + seg * t));
     color += vec3(0.85, 0.9, 1.0) * (smoothstep(0.0035, 0.0, d) * 5.0 + smoothstep(0.012, 0.0, d) * 0.6) * t * t * sin(meteorT * 3.14159) * night;
   }
-  // Cloud band: soft streaks over the horizon, rim-lit on the sun's side (concept boards: warm sunset clouds); darker and
-  // moonlit after dusk; drifting slowly.
+  // Dual-layer parallax cloud bands: soft lower warm-rimmed streaks + higher translucent veil drifting slowly.
   vec2 cp = ring * 2.4 + vec2(dir.y * 9.0, -dir.y * 5.0) + vec2(time * 0.004, 0.0);
-  float cloud = smoothstep(0.52, 0.85, fbm(cp + vec2(0.0, fbm(cp * 0.7) * 0.6))) * smoothstep(0.03, 0.12, dir.y) * (1.0 - smoothstep(0.22, 0.42, dir.y));
-  vec3 cloudColor = mix(mix(horizon, top, 0.35) * 0.9, sunColor * 1.25 + horizon * 0.3, pow(toward, 3.0) * 0.85 + 0.15) * (1.0 - 0.45 * night);
+  float cloudA = smoothstep(0.52, 0.85, fbm(cp + vec2(0.0, fbm(cp * 0.7) * 0.6))) * smoothstep(0.03, 0.12, dir.y) * (1.0 - smoothstep(0.22, 0.42, dir.y));
+  vec2 cpHigh = ring * 1.6 + vec2(-dir.y * 5.0, dir.y * 4.0) + vec2(time * 0.0018, time * 0.001);
+  float cloudB = smoothstep(0.56, 0.88, fbm(cpHigh + vec2(3.1, 1.7))) * smoothstep(0.08, 0.24, dir.y) * (1.0 - smoothstep(0.32, 0.56, dir.y));
+  float cloud = clamp(cloudA + cloudB * 0.45, 0.0, 1.0);
+  vec3 cloudColor = mix(mix(horizon, top, 0.35) * 0.9, sunColor * 1.25 + horizon * 0.3, pow(max(toward, 0.0), 3.0) * 0.85 + 0.15) * (1.0 - 0.45 * night);
   color = mix(color, cloudColor, cloud * 0.7);
+  // Subtle cyan-gold aurora veil high in the highland/ending night sky, kept gentle under the bloom threshold.
+  if (aurora > 0.01) {
+    float skyBand = smoothstep(0.14, 0.36, dir.y) * (1.0 - smoothstep(0.52, 0.82, dir.y));
+    float waveA = sin(ring.x * 3.8 + ring.y * 2.3 + time * 0.08 + fbm(ring * 2.2 + time * 0.015) * 3.2);
+    float waveB = sin(ring.y * 4.5 - ring.x * 2.1 - time * 0.06);
+    float ribbon = pow(max(0.5 + 0.5 * waveA, 0.0), 3.0) * (0.55 + 0.45 * waveB);
+    vec3 auroraTint = mix(vec3(0.28, 0.72, 0.68), vec3(0.86, 0.74, 0.48), 0.5 + 0.5 * sin(ring.x * 2.0 + time * 0.05));
+    color += auroraTint * ribbon * skyBand * aurora * 0.22 * high;
+  }
   // The forest is an island (third pass): low islands on the sea horizon instead of mountain ranges, the far ones fading
   // into the haze.
   float farIsle = 0.004 + 0.05 * pow(smoothstep(0.35, 0.8, fbm(ring * 2.2 + 1.7)), 1.5) + 0.006 * noise(ring * 24.0 + 4.0);
@@ -99,36 +111,61 @@ export function Atmosphere({ player }: { player: Vector3 }) {
   const shadowMapSize = useGameStore(s => qualitySettings[s.quality].shadowMapSize)
   const { gl, scene } = useThree()
   const sun = useRef<DirectionalLight>(null), hemi = useRef<HemisphereLight>(null), dome = useRef<Mesh>(null), fill = useRef<DirectionalLight>(null)
-  const sky = useMemo(() => new ShaderMaterial({ uniforms: { top: { value: new Color() }, horizon: { value: new Color() }, sunDir: { value: new V3(0, 1, 0) }, sunColor: { value: new Color() }, glow: { value: 1 }, night: { value: 0 }, haze: { value: new Color() }, moonDir: { value: new V3(0, 1, 0) }, moon: { value: 0 }, time: { value: 0 }, meteorFrom: { value: new V3() }, meteorTo: { value: new V3() }, meteorT: { value: -1 } }, vertexShader: skyVertex, fragmentShader: skyFragment, side: BackSide, depthWrite: false, fog: false }), [])
+  const sky = useMemo(() => new ShaderMaterial({ uniforms: { top: { value: new Color() }, horizon: { value: new Color() }, sunDir: { value: new V3(0, 1, 0) }, sunColor: { value: new Color() }, glow: { value: 1 }, night: { value: 0 }, haze: { value: new Color() }, moonDir: { value: new V3(0, 1, 0) }, moon: { value: 0 }, aurora: { value: 0 }, time: { value: 0 }, meteorFrom: { value: new V3() }, meteorTo: { value: new V3() }, meteorT: { value: -1 } }, vertexShader: skyVertex, fragmentShader: skyFragment, side: BackSide, depthWrite: false, fog: false }), [])
+  useEffect(() => () => sky.dispose(), [sky])
   const fog = useMemo(() => new Fog(0xffffff, 1, 2), [])
   const meteor = useMemo(() => ({ next: 6, start: -10, look: new V3() }), [])
   const background = useMemo(() => new Color(), [])
+  const shadowAxis = useMemo(() => ({ dir: new V3(), right: new V3(), up: new V3(), refUp: new V3(0, 1, 0) }), [])
   useFrame(({ camera, clock }, delta) => {
     // The dome travels with the camera so it never falls outside the far plane as the world grows north.
     dome.current?.position.copy(camera.position)
+    const dt = Math.min(delta, 0.1)
+    const playing = useGameStore.getState().phase === 'playing'
     const setting = useGameStore.getState().timeOfDay
-    const target = setting === 'journey' ? journeyBlend(route.litAt.filter(t => t !== null).length, atmosphere.wetland, atmosphere.highland, route.litAt.length, route.sunlight.crossed, route.captions.has('highland') ? 2 : route.captions.has('wetland') ? 1 : 0)
-      : TIME_POINT[setting]
-    // The journey's sunset eases slowly, so lighting a lantern dims the sky over several seconds.
-    atmosphere.time += (target - atmosphere.time) * dampFactor(setting === 'journey' ? JOURNEY_RATE : TRANSITION_RATE, Math.min(delta, 0.1))
-    if (Math.abs(target - atmosphere.time) < 1e-3) atmosphere.time = target
+    let litCount = 0
+    for (let i = 0; i < route.litAt.length; i++) if (route.litAt[i] !== null) litCount++
+    const highlandTarget = smoothstep(HIGHLAND_FROM, HIGHLAND_FULL, player.z)
+    const wetlandTarget = smoothstep(WETLAND_FROM, WETLAND_FULL, player.z) * (1 - highlandTarget)
+    if (!atmosphere.snapped) {
+      atmosphere.highland = highlandTarget
+      atmosphere.wetland = wetlandTarget
+    } else if (playing) {
+      const zoneK = dampFactor(ZONE_RATE, dt)
+      atmosphere.highland += (highlandTarget - atmosphere.highland) * zoneK
+      atmosphere.wetland += (wetlandTarget - atmosphere.wetland) * zoneK
+    }
+    const target = setting === 'journey'
+      ? journeyBlend(litCount, atmosphere.wetland, atmosphere.highland, route.litAt.length, route.sunlight.crossed, route.captions.has('highland') ? 2 : route.captions.has('wetland') ? 1 : 0)
+      : (TIME_POINT[setting] ?? 0)
+    // Snap cleanly on the first frame after mount so fixed presets and new/restored journeys never start in the wrong sky.
+    if (!atmosphere.snapped) {
+      atmosphere.time = target
+      atmosphere.snapped = true
+    } else if (playing) {
+      atmosphere.time += (target - atmosphere.time) * dampFactor(setting === 'journey' ? JOURNEY_RATE : TRANSITION_RATE, dt)
+      if (Math.abs(target - atmosphere.time) < 1e-3) atmosphere.time = target
+    }
     atmosphere.blend = Math.min(1, atmosphere.time); atmosphere.night = Math.max(0, atmosphere.time - 1)
-    const zoneK = dampFactor(ZONE_RATE, Math.min(delta, 0.1)), highland = smoothstep(HIGHLAND_FROM, HIGHLAND_FULL, player.z)
-    atmosphere.highland += (highland - atmosphere.highland) * zoneK
-    atmosphere.wetland += (smoothstep(WETLAND_FROM, WETLAND_FULL, player.z) * (1 - highland) - atmosphere.wetland) * zoneK
     const p = applyZoneTint(applyZoneTint(blendPresets(atmosphere.time, atmosphere.preset), wetlandTints, atmosphere.wetland, atmosphere.time), highlandTints, atmosphere.highland, atmosphere.time)
     sky.uniforms.top.value.setHex(p.skyTop); sky.uniforms.horizon.value.setHex(p.skyHorizon)
-    const flatSun = Math.cos(p.sunElevation)
-    // The light comes from the sun by day and the moon by night (the preset's direction blends between them); the sky
-    // draws each body where it is: the sun keeps its twilight position and sinks below the horizon as night falls.
-    atmosphere.sunDirection.set(Math.sin(p.sunAzimuth) * flatSun, Math.sin(p.sunElevation), Math.cos(p.sunAzimuth) * flatSun)
-    const late = atmosphere.time > 1, sunAz = late ? presets.twilight.sunAzimuth : p.sunAzimuth, sunEl = late ? presets.twilight.sunElevation - 0.25 * atmosphere.night : p.sunElevation
-    sky.uniforms.sunDir.value.set(Math.sin(sunAz) * Math.cos(sunEl), Math.sin(sunEl), Math.cos(sunAz) * Math.cos(sunEl))
+    // Switch directional light cleanly from setting sun to rising moon across dusk→night instead of sweeping empty sky.
+    const late = atmosphere.time > 1
     const moonEl = presets.night.sunElevation, moonAz = presets.night.sunAzimuth
     atmosphere.moonDirection.set(Math.sin(moonAz) * Math.cos(moonEl), Math.sin(moonEl), Math.cos(moonAz) * Math.cos(moonEl))
+    const sunAz = late ? presets.twilight.sunAzimuth : p.sunAzimuth, sunEl = late ? presets.twilight.sunElevation - 0.25 * atmosphere.night : p.sunElevation
+    sky.uniforms.sunDir.value.set(Math.sin(sunAz) * Math.cos(sunEl), Math.sin(sunEl), Math.cos(sunAz) * Math.cos(sunEl))
+    const moonPhase = smoothstep(1.05, 1.32, atmosphere.time)
+    if (moonPhase >= 0.5) atmosphere.sunDirection.copy(atmosphere.moonDirection)
+    else {
+      const flatSun = Math.cos(Math.max(0.12, p.sunElevation))
+      atmosphere.sunDirection.set(Math.sin(sunAz) * flatSun, Math.sin(Math.max(0.12, p.sunElevation)), Math.cos(sunAz) * flatSun)
+    }
+    const crossFade = 1 - Math.sin(moonPhase * Math.PI) * 0.72
     sky.uniforms.moonDir.value.copy(atmosphere.moonDirection); sky.uniforms.moon.value = smoothstep(0.6, 1.4, atmosphere.time)
     sky.uniforms.sunColor.value.setHex(p.sun); sky.uniforms.glow.value = p.sunGlow
     sky.uniforms.night.value = smoothstep(0.7, 1.6, atmosphere.time); sky.uniforms.haze.value.setHex(p.fog)
+    sky.uniforms.aurora.value = sky.uniforms.night.value * Math.min(1, 0.25 * atmosphere.highland + 0.18 * route.secretsAt.size + (route.completedAt.highland !== null ? 0.55 : 0))
     sky.uniforms.time.value = clock.elapsedTime
     // Shooting stars: one every 4-10 s at night, crossing about 25 degrees of sky in about a second.
     if (sky.uniforms.night.value > 0.3 && clock.elapsedTime > meteor.next) {
@@ -142,7 +179,10 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     }
     const mt = (clock.elapsedTime - meteor.start) / 1.1
     sky.uniforms.meteorT.value = mt >= 0 && mt <= 1 ? mt : -1
-    // Shared plant uniforms (worldMaterial.ts): leaves glow through when backlit by the low sun, rims take the sky colour.
+    // Shared plant uniforms (worldMaterial.ts) and global wind field.
+    updateWind(clock.elapsedTime, atmosphere.highland, atmosphere.wetland)
+    worldUniforms.uWindDir.value.set(wind.dirX, wind.dirZ)
+    worldUniforms.uWindGust.value = wind.gust
     worldUniforms.uTime.value = clock.elapsedTime
     worldUniforms.uFocusView.value.copy(player); worldUniforms.uFocusView.value.y += 1.25
     worldUniforms.uFocusView.value.applyMatrix4(camera.matrixWorldInverse)
@@ -162,11 +202,23 @@ export function Atmosphere({ player }: { player: Vector3 }) {
     }
     const light = sun.current
     if (light) {
-      // The sun follows the player so a small shadow frustum always covers the visible camp.
-      const flat = Math.cos(p.sunElevation)
-      light.position.set(player.x + Math.sin(p.sunAzimuth) * flat * SUN_DISTANCE, Math.sin(p.sunElevation) * SUN_DISTANCE, player.z + Math.cos(p.sunAzimuth) * flat * SUN_DISTANCE)
-      light.target.position.set(player.x, 0, player.z); light.target.updateMatrixWorld()
-      light.color.setHex(p.sun); light.intensity = p.sunIntensity; light.shadow.intensity = p.shadowStrength
+      // Anchor shadow box at player.y (so Highland plateau trees stay inside the frustum) and snap to shadow texels to stop swimming.
+      shadowAxis.dir.copy(atmosphere.sunDirection).normalize()
+      shadowAxis.right.crossVectors(shadowAxis.refUp, shadowAxis.dir).normalize()
+      shadowAxis.up.crossVectors(shadowAxis.dir, shadowAxis.right)
+      let sx = player.x, sy = player.y, szPos = player.z
+      if (shadowMapSize > 0) {
+        const texel = (SHADOW_EXTENT * 2) / shadowMapSize
+        const u = Math.round((sx * shadowAxis.right.x + sy * shadowAxis.right.y + szPos * shadowAxis.right.z) / texel) * texel
+        const v = Math.round((sx * shadowAxis.up.x + sy * shadowAxis.up.y + szPos * shadowAxis.up.z) / texel) * texel
+        const w = sx * shadowAxis.dir.x + sy * shadowAxis.dir.y + szPos * shadowAxis.dir.z
+        sx = shadowAxis.right.x * u + shadowAxis.up.x * v + shadowAxis.dir.x * w
+        sy = shadowAxis.right.y * u + shadowAxis.up.y * v + shadowAxis.dir.y * w
+        szPos = shadowAxis.right.z * u + shadowAxis.up.z * v + shadowAxis.dir.z * w
+      }
+      light.target.position.set(sx, sy, szPos); light.target.updateMatrixWorld()
+      light.position.set(sx + shadowAxis.dir.x * SUN_DISTANCE, sy + shadowAxis.dir.y * SUN_DISTANCE, szPos + shadowAxis.dir.z * SUN_DISTANCE)
+      light.color.setHex(p.sun); light.intensity = p.sunIntensity * crossFade; light.shadow.intensity = p.shadowStrength
     }
   })
   return <>

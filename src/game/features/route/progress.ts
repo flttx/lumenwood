@@ -26,7 +26,8 @@ export interface RouteProgress {
   seedsAt: Map<number, number>
   secretsAt: Map<SecretId, number>
 }
-export type SecretId = 'glen' | 'hollow' | 'lake' | 'overlook'
+export type SecretId = 'glen' | 'hollow' | 'lake' | 'overlook' | 'vale' | 'reef'
+export const SECRET_IDS: readonly SecretId[] = ['glen', 'hollow', 'lake', 'overlook', 'vale', 'reef']
 export function createProgress(): RouteProgress {
   return { sunlight: createSunlight(), released: new Set(), releasedAt: new Map(), carried: 0, litAt: lanterns.map(() => null), completedAt: { camp: null, wetland: null, highland: null }, shortAt: lanterns.map(() => null), finaleAt: null, captions: new Set(), endingSeen: false, seedsAt: new Map(), secretsAt: new Map() }
 }
@@ -60,6 +61,9 @@ export function gateOpen(p: RouteProgress, zone: Zone, now: number) {
 }
 /** Play time in seconds; advances only while the game is playing, so pausing never skips route animations. */
 export const routeClock = { now: 0 }
+/** Stamp of the last meaningful puzzle/side interaction, so stall hints do not interrupt active puzzle solving. */
+export const activityClock = { at: 0 }
+export function markActivity() { activityClock.at = routeClock.now }
 /** The ramp to the highlands opens once the glade finale's column has risen. */
 export function ascentOpen(p: RouteProgress, now: number) { return p.finaleAt !== null && now - p.finaleAt >= GATE_DELAY }
 /** The first time the player stands in the glade the route's finale plays; returns true on that frame only. */

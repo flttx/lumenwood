@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import { AdditiveBlending, BufferAttribute, BufferGeometry, Color, DoubleSide, Group, Mesh, NormalBlending, PlaneGeometry, Points, ShaderMaterial } from 'three'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { lightSource, lightSources } from '../../rendering/LocalLights'
+import { resonance } from '../../features/resonance/resonance'
 import { random } from '../../shared/random'
 // The camp's fire (scene enrichment, 2026-11-12). PRP-004 is only the stone ring and logs; the flame, sparks and smoke
 // are code effects (procedural particles) and the warmth on the cabin, ground and player is a real light source
@@ -30,7 +31,7 @@ void main() {
   vec3 p = vec3(sin(aSpark.x * 40.0 + life * 3.0) * 0.25 * life, 0.3 + life * 3.2, cos(aSpark.z * 40.0 + life * 2.0) * 0.25 * life);
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vLife = life;
-  gl_PointSize = uSize * (1.0 - life) / -mv.z;
+  gl_PointSize = min(uSize * (1.0 - life) / max(-mv.z, 0.15), 36.0);
   gl_Position = projectionMatrix * mv;
 }`
 const sparkFragment = `uniform float uPower; varying float vLife;
@@ -41,7 +42,7 @@ void main() {
   vec3 p = vec3(sin(aPuff.y * 30.0) * 0.3 + life * 1.5, 1.0 + life * 6.0, cos(aPuff.z * 30.0) * 0.3 + life * 0.6);
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   vLife = life;
-  gl_PointSize = uSize * (0.4 + life * 1.6) / -mv.z;
+  gl_PointSize = min(uSize * (0.4 + life * 1.6) / max(-mv.z, 0.25), 160.0);
   gl_Position = projectionMatrix * mv;
 }`
 const smokeFragment = `uniform vec3 uColor; uniform float uOpacity; varying float vLife;
@@ -81,13 +82,14 @@ export function CampfireEffects({ x, y, z }: { x: number; y: number; z: number }
     const t = clock.elapsedTime, dusk = atmosphere.blend
     // Flicker from a few incommensurate waves: the flame, sparks and light breathe together.
     const flicker = 0.85 + 0.09 * Math.sin(t * 11.3) + 0.06 * Math.sin(t * 17.9 + 1.3) + 0.05 * Math.sin(t * 5.1)
-    fx.uniforms.uTime.value = t; fx.uniforms.uPower.value = flicker * (0.55 + 0.45 * dusk)
-    fx.sparkMaterial.uniforms.uSize.value = 26 * dpr
+    const hearth = resonance.hearthFlare
+    fx.uniforms.uTime.value = t; fx.uniforms.uPower.value = flicker * (0.55 + 0.45 * dusk + 0.75 * hearth)
+    fx.sparkMaterial.uniforms.uSize.value = (26 + 16 * hearth) * dpr
     fx.smokeMaterial.uniforms.uSize.value = 220 * dpr
     fx.smokeMaterial.uniforms.uColor.value.setHex(atmosphere.preset.fog).lerp(SMOKE_GREY, 0.5)
     // Smoke reads by day; at night it would only grey out the glow.
     fx.smokeMaterial.uniforms.uOpacity.value = 0.22 * (1 - 0.7 * dusk)
-    fx.source.level = flicker * (0.15 + 0.85 * dusk)
+    fx.source.level = flicker * (0.15 + 0.85 * dusk + 0.65 * hearth)
   })
   return <primitive object={fx.group}/>
 }

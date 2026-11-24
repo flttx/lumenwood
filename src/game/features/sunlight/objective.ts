@@ -1,6 +1,6 @@
 import type { RouteProgress } from '../route/progress'
 import type { RouteObjective } from '../route/navigation'
-import { inSunRect, SUN_BRIDGE, SUN_ISLAND, SUN_MIRRORS, SUN_REWARD } from './layout'
+import { inSunRect, SUN_BRIDGE, SUN_ISLAND, SUN_MIRRORS, SUN_PLANT, SUN_REWARD } from './layout'
 import { hasDaylight, traceSunlight } from './progress'
 
 /** Local introduction: an advanced save is never sent back to camp. */
@@ -17,7 +17,7 @@ export function sunlightObjective(p: RouteProgress, x: number, z: number, time: 
   if (s.grownAt !== null) return make('bridge', '踏上新长出的藤桥', '从两座日光镜之间，走向对岸的种子。', { x: SUN_BRIDGE.x, z: -13.6 }, '走上藤桥')
   if (!hasDaylight(time)) return null
   const path = traceSunlight(s.steps, true)
-  if (path.receiver) return make('grow', '让阳光继续照着嫩芽', `藤蔓正在生长 · ${Math.floor(s.growth * 100)}%`, SUN_MIRRORS[1], '保持光路')
+  if (path.receiver) return make('grow', '让阳光继续照着嫩芽', `藤蔓正在生长 · ${Math.floor(s.growth * 100)}%`, SUN_PLANT, '保持光路')
   if (path.relay) return make('second', '转动第二座镜，把阳光送到嫩芽', '顺着光束观察落点；让光越过沟壑。', SUN_MIRRORS[1], '靠近后按 E / Q 转动')
   return make('first', '借一束阳光，唤醒对岸的嫩芽', '先转动第一座日光镜，把光送到另一座镜上。', SUN_MIRRORS[0], '靠近后按 E / Q 转动')
 }

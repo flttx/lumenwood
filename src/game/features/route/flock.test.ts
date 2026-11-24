@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Flock, MAX_MOTES } from './flock'
-const run = (f: Flock, seconds: number, player = { x: 0, z: 0 }) => { for (let t = 0; t < seconds; t += 1 / 60) f.update(1 / 60, player, t) }
+const run = (f: Flock, seconds: number, player = { x: 0, z: 0 }, flowBoost = 0) => { for (let t = 0; t < seconds; t += 1 / 60) f.update(1 / 60, player, t, flowBoost) }
 describe('guide firefly flock', () => {
   it('followers gather around the player and stay close', () => {
     const f = new Flock()
@@ -21,5 +21,13 @@ describe('guide firefly flock', () => {
     const f = new Flock()
     for (let i = 0; i < MAX_MOTES + 5; i++) f.spawn(0, 0, 0)
     expect(f.motes.length).toBe(MAX_MOTES)
+  })
+  it('spirals delivered motes inward without stranding them and tightens orbit during flow', () => {
+    const f = new Flock()
+    f.spawn(0, 1, 0); f.spawn(2, 1, 2)
+    expect(f.send(1, [10, 1.5, 0])).toBe(1)
+    run(f, 3.8, { x: 2, z: 2 }, 1)
+    expect(f.motes.length).toBe(1) // delivered mote arrived via spiral arc
+    expect(Math.hypot(f.motes[0].x - 2, f.motes[0].z - 2)).toBeLessThan(1.1)
   })
 })

@@ -1,6 +1,7 @@
-import { ASCENT, BEACH, BRIDGE, CAMP, GLADE, GLEN, GLEN_PASS, HIGHLAND, HOLLOW, HOLLOW_PASS, LAKE, LAKE_PASS, NORTH_CORRIDOR, OVERLOOK, OVERLOOK_PASS, WETLAND, rectDistance, type Rect } from '../../world/regions'
+import { ASCENT, BEACH, BRIDGE, CAMP, EAST_RIDGE_TRAIL, GLADE, GLEN, GLEN_LAKE_TRAIL, GLEN_PASS, HIGHLAND, HOLLOW, HOLLOW_PASS, HOLLOW_VALE_TRAIL, LAKE, LAKE_PASS, NORTH_CORRIDOR, OVERLOOK, OVERLOOK_PASS, REEF, REEF_CAUSEWAY, STAR_CLIFF, STAR_PASS, VALE, VALE_PASS, WETLAND, rectDistance, type Rect } from '../../world/regions'
 import { flowers } from '../../world/zones/floraLayout'
 import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
+import { seeds } from '../../world/zones/sideLayout'
 import { ascentOpen, gateOpen, type RouteProgress } from './progress'
 import { LANTERN_COST, lanterns, zoneLanterns, type Zone } from './routeLayout'
 
@@ -20,25 +21,31 @@ const names: Record<Zone, string> = { camp: '林间营地', wetland: '萤光湿�
 const middle = (r: Rect) => (r.minX + r.maxX) / 2
 const within = (x: number, z: number, r: Rect) => rectDistance(x, z, r) === 0
 
-/** Return through a side area's actual pass before pointing at a main-route target across the hills. */
-function sideExit(x: number, z: number): NavigationTarget | null {
+/** Return through a side area's pass (or loop exit toward the active zone) instead of pointing across enclosing hills. */
+function sideExit(x: number, z: number, zone: Zone): NavigationTarget | null {
   if (within(x, z, GLEN) || within(x, z, GLEN_PASS)) return { x: x < GLEN.maxX - 2 ? GLEN.maxX - 1 : CAMP.minX + 3, z: (GLEN_PASS.minZ + GLEN_PASS.maxZ) / 2 }
   if (within(x, z, HOLLOW) || within(x, z, HOLLOW_PASS)) return { x: x > HOLLOW.minX + 2 ? HOLLOW.minX + 1 : CAMP.maxX - 3, z: (HOLLOW_PASS.minZ + HOLLOW_PASS.maxZ) / 2 }
   if (within(x, z, LAKE) || within(x, z, LAKE_PASS)) return { x: x < LAKE.maxX - 2 ? LAKE.maxX - 1 : WETLAND.minX + 3, z: (LAKE_PASS.minZ + LAKE_PASS.maxZ) / 2 }
   if (within(x, z, OVERLOOK) || within(x, z, OVERLOOK_PASS)) return { x: x > OVERLOOK.minX + 2 ? OVERLOOK.minX + 1 : HIGHLAND.maxX - 3, z: (OVERLOOK_PASS.minZ + OVERLOOK_PASS.maxZ) / 2 }
+  if (within(x, z, VALE) || within(x, z, VALE_PASS)) return { x: x > VALE.minX + 2 ? VALE.minX + 1 : WETLAND.maxX - 3, z: (VALE_PASS.minZ + VALE_PASS.maxZ) / 2 }
+  if (within(x, z, REEF) || within(x, z, REEF_CAUSEWAY)) return { x: 0, z: BEACH.minZ + 2 }
   if (within(x, z, BEACH) && z < CAMP.minZ) return { x: 0, z: CAMP.minZ + 3 }
+  if (within(x, z, STAR_CLIFF) || within(x, z, STAR_PASS)) return { x: middle(STAR_PASS), z: HIGHLAND.maxZ - 4 }
+  if (within(x, z, GLEN_LAKE_TRAIL)) return { x: middle(GLEN_LAKE_TRAIL), z: zone === 'camp' ? GLEN.maxZ - 4 : LAKE.minZ + 4 }
+  if (within(x, z, HOLLOW_VALE_TRAIL)) return zone === 'camp' ? { x: middle(HOLLOW_VALE_TRAIL), z: HOLLOW.maxZ - 4 } : { x: VALE.maxX - 6, z: VALE.minZ + 6 }
+  if (within(x, z, EAST_RIDGE_TRAIL)) return { x: middle(EAST_RIDGE_TRAIL), z: zone === 'highland' ? OVERLOOK.minZ + 6 : VALE.maxZ - 4 }
   return null
 }
 
 /** Main-route instruction and a local waypoint. Nearby action targets stay selected until used, so the arrow does not
  * switch flowers simply because the player walked between two candidates. This is guidance, not obstacle pathfinding. */
 export function routeObjective(p: RouteProgress, x: number, z: number, now: number, previousId = ''): RouteObjective {
-  if (p.completedAt.highland !== null) return { id: 'explore', title: '森林已被点亮，自由探索吧', detail: '寻找光之种子，或回到喜欢的地方。', progress: `光之种子 ${p.seedsAt.size}/12`, target: null }
+  if (p.completedAt.highland !== null) return { id: 'explore', title: '森林已被点亮，自由探索吧', detail: '寻找光之种子，或回到喜欢的地方。', progress: `光之种子 ${p.seedsAt.size}/${seeds.length}`, target: null }
   const zone: Zone = p.completedAt.camp === null ? 'camp' : p.completedAt.wetland === null ? 'wetland' : 'highland'
   const nodes = zoneLanterns(zone), lit = nodes.filter(i => p.litAt[i] !== null).length
   const progress = `${names[zone]} · 灯火 ${lit}/${nodes.length}`
   const travel = (id: string, title: string, detail: string, target: NavigationTarget | null): RouteObjective => ({ id, title, detail, progress, target })
-  const exit = sideExit(x, z)
+  const exit = sideExit(x, z, zone)
   if (exit) return travel('return-main', '沿山口返回主线林径', `支线可以随时探索；主线在${names[zone]}。`, exit)
   if (zone !== 'camp' && z < WETLAND.minZ + 2) {
     const open = gateOpen(p, 'camp', now)

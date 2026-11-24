@@ -4,19 +4,21 @@ import type { Vector3 } from 'three'
 import { useGameStore } from '../../../state/gameStore'
 import { soundscape } from '../../audio/engine'
 import { musicLayers } from '../../audio/music'
-import { GLADE, gates, rectDistance } from '../../world/regions'
+import { cameraPulse } from '../../camera/FollowCamera'
+import { ASCENT, BEACH, CAMP, EAST_RIDGE_TRAIL, GLADE, GLEN, GLEN_LAKE_TRAIL, HIGHLAND, HOLLOW, HOLLOW_VALE_TRAIL, LAKE, NORTH_CORRIDOR, OVERLOOK, REEF, STAR_CLIFF, VALE, WETLAND, gates, rectDistance } from '../../world/regions'
 import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
 import { PLATEAU_HEIGHT } from '../../world/zones/highlandLayout'
 import { sz } from '../../world/scale'
 import { flock } from './flock'
-import { ascentOpen, gateOpen, reachFinale, route, routeClock, tryLight } from './progress'
+import { activityClock, ascentOpen, gateOpen, reachFinale, route, routeClock, tryLight } from './progress'
+import { boostFlow, resonance, sustainFlow } from '../resonance/resonance'
+import { SUN_REWARD_INDEX } from '../sunlight/layout'
 import { LANTERN_COST, LANTERN_RANGE, lanternPlacements, routeEnds, zoneLanterns } from './routeLayout'
 import { HINT_AFTER, captions, zoneAt, type CaptionId } from './guide'
 import { navigationFocus } from './navigation'
 import { heightAt } from '../../world/terrain/terrain'
 import type { RegionId } from '../../../state/gameStore'
-import { saveRequest, serialize, writeSave } from './save'
-import { BEACH, GLEN, HOLLOW, LAKE, OVERLOOK } from '../../world/regions'
+import { livePose, saveRequest, serialize, writeSave } from './save'
 import { sunlightObjective } from '../sunlight/objective'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { conduit } from './conduit'
@@ -29,7 +31,11 @@ const REARM = LANTERN_RANGE + 1, CAPTION_START = 3, ENDING_CARD = 14, SAVE_EVERY
 const REGION_SETTLE = 1.2
 /** Where the stall hint currently points (read by HintPulse). Frame-loop state, not React state. */
 export const hint = { x: 0, y: 0, z: 0, at: -Infinity }
-const sideAreas: [RegionId, typeof GLEN][] = [['glen', GLEN], ['hollow', HOLLOW], ['lake', LAKE], ['overlook', OVERLOOK], ['beach', BEACH]]
+export function resetHint() { hint.x = 0; hint.y = 0; hint.z = 0; hint.at = -Infinity }
+const sideAreas: [RegionId, typeof GLEN][] = [
+  ['glen', GLEN], ['hollow', HOLLOW], ['lake', LAKE], ['overlook', OVERLOOK], ['beach', BEACH],
+  ['vale', VALE], ['reef', REEF], ['starcliff', STAR_CLIFF],
+]
 
 export function RouteDirector({ player }: { player: Vector3 }) {
   // A node reacts once per approach; walking more than REARM metres away re-arms it.
@@ -47,10 +53,15 @@ export function RouteDirector({ player }: { player: Vector3 }) {
     const daylightChapter = sunlightObjective(route, player.x, player.z, atmosphere.time) !== null
     // A restored journey brings its following fireflies back around the player.
     for (let missing = route.carried - flock.following; missing > 0; missing--) flock.spawn(player.x, player.y + 1.2, player.z)
-    flock.update(dt, player, now)
-    // HUD: region banner on entering a new region, and the lantern / firefly tally when it changes.
+    flock.update(dt, player, now, resonance.flow)
+    // HUD: region banner on actually entering a main/side region (holding the previous region while traversing corridors/ramps).
     const side = sideAreas.find(([, rect]) => rectDistance(player.x, player.z, rect) === 0)
-    const region: RegionId = side ? side[0] : rectDistance(player.x, player.z, GLADE) === 0 ? 'glade' : zoneAt(player.z)
+    const region: RegionId = side ? side[0]
+      : rectDistance(player.x, player.z, GLADE) === 0 ? 'glade'
+        : rectDistance(player.x, player.z, WETLAND) === 0 ? 'wetland'
+          : rectDistance(player.x, player.z, HIGHLAND) === 0 ? 'highland'
+            : rectDistance(player.x, player.z, CAMP) === 0 ? 'camp'
+              : (memory.region || zoneAt(player.z))
     if (region !== memory.candidate) { memory.candidate = region; memory.candidateSince = now }
     if (region !== memory.region && (now - memory.candidateSince >= REGION_SETTLE || !memory.region)) { memory.region = region; useGameStore.getState().showRegion(region) }
     const lit = route.litAt.filter(t => t !== null).length, wetlandLit = zoneLanterns('wetland').filter(i => route.litAt[i] !== null).length, tally = `${lit}/${route.carried}/${wetlandLit}`
@@ -67,8 +78,14 @@ export function RouteDirector({ player }: { player: Vector3 }) {
       const result = tryLight(route, i, distance, now)
       if (result === 'none') return
       armed[i] = false
-      if (result === 'short') { say('short'); return }
+      if (result === 'short') {
+        soundscape.cue('reject', lantern.light[0], lantern.light[1], lantern.light[2])
+        say('short')
+        return
+      }
       progressed(); say('firstLit')
+      boostFlow(resonance, now, route.seedsAt.size, 2)
+      cameraPulse(0.24)
       flock.send(LANTERN_COST, lantern.light)
       const [x, y, z] = lantern.light
       // A major triad as the fireflies arrive; the zone's completion adds a rising arpeggio from the gate's direction.
@@ -88,12 +105,23 @@ export function RouteDirector({ player }: { player: Vector3 }) {
     gates.ascent = ascentOpen(route, now)
     const gateState = `${+gates.north}${+gates.bridge}${+gates.ascent}`
     if (gateState !== memory.gates) {
-      if (memory.gates) progressed()
+      if (memory.gates) { progressed(); cameraPulse(0.32) }
       memory.gates = gateState
+    }
+    // Riding an opened firefly corridor, highland ramp, or side loop sustains luminous flow so traversal feels kinetic.
+    if ((gates.north && (rectDistance(player.x, player.z, NORTH_CORRIDOR) === 0 || rectDistance(player.x, player.z, GLEN_LAKE_TRAIL) === 0 || rectDistance(player.x, player.z, HOLLOW_VALE_TRAIL) === 0))
+      || (gates.ascent && (rectDistance(player.x, player.z, ASCENT) === 0 || rectDistance(player.x, player.z, EAST_RIDGE_TRAIL) === 0))) {
+      sustainFlow(resonance, now, 0.5)
+    }
+    // Bridge Act 1's daytime sunlight seed into the lantern resonance verb once collected.
+    if (route.seedsAt.has(SUN_REWARD_INDEX) && !route.captions.has('lanternAwake')) {
+      route.captions.add('lanternAwake'); memory.dirty = true
+      resonance.lanternFlare = 1
+      useGameStore.getState().showCaption('种子的微光落入灯笼。按 F 唤光，听森林回应你。')
     }
     // Finale: two rising octaves of the pentatonic from the glade centre as the firefly column lifts.
     if (reachFinale(route, rectDistance(player.x, player.z, GLADE) === 0, now)) {
-      progressed(); say('glade')
+      progressed(); say('glade'); cameraPulse(0.32)
       for (let n = 0; n < 10; n++) soundscape.chime(n, GLADE_CENTRE[0], 2, GLADE_CENTRE[1], 0.3 + n * 0.28)
       ;[0, 2, 4].forEach((note, n) => soundscape.chime(note, GLADE_CENTRE[0], 3, GLADE_CENTRE[1], 3.4 + n * 0.04))
     }
@@ -110,7 +138,8 @@ export function RouteDirector({ player }: { player: Vector3 }) {
       document.exitPointerLock?.()
       useGameStore.getState().setEndingCard(true)
     }
-    // Stall hint: after HINT_AFTER seconds without progress, pulse the next target and chime from its direction.
+    // Stall hint: after HINT_AFTER seconds without any main or side activity, pulse the next target and chime from its direction.
+    if (activityClock.at > memory.lastProgress) memory.lastProgress = activityClock.at
     if (now - memory.lastProgress > HINT_AFTER) {
       memory.lastProgress = now
       const target = navigationFocus.target
@@ -125,10 +154,10 @@ export function RouteDirector({ player }: { player: Vector3 }) {
       lit: route.litAt.filter(t => t !== null).length, campDone: route.completedAt.camp !== null, wetlandDone: route.completedAt.wetland !== null,
       highlandLit: zoneLanterns('highland').filter(j => route.litAt[j] !== null).length, ending: done !== null,
     }))
-    // Save on progress, and the position every few seconds.
+    // Save on progress, and the position/view every few seconds.
     if (saveRequest.dirty) { memory.dirty = true; saveRequest.dirty = false }
     if (memory.dirty || (memory.saveTimer -= dt) <= 0) {
-      writeSave(serialize(route, [player.x, player.z]))
+      writeSave(serialize(route, [player.x, player.z], livePose.view ?? undefined))
       memory.dirty = false; memory.saveTimer = SAVE_EVERY
     }
   })

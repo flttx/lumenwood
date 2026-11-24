@@ -9,6 +9,8 @@ import { radialGlowTexture } from '../features/flora/glowSprites'
 import { dampFactor } from './movement'
 import { lanternBoost } from '../features/secrets/secrets'
 import { route } from '../features/route/progress'
+import { resonance } from '../features/resonance/resonance'
+import { useGameStore } from '../../state/gameStore'
 // PRP-008: the lamplighter's hand lantern (concept boards show the character carrying it). It hangs from CHR-001's right
 // hand bone but stays upright, swinging like a pendulum as the hand moves. The candle is a real light after dusk
 // (LocalLights) with a soft halo; by day only the flame glows. Meshy gave no emission map, so the shader lights the
@@ -51,38 +53,63 @@ uniform float uGlow;`)
     })
     return { hand, model, halo, glow, source: lightSource([0, 0, 0], LIGHT_COLOR, CANDELA, RANGE),
       world: new Vector3(), local: new Vector3(), last: new Vector3(), velocity: new Vector3(), tilt: { x: 0, z: 0, vx: 0, vz: 0 },
-      euler: new Euler(), swing: new Quaternion(), primed: false }
+      euler: new Euler(), parentEuler: new Euler(0, 0, 0, 'YXZ'), swing: new Quaternion(), parentQuat: new Quaternion(), primed: false, prevFlare: 0 }
   }, [character, scene])
-  useEffect(() => { lightSources.add(parts.source); return () => { lightSources.delete(parts.source) } }, [parts])
+  useEffect(() => {
+    lightSources.add(parts.source)
+    return () => {
+      lightSources.delete(parts.source)
+      parts.halo.material.dispose()
+      parts.model.traverse(o => { if (o instanceof Mesh && o.material instanceof MeshStandardMaterial) o.material.dispose() })
+    }
+  }, [parts])
   useFrame(({ clock }, delta) => {
     const g = group.current, parent = g?.parent
     if (!g || !parent) return
-    const dt = Math.min(delta, 0.1), { hand, world, local, last, velocity, tilt, euler, swing } = parts
+    const dt = Math.min(delta, 0.1), { hand, world, local, last, velocity, tilt, euler, parentEuler, swing, parentQuat } = parts
     if (dt <= 0) return
     hand.getWorldPosition(world)
     if (!parts.primed) { last.copy(world); parts.primed = true }
-    // Pendulum in world axes: the hand's acceleration swings the lantern the other way; a damped spring settles it.
-    const vx = (world.x - last.x) / dt, vz = (world.z - last.z) / dt, ax = (vx - velocity.x) / dt, az = (vz - velocity.z) / dt
-    velocity.set(vx, 0, vz); last.copy(world)
-    const damp = dampFactor(DAMPING, dt)
-    tilt.vx += (-STIFFNESS * tilt.x + KICK * az) * dt; tilt.vz += (-STIFFNESS * tilt.z - KICK * ax) * dt
-    tilt.vx -= tilt.vx * damp; tilt.vz -= tilt.vz * damp
-    tilt.x = Math.max(-MAX_TILT, Math.min(MAX_TILT, tilt.x + tilt.vx * dt)); tilt.z = Math.max(-MAX_TILT, Math.min(MAX_TILT, tilt.z + tilt.vz * dt))
+    if (useGameStore.getState().phase === 'playing') {
+      // Detect teleports (> 2 m jump) and reset pendulum state cleanly instead of injecting huge accelerations.
+      if (world.distanceToSquared(last) > 4) {
+        last.copy(world); velocity.set(0, 0, 0); tilt.vx = 0; tilt.vz = 0
+      } else {
+        const vx = (world.x - last.x) / dt, vz = (world.z - last.z) / dt
+        const ax = Math.max(-14, Math.min(14, (vx - velocity.x) / dt))
+        const az = Math.max(-14, Math.min(14, (vz - velocity.z) / dt))
+        velocity.set(vx, 0, vz); last.copy(world)
+        const damp = dampFactor(DAMPING, dt)
+        if (resonance.lanternFlare > 0.85 && parts.prevFlare <= 0.85) tilt.vx += 2.2
+        parts.prevFlare = resonance.lanternFlare
+        tilt.vx += (-STIFFNESS * tilt.x + KICK * az) * dt; tilt.vz += (-STIFFNESS * tilt.z - KICK * ax) * dt
+        tilt.vx -= tilt.vx * damp; tilt.vz -= tilt.vz * damp
+        const nx = tilt.x + tilt.vx * dt, nz = tilt.z + tilt.vz * dt
+        if (Math.abs(nx) >= MAX_TILT) { tilt.x = Math.sign(nx) * MAX_TILT; tilt.vx = 0 } else tilt.x = nx
+        if (Math.abs(nz) >= MAX_TILT) { tilt.z = Math.sign(nz) * MAX_TILT; tilt.vz = 0 } else tilt.z = nz
+      }
+    } else {
+      last.copy(world); velocity.set(0, 0, 0)
+    }
     local.copy(world); parent.worldToLocal(local)
     g.position.copy(local) // the pivot is the hand; the model hangs HANG below it
-    // World-space swing expressed in the parent's frame, so the lantern hangs plumb however the player turns.
-    swing.setFromEuler(euler.set(tilt.x, 0, tilt.z))
-    parent.getWorldQuaternion(g.quaternion).invert().multiply(swing)
-    // The flame: steady glow by day, a flickering real light and halo after dusk.
+    // Hang plumb in world space while retaining the character's horizontal yaw so the handle does not spin in the palm.
+    parent.getWorldQuaternion(parentQuat)
+    parentEuler.setFromQuaternion(parentQuat, 'YXZ')
+    swing.setFromEuler(euler.set(tilt.x, parentEuler.y, tilt.z, 'YXZ'))
+    g.quaternion.copy(parentQuat).invert().multiply(swing)
+    // The flame: steady glow by day, a flickering real light and halo after dusk, surging brightly on lantern pulses.
     const night = atmosphere.blend, flicker = 0.88 + 0.08 * Math.sin(clock.elapsedTime * 13.1) + 0.04 * Math.sin(clock.elapsedTime * 29.7)
-    parts.glow.value = (0.3 + 0.8 * night) * flicker
-    parts.halo.material.opacity = (0.06 + 0.2 * night) * flicker
+    const flare = resonance.lanternFlare, flowGlow = resonance.flow * 0.25
+    parts.glow.value = (0.3 + 0.8 * night + 1.8 * flare + flowGlow) * flicker
+    parts.halo.material.opacity = (0.06 + 0.2 * night + 0.42 * flare + flowGlow * 0.35) * flicker
+    parts.halo.scale.setScalar(HALO_SIZE * (1 + 1.45 * flare + 0.22 * resonance.flow))
     const light = parts.source.position
     parts.halo.getWorldPosition(light); parent.getWorldPosition(parts.local)
     const ox = light.x - parts.local.x, oz = light.z - parts.local.z, len = Math.hypot(ox, oz) || 1
     light.set(light.x + (ox / len) * OUTWARD, light.y + LIFT, light.z + (oz / len) * OUTWARD)
-    // Each light seed found makes the lantern a little brighter (features/secrets).
-    parts.source.level = night * flicker * lanternBoost(route.seedsAt.size)
+    // Each light seed found makes the lantern brighter; pulsing flares the real point light even by day.
+    parts.source.level = Math.max(night, flare * 0.9) * flicker * lanternBoost(route.seedsAt.size) * (1 + 1.1 * flare + flowGlow)
   })
   return <group ref={group}><primitive object={parts.model}/></group>
 }

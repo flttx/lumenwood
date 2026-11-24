@@ -64,13 +64,13 @@ export const presets: Record<TimeOfDay, LightingPreset> = {
   // casting soft shadows), stars and the Milky Way in the sky shader, every glow at its strongest.
   night: {
     skyTop: 0x0b1328, skyHorizon: 0x293946, fog: 0x1f2c3e, fogNear: 20, fogFar: 110,
-    hemiSky: 0x8a9db3, hemiGround: 0x243429, hemiIntensity: 1.25,
+    hemiSky: 0x8a9db3, hemiGround: 0x2c3c2e, hemiIntensity: 0.98,
     // The moon hangs low (about 22 degrees): the camera's pitch lets the player look only so far up.
-    sun: 0xcbd9df, sunIntensity: 1, sunElevation: 0.38, sunAzimuth: 0.95, shadowStrength: 0.65,
-    exposure: 1.35, fireflies: 1, lantern: 1, flowerGlow: 1.15, flowerHalo: 1,
-    sunGlow: 0, shadeTint: 0x52647a, lightTint: 0xd4d4bb, contrast: 1.08, saturation: 1.02, vignette: 0.34,
-    bloom: 0.44, bloomThreshold: 0.95, fill: 0.45,
-    mist: 0.011, mistFalloff: 0.34, rays: 0.06,
+    sun: 0xcbd9df, sunIntensity: 1.3, sunElevation: 0.38, sunAzimuth: 0.95, shadowStrength: 0.72,
+    exposure: 1.32, fireflies: 1, lantern: 1, flowerGlow: 1.15, flowerHalo: 1,
+    sunGlow: 0, shadeTint: 0x586675, lightTint: 0xd8d5bc, contrast: 1.09, saturation: 1.04, vignette: 0.32,
+    bloom: 0.42, bloomThreshold: 0.96, fill: 0.24,
+    mist: 0.01, mistFalloff: 0.34, rays: 0.05,
   },
 }
 const COLOR_KEYS = new Set<keyof LightingPreset>(['skyTop', 'skyHorizon', 'fog', 'hemiSky', 'hemiGround', 'sun', 'shadeTint', 'lightTint'])
@@ -113,4 +113,9 @@ export function applyZoneTint(out: LightingPreset, tints: ZoneTints, k: number, 
 }
 /** Shared, frame-loop-owned state other systems read (fireflies, flowers, audio, debug). Not React state. */
 // `time` is the 0–2 scale; `blend` (0–1, how far toward dusk, read by most effects) and `night` (0–1 past dusk) derive from it.
-export const atmosphere = { time: 0, blend: 0, night: 0, wetland: 0, highland: 0, preset: blendPresets(0), sunDirection: new Vector3(0, 1, 0), moonDirection: new Vector3(0, 1, 0) }
+export const atmosphere = { time: 0, blend: 0, night: 0, wetland: 0, highland: 0, snapped: false, preset: blendPresets(0), sunDirection: new Vector3(0, 1, 0), moonDirection: new Vector3(0, 1, 0) }
+/** Resets shared lighting state between journeys so a new session does not inherit the previous session's night sky. */
+export function resetAtmosphere() {
+  atmosphere.time = 0; atmosphere.blend = 0; atmosphere.night = 0; atmosphere.wetland = 0; atmosphere.highland = 0; atmosphere.snapped = false
+  blendPresets(0, atmosphere.preset)
+}

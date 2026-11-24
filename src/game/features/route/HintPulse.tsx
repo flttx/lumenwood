@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { AdditiveBlending, Sprite, SpriteMaterial } from 'three'
 import { radialGlowTexture } from '../flora/glowSprites'
@@ -14,6 +14,7 @@ export function HintPulse() {
     sprite.scale.set(1.6, 10, 1); sprite.visible = false
     return { sprite, material }
   }, [])
+  useEffect(() => () => material.dispose(), [material])
   useFrame(() => {
     const t = (routeClock.now - hint.at) / DURATION
     sprite.visible = t >= 0 && t < 1

@@ -1,5 +1,11 @@
 # 项目进度
 
+最新进展（2026-11-24）：完成**地图环路连通（1）与岛内空白区域填充（2）**扩展（100% 复用既有 Meshy GLB 与程序化地形/海岸系统、零付费建模、不进入 P5、向下兼容 v2 存档）。新增三条门控支线环路（西侧「瀑布溪谷 ↔ 镜湖」、东侧「蘑菇幽谷 ↔ 阳石林谷」、高地东回径「阳石林谷 ↔ 悬崖眺望台」）与三处新探索区域（「阳石林谷」限时四石柱共鸣、「望海石台」浅湾沙堤/踏石与三海石唤醒、「北崖星台」北海观景石龛 `E` 交互），支线秘密增至 6 处、光之种子增至 16 颗并稳定外围树世界整数晶格。全部 35 文件 169 项单测与 38 项 Playwright 端到端回归通过，详情见文末。
+
+最新进展（2026-11-24）：围绕**场景质感、空间音效、动效细节**完成一轮视听协同升级（零付费资产、不进入 P5、兼容 v2 存档）。新增共享全局风场（草海阵风波/植被摇曳/落叶横漂/噪声雾/风声滤波器联动）、草地唤光涟漪、双层云带与夜空微星雾、噪声侵蚀关口迷雾、木屋暮夜暖窗光、瀑布月光高光；接入代码合成的 2.1 s 立体声森林混响（ConvolverNode）与母带软限幅、高地松涛与夜间远林猫头鹰轻啼、藤桥/光桥/迷雾/种子入灯连续事件音效；补齐角色转弯倾身/坡度贴合/唤光微动效、藤桥逐根蔓生与弹性出叶、种子曲线飞入提灯、萤火螺旋入灯、克制事件微镜头呼吸及 HUD 微绽放。全部 35 文件 164 项单测与 35 项 Playwright 端到端回归通过，详情见文末。
+
+最新进展（2026-11-23）：围绕游戏体验、视觉效果、可玩性与健壮性四个维度完成一轮综合优化（不进入 P5、不新增付费资产或区域）。重点包括：统一会话复位与持久化白名单防损坏、WebGL 上下文丢失恢复、PostFX 去除冗余 GBuffer 重绘（高画质改用半分辨率纯深度 GTAO）并补齐 GPU 资源释放、海面网格降面 96% 与近地分块剔除、夜间光束条纹/岩壁接缝/树叶相机淡出竞态修复、镜头与音频手感优化（含鼠标灵敏度与上下逆向设置、方向键、音量试听）、日光镜文案与支线秘密反馈修正、720p HUD 防重叠布局与字幕 FIFO 队列、Vite 生产包分包。详细验证与未执行项见文末。
+
 最新审查（2026-11-15）：[三时段与整体体验复审](docs/REVIEW_2026-11-15.md)已完成。确认白天奖励偏移压缩暮光、演出后拉超出遮挡检测范围、支线中主线引导过强等优先问题；本轮只审查和维护文档，游戏代码未改。下面保留最近一次实际实现状态。
 
 最新进展：2026-11-15 按用户“继续改”收敛白天视觉：浅金日光、鲜活叶绿、冷阴影，减弱灰黄褪色与雾幕；[借光生长](docs/DAYLIGHT_SAMPLE.md)改为自然弧形岸坡与相应碰撞，补已有 Meshy 苔石/植被和藤桥枝叶。镜盘/支架/根系仍为临时美术，没有付费生成。观感与吸引力待用户复玩，第三轮不进入 P5；实际验证详见文末。
@@ -389,3 +395,92 @@
 
 - 对当前工作区执行 `pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`：均通过；单元测试 32 文件、147 项。构建仍有大于 500 kB 的 JS 包提示。
 - 本次为提交已有工作，未重新运行浏览器端到端测试；此前结果见对应轮次记录。
+
+## 实际验证（2026-11-23，体验、视觉、可玩性与健壮性综合优化）
+
+- 范围：保留现有第三轮阶段边界、主线/支线规则与 v2 存档格式，未扩展至 P5，未调用 Meshy 等付费生成服务，未复制旧工程代码或资产。
+- 健壮性与工程化：
+  - 新增 `src/game/session.ts` 统一清理“返回标题 / 新的旅程 / 继续旅程”的瞬态运行状态；`gameStore.ts` 补齐 `createSafeStorage`（捕获存储异常并去重高频写入）、`sanitizeSettings` 白名单反序列化、`NaN` 钳制与 FIFO `captionQueue`；`World.tsx` 改为纯 `useMemo` 读取出生点（修复 StrictMode/Suspense 消费丢失）、监听 `pagehide` 落盘与 `webglcontextlost`/`webglcontextrestored`；`App.tsx` 将 `ErrorBoundary` 提升包裹整页并提高 `camera.near` 至 `0.25`；`TitleScreen.tsx` 暴露 `useProgress().errors`。
+  - `vite.config.ts` 增加 Rolldown 分包规则（`three` / `r3f` / `react`），将主包由 `1,491.14 kB` 降至 `252.46 kB`。
+- 视觉与渲染管线：
+  - `PostFX.tsx` 改用直连 RenderTarget 管线（`sceneTarget` 带 MSAA + 深度纹理，ping-pong 不带 MSAA/深度），高画质 GTAO 改用半分辨率纯深度模式避免整场景二次绘制，修复小窗口下 `UnrealBloomPass` 除零与 DPR 变更未重调尺寸，并完整释放全部 Pass/RT；`Precompile.tsx` 改在匹配线性 HDR 的半浮点离屏目标预编译；`Atmosphere.tsx` 首帧立即贴合目标时段并平滑衔接暮色与月光投影，`timeOfDay.ts` 提高夜间明暗对比。
+  - 视觉缺陷修复：`AirEffects.tsx` 夜间淡出林间光束消除夜空斜纹；`groundMaterial.ts` 细化岩壁层理并按主法向选轴消除大块多边形；`Sea.tsx` 拆分为细海湾 + 粗远海（网格减面约 96%）、改用 `HalfFloatType` 海床纹理、解析梯度噪声并对齐海平线雾色；`Ground.tsx` 将近地切分为视锥剔除瓦片并裁去被覆盖的岛底三角；`worldMaterial.ts` 修复 `applyFoliage` 后注册 `cameraFade` 无效竞态；`Water.tsx` 增加反射距离门控、递归保护、月光闪烁与低画质天空渐变着色，并将水体/光束/海面加入 `reflectionSkips`；`Cabin.tsx` 点光并入 `LocalLights` 避免中途着色器重编译；`Scatter.tsx` / `scatterChunks.ts` 补 LOD ±2 m 滞回；各渲染与特效组件补齐几何体/材质/贴图 `.dispose()`。
+- 游戏体验（操控、镜头、音频、界面）：
+  - `input.ts` / `movement.ts` 支持方向键、未锁指针时左键拖拽环视、`movementX/Y` 尖峰钳制、抬头放宽至 `-0.78 rad`，并在设置中新增“鼠标灵敏度”与“上下逆向”；`FollowCamera.tsx` 将 `arm.ts` 树冠 2.8 m 跳变改为平滑过渡，补外围树与高地岩遮挡、三点地形+桥面防穿地、枢轴 Y 平滑与奔跑/眺望微动态 FOV；`Player.tsx` 补齐浅水阻力、三轮统一多碰撞求解与沙滩/光桥脚步音，`sceneryLayout.ts` 加宽木桥护栏封住桥头缺口；`Character.tsx` 与 `HandLantern.tsx` 在暂停时完整冻结。
+  - `engine.ts` 移除瞬态 `resume` 失败后的永久静默锁、增加暂停/恢复 45 ms 淡入淡出、提高脚步/水花 `refDistance` 消除拉近爆音、修复环境音循环偏移与蟋蟀方波咔哒声、新增篝火暖底噪与操作反馈音（`reject` / `lock` / `reset` / `conduit` / `preview`），音量滑块支持实时试听。
+- 可玩性与引导：
+  - 修复 `GlowFlowers.tsx` 空地装饰花多放 5 只萤火进入高地的问题，并补白天呼吸微光；修正 `SunlightPanel.tsx` 左右键文案为 `Q 顺时针 / E 逆时针`、日光镜平滑转向与落点变色反馈、`sun-grow` 指向植物及北侧过桥判断；高地光脉放宽朝向角至 ±25.7°、补蓄光上升音效与当前灯座呼吸提示、并把蓄光期 HUD 刷新提到 10 Hz；支线补齐山口识别、溪谷回声防与瀑布混淆及错误重置提示音、镜湖下一块踏石微光指引、眺望台蓄势提示音及剩余本地种子提示；`RouteDirector.tsx` 延迟走廊/坡道区域横幅并纳入支线/日光活动重置停滞计时；`Hud.tsx` / `style.css` 将常驻目标栏移至左上（消除 720p 与字幕/日光面板重叠）、补齐字幕 FIFO 队列与横幅播完清显、短屏可滚动，且 `LoadingVeil.tsx` 淡出后卸载内部动画 DOM。
+- 实际执行的检查（均在沙盒内直接调用本地二进制，全部通过）：
+  - `.\node_modules\.bin\tsc.cmd --noEmit`：通过（0 错误）。
+  - `.\node_modules\.bin\eslint.cmd .`：通过（0 错误 / 0 警告）。
+  - `.\node_modules\.bin\vitest.cmd run`：**33 文件 / 154 项全部通过**（较上轮新增 `src/state/gameStore.test.ts` 3 项，以及镜头树冠连续性、分块 LOD 滞回、存档视角/越界钳制/空地花过滤、日光生长目标与支线山口/回声范围共 7 项测试）。
+  - `.\node_modules\.bin\vite.cmd build`：通过（416 ms）；`dist/assets/index-CxJm4rSi.js` `252.46 kB`（gzip `90.11 kB`）、`react` `206.99 kB`、`r3f` `263.37 kB`、`three` `787.46 kB`（gzip `198.14 kB`，仅 Three.js 依赖包仍触发大于 500 kB 提示）。
+  - 字体子集核验（Python `fontTools` 检查 `src/assets/fonts/lumen-serif-sc.woff2`）：UI 与文案共 416 个汉字，缺字 0。
+  - `git diff --check`：通过。
+- 未验证与限制：
+  - 受沙盒环境限制（`pnpm` 本地存储权限及浏览器/端口隔离），本轮未运行 Playwright 端到端回归（`pnpm test:e2e`）、未进行实机 GPU 帧时间对比、未截屏目视复核，也未进行真人连续试玩与听感验证；建议用户在本地环境执行 `$env:PW_CHANNEL='msedge'; pnpm test:e2e` 并亲自试玩确认视觉、音频与操控手感。
+
+## 实际验证（2026-11-23，玩法连贯性扩展：提灯唤光、三幕递进与世界呼应）
+
+- 范围：应用户反馈“玩法连续性不高、不够引人入胜”，按用户选定的兼容升级方案实施全套连贯性扩展；保留现有 v2 存档格式、核心关口/点灯成本与既有 E2E 合约，不进入 P5，不调用付费生成服务。
+- 核心实现：
+  - `src/game/features/resonance/resonance.ts` + `ResonanceDirector.tsx`：新增随身核心动词（`F` 或右键唤光共鸣脉冲，1.6 s 冷却），光波扫过周围时可远距唤醒近处主线花、使远方未采花/未亮灯笼/未拾种子/未解支线核心以延时空间回声与光柱回应，并接入 `HandLantern.tsx` 辉光爆发；收集光之种子可放大唤光探测半径（26→56 m）、远距唤花半径（4.2→8.4 m）与流光持续时间（3.2→5.0 s）；引入“流光连行”微循环（醒花/点灯/过桥/走萤火走廊触发最高 +18% 柔和移速、微动态 FOV、粒子拖尾与升调五声花鸣，空地静走/奔跑基速不变）。
+  - `WetlandRelay.tsx` + `Highland.tsx` + `ConduitDirector.tsx`：三幕机制递进——日光奖励后引导唤光；湿地已亮灯笼跨水投射流动折射光弧并在水域内为唤光提供 +50% 远距唤花加成；高地蓄光时古树脉络实时脉动、光束升起螺旋粒子，且对齐时按 `F` 可注入共鸣加速脉冲。
+  - `ResonanceArcs.tsx` + `Beacon.tsx` + `HearthDirector.tsx` + `Campfire.tsx` + `audio/engine.ts`：解开的支线秘密向古树树冠升起跨越夜空的共鸣光弧并在结局增强古树/光柱与高八度钟声和声；营地篝火旁按 `E` 可拨旺火光并循环重温已解锁的森林记忆与秘密进度。
+  - `gameStore.ts` / `Hud.tsx` / `Settings.tsx` / `style.css` / `session.ts`：补齐低频世界提示、流光连行与唤光半径/秘密进度显示、`F 唤光` 按键说明与会话复位。
+- 实际执行的检查（均在最终代码上实际执行，全部通过）：
+  - `.\node_modules\.bin\tsc.cmd --noEmit`：通过（0 错误）。
+  - `.\node_modules\.bin\eslint.cmd .`：通过（0 错误 / 0 警告）。
+  - `.\node_modules\.bin\vitest.cmd run`：**34 文件 / 159 项全部通过**（含新增 `src/game/features/resonance/resonance.test.ts` 4 项及 `save.test.ts` 中 `pagehide` 防覆写外部存档 1 项）。
+  - `.\node_modules\.bin\vite.cmd build`：通过（247 ms；`index` `270.06 kB` / gzip `95.30 kB`，`react` `206.99 kB`，`r3f` `263.37 kB`，`three` `787.47 kB`）。
+  - 字体子集核验（Python `fontTools` 检查 `src/assets/fonts/lumen-serif-sc.woff2`）：修掉 1 个缺失字“四”后复检，全部 416 个扫描汉字缺字 0。
+  - **端到端回归**（`$env:PW_CHANNEL='msedge'` + 本地 `vite preview --host 127.0.0.1 --port 4173` + `playwright test`）：
+    - 首次全量 32/35 通过，定位到 `World.tsx` `pagehide` 自动落盘在刷新时无条件覆写 `lumenwood-save-v1` 的真实缺陷（会导致外部/多标签页更新的存档被旧页面卸载覆盖）。在 `save.ts` 增加 `lastWrittenRaw` 校验后，定向复测 `guidance.e2e.ts` + `route.e2e.ts` **7/7 通过**，随后重跑最终全量回归 **35/35 全部通过（7.4 分钟）**。
+  - **性能基线**（Edge headless、RTX 5060 Ti / ANGLE D3D11、1280×720、DPR 1、高画质，步行转向 6 s、预热后 331 帧）：平均 `16.67 ms`、p95 `16.8 ms`、最大 `17.0 ms`（60 FPS 同步封顶）；末帧 **`281` 次绘制 / `2,502,373` 三角形**（较 2026-11-15 同条件基线 `575` 次绘制 / `5,754,096` 三角形分别下降 **51.1%** 与 **56.5%**，主要来自高画质半分辨率纯深度 GTAO、海面拆分与近地分块剔除；仍受 60 Hz 垂直同步封顶，不代表弱显卡帧率余量）。
+  - `git diff --check`：通过。
+- 未验证项：本次未进行真人连续试玩体验、人耳听感评估、新玩法视觉截屏目视复核，以及低端设备/其他浏览器的性能测试；建议用户启动 `pnpm dev` / `pnpm preview` 亲自试玩确认手感与视听观感。
+
+## 实际验证（2026-11-24，场景、音效与动效综合升级）
+
+- 范围：按用户确认的一次性全量方案落地场景风场、森林混响音效、角色与世界次级动效，保留第三轮阶段边界、v2 存档与既有 E2E 合约；未调用付费生成服务，未引用旧工程代码或资产。
+- 场景与大气联动：
+  - 新增 `src/game/rendering/wind.ts`（`sampleWind` / `updateWind` / `resetWind`），在高地自动增强风力 `+35%`、湿地略微收敛，同步驱动 `worldMaterial.ts`（草木树冠）、`Grass.tsx`（草海阵风波 + 提灯唤光波草尖流光涟漪）、`AmbientLife.tsx`（落叶横漂加速）及 `AirEffects.tsx`（2 层值噪声侵蚀低雾）；
+  - `Atmosphere.tsx` 升级双层视差云带与夜间高地/结局微弱星雾丝（位于 bloom 阈值下）；`GateMist.tsx` 改为双频噪声柔边并在驱散时泛起暖金边光、从通道中轴向两侧翻卷散开；`Cabin.tsx` 门灯改用径向柔光精灵并补充两处暮夜暖窗呼吸光；`Waterfall.tsx` 为夜色水幕与潭面泡沫叠加银蓝月华反光。
+- 空间音效与程序化混响：
+  - `soundscape.ts` 与 `SoundscapeDriver.tsx` 接入 `highland`、`gust` 与 `night` 参数，保持原有 `ambienceMix(blend, wetland)` 返回键兼容并新增高地松涛风层；
+  - `engine.ts` 新增母带 `DynamicsCompressorNode` 软限幅与代码合成 `2.1 s` 立体声 `ConvolverNode` 森林混响总线（2.6 kHz 低通阻尼，按区域调节湿声发送），并让风声滤波截止频率随共享 `wind.gust` 实时呼吸；补充夜间远林猫头鹰轻啼、奔跑穿草高频擦叶声，以及 `vineGrow`（`SunlightDirector.tsx`）、`bridgeBuild`（`LightBridge.tsx`）、`mistClear`（`GateMist.tsx`）、`seedAbsorb`（`Seeds.tsx`）四项连续/里程碑演出音效（对 `now - RESTORED_AGE` 读档条目严格屏蔽）。
+- 动效与微交互：
+  - `Character.tsx` 与 `HandLantern.tsx` 增加转弯侧倾（Banking ±0.13 rad）、脚下前后高度采样坡度俯仰（±0.09 rad）及 `F` 唤光轻扬与灯笼向前摆动脉冲；
+  - `FollowCamera.tsx` 新增 `cameraPulse()` 事件微镜头呼吸（尊重 `prefers-reduced-motion`，零步行上下晃动，推拉通过 `safeCameraArm` 防穿树）；
+  - `VineBridge.tsx` 与 `VineLeaves.tsx` 替换为按藤条沿桥长度错峰渐进生长的着色器、生长前沿金绿嫩芽粒子及弹性 `backOut` 错峰弹出叶片；`Seeds.tsx` 改为先轻弹再沿二次贝塞尔弧线飞入提灯并触发明亮闪烁；`flock.ts` 改为螺旋曲线飞入灯笼并随流光连行加快环绕；`Hud.tsx`、`Objective.tsx` 与 `style.css` 增加灯笼点亮绽放、目标切入与流光连行微弹动效（遵循减弱动态偏好）。
+- 实际执行的检查（最终代码上全部通过）：
+  - `.\node_modules\.bin\tsc.cmd --noEmit`：通过（0 错误）。
+  - `.\node_modules\.bin\eslint.cmd .`：通过（0 错误 / 0 警告）。
+  - `.\node_modules\.bin\vitest.cmd run`：**35 文件 / 164 项全部通过**（新增 `src/game/rendering/wind.test.ts` 3 项，扩展 `soundscape.test.ts` 1 项与 `flock.test.ts` 1 项）。
+  - `.\node_modules\.bin\vite.cmd build`：通过（249 ms；`index` `286.25 kB` / gzip `99.82 kB`，`react` `206.99 kB`，`r3f` `263.37 kB`，`three` `787.47 kB`）。
+  - 字体子集核验（Python `fontTools` 检查 `src/assets/fonts/lumen-serif-sc.woff2`）：全部 416 个扫描汉字缺字 0。
+  - **端到端回归**（`$env:PW_CHANNEL='msedge'` + 本地 `vite preview --host 127.0.0.1 --port 4173` + `playwright test`）：**35/35 全部通过（7.5 分钟）**，全部着色器编译、玩法、镜头、音频启动及存档流程正常。
+  - **性能基线**（Edge headless、RTX 5060 Ti / ANGLE D3D11、1280×720、DPR 1、高画质，步行转向 6 s、预热后 330 帧）：平均 `16.67 ms`、p95 `16.8 ms`、最大 `17.0 ms`（60 FPS 同步封顶）；末帧 **`280` 次绘制 / `2,498,453` 三角形**（对比上轮 `281 / 2,502,373` 无额外绘制负担）。
+  - `git diff --check`：通过。
+- 未验证项：本次未进行真人佩戴耳机听感细调、人眼实机截图核对所有区域昼夜/风浪/藤桥生长动画与木屋窗光位置对齐，以及弱设备下 `ConvolverNode` + 草地波纹着色器的帧率评估；建议用户启动 `pnpm dev` / `pnpm preview` 实机复玩确认。
+
+## 实际验证（2026-11-24，地图环路连通与岛内新区域扩展）
+
+- 范围：按用户选择落地“1. 环路连通 + 2. 岛内空白填充”；100% 复用已有 `ARC-004`/`ARC-005`/`PRP-001`/`PRP-003`/`PRP-006` 与白桦等既有树木模型及程序化地形/水岸，未调用任何付费生成服务，未引用旧工程代码或资产，保留 v2 存档（保留原有 `seeds[0..11]` 索引）及原有全部主线关口与 `CAMP.maxX`/`BEACH` 坡度约束。
+- 环路与地形扩展：
+  - `src/game/world/regions.ts`、`src/game/features/route/FireflyRoute.tsx` 与 `RouteDirector.tsx`：新增三条单向门控后汇入的林间环路（`GLEN_LAKE_TRAIL` 瀑布溪谷 ↔ 镜湖、`HOLLOW_VALE_TRAIL` 蘑菇幽谷 ↔ 阳石林谷，均随 `campDone` 迷雾散去开放；`EAST_RIDGE_TRAIL` 阳石林谷 ↔ 悬崖眺望台，随 `finaleDone` 迷雾散去开放），穿越已开放环路维持流光连行并带迷雾遮罩，防止跨幕跳关；
+  - `src/game/world/terrain/terrain.ts`、`surf.ts`、`Sea.tsx` 与 `grassField.ts`：在月牙海湾水位线以南新增浅海沙堤与干地岩石台 `REEF`（完整保留原 `BEACH` 剖面与坡度，扩展 `COVE_RECT`/`COVE_MESH`/`coveSurge` 包裹石台并禁止草地长至海岸线以南）；古树高地北侧新增平缓抬升至 `STAR_CLIFF` 的北崖与 `northSeaCliffWeight` 北海崖，追加 5 条林间小径（不改动 `paths[0]`/`paths[1]`）；
+  - `src/game/world/zones/forestLayout.ts` & `Forest.tsx` & `sceneryLayout.ts`：外围树 `outerTrees` 改为按世界坐标整晶格随机分布（微调 `OUTER_STEP = 6.8`），使未来扩图不再漂移营地北侧既有近景红杉；可走树木分块合并为 `TREE_CHUNK = 28`；为新区域补充白桦、红杉、冷杉、蕨类、野花、苔石、浅湾踏石与路标，并将新地标加入 `Player.tsx` 碰撞及海湾沙地/石台脚步判定。
+- 新区域、秘密、共鸣与导航：
+  - `sideLayout.ts`、`progress.ts`、`save.ts`、`secrets.ts`、`SecretsDirector.tsx`、`SideFeatures.tsx`、`ResonanceArcs.tsx`、`ResonanceDirector.tsx`：秘密增至 6 处（新增 `vale`、`reef`），光之种子增至 16 颗（`seeds[12..15]`，森林记忆扩至 16 句）；「阳石林谷」支持靠近或按 `F` 唤光在 `VALE_HOLD` 18 s 内点亮四座阳石柱与连接光束；「望海石台」支持靠近或按 `F` 唤醒三座海石并触发北望全岛全景镜头；「北崖星台」提供星台石龛 `E` 键远望北海与古树交互；新增 `'vale'` 与 `'reef'` 天空共鸣光弧及唤光脉冲回声目标；
+  - `navigation.ts`、`objective.ts`、`RouteGuidance.tsx`、`gameStore.ts`、`Hud.tsx`、`HearthDirector.tsx`、`Overlay.tsx`：补充新区域名称、目标线索、各环路返回逻辑与动态总数显示（`seeds.length` / `SECRET_IDS.length`）。
+- 实际执行的检查（最终代码上全部实际执行并通过）：
+  - `.\node_modules\.bin\tsc.cmd --noEmit`：通过（0 错误）。
+  - `.\node_modules\.bin\eslint.cmd .`：通过（0 错误 / 0 警告）。
+  - `.\node_modules\.bin\vitest.cmd run`：**35 文件 / 169 项全部通过**（扩展 `regions.test.ts`、`terrain.test.ts`、`secrets.test.ts`、`objective.test.ts`、`navigation.test.ts` 及外围红杉锚定保护测试）。
+  - `.\node_modules\.bin\vite.cmd build`：通过（240 ms；`dist/assets/index-D6rJ4UuW.js` `297.35 kB` / gzip `104.22 kB`）。
+  - 字体子集核验（Python `fontTools` 检查 `src/assets/fonts/lumen-serif-sc.woff2`）：扫描 `src/ui/*.tsx` 及 `route`/`sunlight`/`secrets`/`campfire` 等文案共 415 个汉字，缺字 0。
+  - **端到端回归**（`$env:PW_CHANNEL='msedge'` + 本地 `vite preview --host 127.0.0.1 --port 4173` + `playwright test`）：**38/38 全部通过（8.9 分钟）**，包含新增「阳石林谷唤光四柱」、「望海石台跨湾跑动解谜」与「溪谷—镜湖门控环路」用例，以及既有主线/日光/树种网格/引导/存档全部回归。
+  - **性能基线**（Edge headless、RTX 5060 Ti / ANGLE D3D11、1280×720、DPR 1、高画质，步行转向 6 s、预热后 331 帧）：平均 `16.67 ms`、p95 `16.8 ms`、最大 `16.8 ms`（60 FPS 同步封顶）；末帧 **`361` 次绘制 / `3,665,903` 三角形**（受 60 Hz 垂直同步封顶，高地/东谷区域增多令单方向视锥树块略增，已通过 `TREE_CHUNK = 28` 合并分块控制在 380 次以内）。
+  - `git diff --check`：通过。
+- 未验证项：本次未进行真人连续手玩穿越全部环路与三处新区域的体验与构图截屏目视复核，亦未在低端集显/移动端评估扩图后的显存与加载耗时；建议启动 `pnpm dev` / `pnpm preview` 亲自漫游体验新环路、阳石林谷、望海石台与北崖星台观感。

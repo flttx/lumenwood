@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createProgress } from '../route/progress'
-import { collectSeed, createSecretState, memories, seedAvailable, solve, stepFord, touchEcho, wakeMushroom } from './secrets'
-import { ECHO_ORDER, fordStones, giantMushrooms, seeds } from '../../world/zones/sideLayout'
+import { VALE_HOLD, activateValeStone, activeValeCount, collectSeed, createSecretState, lightReefCairn, memories, seedAvailable, solve, stepFord, touchEcho, wakeMushroom } from './secrets'
+import { ECHO_ORDER, fordStones, giantMushrooms, reefCairns, seeds, valeStones } from '../../world/zones/sideLayout'
 import { regionDistance } from '../../world/regions'
 import { treeColliders } from '../../world/zones/forestLayout'
 import { basinDepth } from '../../world/zones/wetlandLayout'
@@ -17,6 +17,25 @@ describe('side-area secrets', () => {
     const s = createSecretState()
     giantMushrooms.forEach((_, i) => expect(wakeMushroom(s, i)).toBe(i === giantMushrooms.length - 1 ? 'solved' : 'woke'))
     expect(wakeMushroom(s, 0)).toBe('none')
+  })
+  it('sunstone pillars solve only while all four remain lit concurrently', () => {
+    const s = createSecretState()
+    expect(activateValeStone(s, 0, 10)).toBe('lit')
+    expect(activateValeStone(s, 0, 12)).toBe('refresh')
+    expect(activateValeStone(s, 1, 14)).toBe('lit')
+    expect(activateValeStone(s, 2, 16)).toBe('lit')
+    expect(activeValeCount(s, 17)).toBe(3)
+    // Pillar 0 & 1 decay past VALE_HOLD by t = 33, so lighting pillar 3 alone does not solve yet.
+    expect(activateValeStone(s, 3, 12 + VALE_HOLD + 1)).toBe('lit')
+    expect(activeValeCount(s, 12 + VALE_HOLD + 1)).toBe(3)
+    for (let i = 0; i < valeStones.length; i++) activateValeStone(s, i, 40)
+    expect(activeValeCount(s, 41)).toBe(valeStones.length)
+    expect(activateValeStone(s, 0, 42)).toBe('solved')
+  })
+  it('reef cairns light once each and solve Tidewater Reef together', () => {
+    const s = createSecretState()
+    reefCairns.forEach((_, i) => expect(lightReefCairn(s, i)).toBe(i === reefCairns.length - 1 ? 'solved' : 'lit'))
+    expect(lightReefCairn(s, 0)).toBe('none')
   })
   it('the ford must be crossed stone by stone', () => {
     const s = createSecretState()

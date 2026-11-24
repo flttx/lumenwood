@@ -1,15 +1,15 @@
 import type { BoxCollider, CircleCollider } from '../../player/collision'
 import type { ScatterItem } from '../../rendering/scatterChunks'
 import { random } from '../../shared/random'
-import { CAMP, GLEN, HIGHLAND, HOLLOW, LAKE, OVERLOOK, WETLAND } from '../regions'
-import { cliffWeight, groundUnder, nearestPathPoint, paths, pathWeight } from '../terrain/terrain'
+import { CAMP, GLEN, HIGHLAND, HOLLOW, LAKE, OVERLOOK, REEF, STAR_CLIFF, VALE, WETLAND } from '../regions'
+import { cliffWeight, groundUnder, heightAt, nearestPathPoint, paths, pathWeight } from '../terrain/terrain'
 import { cabin, campClearings } from './campLayout'
 import { flowers } from './floraLayout'
 import { ANCIENT_TREE, TREE_ROOT_RADIUS, highlandPath } from './highlandLayout'
 import { basinDepth, brookSegments, channelBanks, CHANNEL, pools, shoreScale, wetlandPath, WATER_LEVEL } from './wetlandLayout'
 import { SPAWN_CLEARING, forestTrees, standDensity, trunkRadius } from './forestLayout'
 import { lanterns } from '../../features/route/routeLayout'
-import { SHRINE, VISTA_POINT, echoStones, fordStones, giantMushrooms, seeds } from './sideLayout'
+import { SHRINE, STAR_SHRINE, VALE_HEART, VISTA_POINT, echoStones, fordStones, giantMushrooms, reefCairns, reefSteppingStones, seeds, valeStones } from './sideLayout'
 import { sunlightReserved, SUN_MIRRORS, SUN_PLANT } from '../../features/sunlight/layout'
 import { inTreeApproachView } from './landmarkView'
 // Scenery dressing (scene upgrade, 2026-11-12): undergrowth, props and small structures from the second Meshy batch,
@@ -19,6 +19,9 @@ export const grassClearings: { x: number; z: number; r: number }[] = [
   { x: cabin.x, z: cabin.z, r: 3.6 },
   ...lanterns.map(l => ({ x: l.x, z: l.z, r: 0.8 })),
   { x: ANCIENT_TREE[0], z: ANCIENT_TREE[1], r: TREE_ROOT_RADIUS + 1 },
+  { x: VALE_HEART[0], z: VALE_HEART[1], r: 3.6 },
+  { x: STAR_SHRINE[0], z: STAR_SHRINE[1], r: 3.6 },
+  ...valeStones.map(s => ({ x: s.x, z: s.z, r: 1.5 })),
   ...campClearings,
   ...SUN_MIRRORS.map(m => ({ ...m, r: 1.5 })), { ...SUN_PLANT, r: 1.1 },
 ]
@@ -28,6 +31,10 @@ function clear(x: number, z: number, room: number) {
   if (basinDepth(x, z) < 0 || pathWeight(x, z) > 0.25 || Math.hypot(x - cabin.x, z - cabin.z) < 6 + room) return false
   if (Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) < TREE_ROOT_RADIUS + 3 + room) return false
   if (spots.some(s => Math.hypot(s.x - x, s.z - z) < 1.4 + room)) return false
+  if (valeStones.some(s => Math.hypot(s.x - x, s.z - z) < 1.8 + room)
+    || Math.hypot(VALE_HEART[0] - x, VALE_HEART[1] - z) < 4.5 + room
+    || Math.hypot(STAR_SHRINE[0] - x, STAR_SHRINE[1] - z) < 4.5 + room
+    || reefCairns.some(c => Math.hypot(c.x - x, c.z - z) < 1.8 + room)) return false
   if (giantMushrooms.some(m => Math.hypot(m.x - x, m.z - z) < m.radius + 0.6 + room) || Math.hypot(SHRINE[0] - x, SHRINE[1] - z) < 4 + room) return false
   if (cliffWeight(x, z) > 0.05 || Math.hypot(VISTA_POINT[0] - x, VISTA_POINT[1] - z) < 5 + room) return false
   if (campClearings.some(c => Math.hypot(c.x - x, c.z - z) < c.r + room)) return false
@@ -55,9 +62,17 @@ function undergrowth(seed: number, count: number, areas: Area[], room: number, s
   }
   return out
 }
-// Side areas get their own seeds, so the main areas' dressing is unchanged: a lush glen, a mushroom-carpeted hollow.
-export const ferns = [...undergrowth(201, 1100, [CAMP, HIGHLAND, WETLAND], 0.2, [0.8, 1.5], 0.7, 0.6), ...undergrowth(301, 420, [GLEN, HOLLOW, LAKE, OVERLOOK], 0.2, [0.9, 1.7], 0.6, 0.6)].filter(p => !inTreeApproachView(p.x, p.z, p.scale * 0.9))
-export const mossStones = [...undergrowth(203, 260, [CAMP, HIGHLAND, WETLAND], 0.6, [0.6, 1.4], 0.4, 0.75), ...undergrowth(303, 110, [GLEN, LAKE, OVERLOOK], 0.6, [0.7, 1.6], 0.3, 0.75)]
+// Side areas get their own seeds, so the main areas' dressing is unchanged: a lush glen, a mushroom-carpeted hollow, plus Vale/StarCliff/Reef.
+export const ferns = [
+  ...undergrowth(201, 1100, [CAMP, HIGHLAND, WETLAND], 0.2, [0.8, 1.5], 0.7, 0.6),
+  ...undergrowth(301, 420, [GLEN, HOLLOW, LAKE, OVERLOOK], 0.2, [0.9, 1.7], 0.6, 0.6),
+  ...undergrowth(321, 180, [VALE, STAR_CLIFF], 0.2, [0.9, 1.6], 0.65, 0.6),
+].filter(p => !inTreeApproachView(p.x, p.z, p.scale * 0.9))
+export const mossStones = [
+  ...undergrowth(203, 260, [CAMP, HIGHLAND, WETLAND], 0.6, [0.6, 1.4], 0.4, 0.75),
+  ...undergrowth(303, 110, [GLEN, LAKE, OVERLOOK], 0.6, [0.7, 1.6], 0.3, 0.75),
+  ...undergrowth(323, 55, [VALE, STAR_CLIFF, REEF], 0.6, [0.7, 1.5], 0.25, 0.75),
+]
 export const mushrooms = [...undergrowth(205, 220, [CAMP, WETLAND, HIGHLAND], 0.1, [0.8, 1.6], 0.9, 0.3), ...undergrowth(305, 260, [HOLLOW], 0.1, [1, 2.2], 0.6, 0.3), ...undergrowth(306, 50, [GLEN], 0.1, [0.8, 1.5], 0.9, 0.3)]
 
 /** VEG-005 fallen logs (5.4 × 2.6 × 2.5 m at scale 1) lie off the trails; each gets an oriented box collider. */
@@ -101,6 +116,8 @@ export const steppingStones = (() => {
   }
   // The mirror lake's ford: a line of stones just breaking the surface, from the east shore to the island.
   for (const f of fordStones) out.push({ x: f.x, y: WATER_LEVEL - 0.06, z: f.z, angle: f.angle, scale: 1.7 })
+  // Causeway stepping stones out along the cove sandspit toward Tidewater Reef.
+  for (const s of reefSteppingStones) out.push({ x: s.x, y: heightAt(s.x, s.z) + 0.02, z: s.z, angle: s.angle, scale: 1.55 })
   return out
 })()
 
@@ -150,14 +167,18 @@ export function deckHeight(x: number, z: number) {
   }
   return -Infinity
 }
-/** The two stone parapets of each footbridge (measured 0.9–1.8 m off the centre line, between the corner pillars). */
+/** The two stone parapets of each footbridge (extending to the end pillars so players cannot drop off the bridge ends). */
 export const bridgeRailColliders: BoxCollider[] = footbridges.flatMap(b => [-1, 1].map(side => ({
-  x: b.x + Math.sin(b.angle) * 1.35 * side, z: b.z + Math.cos(b.angle) * 1.35 * side, halfX: 3.8, halfZ: 0.45, angle: b.angle,
+  x: b.x + Math.sin(b.angle) * 1.35 * side, z: b.z + Math.cos(b.angle) * 1.35 * side, halfX: 4.65, halfZ: 0.45, angle: b.angle,
 })))
 
 // ---- Scene enrichment (2026-11-12): flowering shrubs, wildflowers, stumps and trail signposts ----------------------
 /** VEG-010 flowering shrubs (about 1.4 m) round tree feet and glade edges; solid, like the larger stones. */
-export const shrubs = [...undergrowth(211, 170, [CAMP, WETLAND, HIGHLAND], 0.8, [0.75, 1.15], 0.55, 0.7), ...undergrowth(311, 50, [GLEN, LAKE, OVERLOOK], 0.8, [0.75, 1.15], 0.55, 0.7)].filter(s => standDensity(s.x, s.z) < 0.75 && !inTreeApproachView(s.x, s.z, s.scale))
+export const shrubs = [
+  ...undergrowth(211, 170, [CAMP, WETLAND, HIGHLAND], 0.8, [0.75, 1.15], 0.55, 0.7),
+  ...undergrowth(311, 50, [GLEN, LAKE, OVERLOOK], 0.8, [0.75, 1.15], 0.55, 0.7),
+  ...undergrowth(325, 36, [VALE, STAR_CLIFF], 0.8, [0.75, 1.15], 0.5, 0.7),
+].filter(s => standDensity(s.x, s.z) < 0.75 && !inTreeApproachView(s.x, s.z, s.scale))
 export const shrubColliders: CircleCollider[] = shrubs.map(s => ({ x: s.x, z: s.z, radius: 0.6 * s.scale }))
 /** VEG-012 mossy stumps (about 0.9 m tall): scattered in the stands, where trees once fell. */
 export const stumps = undergrowth(215, 46, [CAMP, HIGHLAND, WETLAND], 1.0, [0.75, 1.15], 0.35, 1.1)
@@ -166,8 +187,8 @@ export const stumpColliders: CircleCollider[] = stumps.map(s => ({ x: s.x, z: s.
 /** VEG-011 wildflower clumps gather in drifts in the glades and along the trail edges, where the sun reaches the ground. */
 export const wildflowers = (() => {
   const rand = random(213), out: ScatterItem[] = []
-  for (let tries = 0, drifts = 0; drifts < 210 && tries < 30000; tries++) {
-    const area = [CAMP, CAMP, CAMP, HIGHLAND, WETLAND, GLEN, GLEN, LAKE, OVERLOOK][Math.floor(rand() * 9)]
+  for (let tries = 0, drifts = 0; drifts < 245 && tries < 35000; tries++) {
+    const area = [CAMP, CAMP, CAMP, HIGHLAND, WETLAND, GLEN, GLEN, LAKE, OVERLOOK, VALE, VALE, STAR_CLIFF][Math.floor(rand() * 12)]
     const cx = area.minX + rand() * (area.maxX - area.minX), cz = area.minZ + rand() * (area.maxZ - area.minZ)
     const trail = nearestPathPoint(cx, cz).distance
     if (standDensity(cx, cz) > 0.35 && (trail < 2.2 || trail > 5)) continue
@@ -192,6 +213,9 @@ export const signposts = (() => {
       -((a1[1] - a0[1]) / Math.hypot(a1[0] - a0[0], a1[1] - a0[1]) + (b1[1] - b0[1]) / Math.hypot(b1[0] - b0[0], b1[1] - b0[1]))),
     spot(w0[0], w0[1], 1, 0),
     spot(h0[0], h0[1], -(h1[1] - h0[1]), h1[0] - h0[0]),
+    spot(28, 99, -1, 0),
+    spot(75, 152, 0, -1),
+    spot(-97, 36, 0, -1),
   ].filter(s => clear(s.x, s.z, -1.2))
 })()
 export const signpostColliders: CircleCollider[] = signposts.map(s => ({ x: s.x, z: s.z, radius: SIGNPOST_RADIUS }))

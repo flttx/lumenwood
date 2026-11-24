@@ -6,6 +6,7 @@ import { assetConfig } from '../../assets/config'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { lanternBrightness } from '../../features/route/Lanterns'
 import { route, routeClock } from '../../features/route/progress'
+import { conduit } from '../../features/route/conduit'
 import { zoneLanterns } from '../../features/route/routeLayout'
 import { smoothstep } from '../../shared/math'
 import { radialGlowTexture } from '../../features/flora/glowSprites'
@@ -71,13 +72,16 @@ function AncientTree() {
   useFrame(() => {
     const now = routeClock.now, layers = treeLayers(now), night = atmosphere.preset.lantern
     const done = route.completedAt.highland, blaze = done === null ? 0 : smoothstep(done + 2, done + 9, now)
-    uniforms.uLayers.value = layers
+    const secretLift = 1 + 0.12 * route.secretsAt.size
+    const liveCharge = conduit.charge > 0.01 ? conduit.charge : 0
+    // Preview the next band's veins pulsing in real time as the player channels light from an active cradle.
+    uniforms.uLayers.value = Math.min(3, layers + liveCharge * 0.85)
     uniforms.uTime.value = now
-    uniforms.uVein.value = VEIN_INTENSITY * (0.6 + 0.4 * night) * (1 + 0.5 * blaze)
-    // The canopy band glows gently once lit, and blazes for the ending.
-    uniforms.uCanopy.value = (0.12 * Math.max(0, Math.min(1, layers - 2)) + ENDING_BLAZE * 0.09 * blaze) * (0.5 + 0.5 * night)
+    uniforms.uVein.value = VEIN_INTENSITY * (0.6 + 0.4 * night) * (1 + 0.35 * liveCharge + 0.5 * blaze * secretLift)
+    // The canopy band glows gently once lit, and blazes richly for the ending (amplified by solved side secrets).
+    uniforms.uCanopy.value = (0.12 * Math.max(0, Math.min(1, layers - 2 + liveCharge * 0.35)) + ENDING_BLAZE * 0.09 * blaze * secretLift) * (0.5 + 0.5 * night)
     // Crown orbs: a few appear with each lit band, all of them by the ending; brighter after dusk.
-    uniforms.uOrbs.value = (0.45 * Math.min(1, layers / 3) + 0.55 * blaze) * (0.35 + 0.65 * night)
+    uniforms.uOrbs.value = (0.45 * Math.min(1, (layers + liveCharge * 0.4) / 3) + 0.55 * blaze * secretLift) * (0.35 + 0.65 * night)
   })
   return <><primitive object={mesh} position={[ANCIENT_TREE[0], PLATEAU_HEIGHT, ANCIENT_TREE[1]]}/><CrownHalo/></>
 }
@@ -90,6 +94,7 @@ function CrownHalo() {
     sprite.scale.setScalar(25); sprite.visible = false
     return { sprite, material }
   }, [])
+  useEffect(() => () => material.dispose(), [material])
   useFrame(() => {
     const done = route.completedAt.highland, now = routeClock.now
     const blaze = done === null ? 0 : smoothstep(done + 2, done + 9, now)
@@ -110,6 +115,7 @@ function Rocks() {
     mesh.computeBoundingSphere()
     return mesh
   }, [scene])
+  useEffect(() => () => instanced.dispose(), [instanced])
   return <primitive object={instanced}/>
 }
 

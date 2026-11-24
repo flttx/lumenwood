@@ -6,7 +6,7 @@ void main() {
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   float blink = 0.75 + 0.25 * sin(uTime * 5.0 + position.x * 3.1 + position.z * 2.3);
   vAlpha = aAlpha * blink * smoothstep(0.5, 1.8, -mv.z); // fade right at the lens
-  gl_PointSize = min(uSize / -mv.z, 64.0);
+  gl_PointSize = min(uSize / max(-mv.z, 0.1), 64.0);
   gl_Position = projectionMatrix * mv;
 }`
 const fragmentShader = `uniform vec3 uColor; uniform float uOpacity; varying float vAlpha;

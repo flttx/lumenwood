@@ -20,8 +20,11 @@ export function glowFalloff(r: number) {
   return t * t * (0.35 + 0.65 * t * t)
 }
 
-/** White radial glow texture (brightness in RGB, so it suits additive blending); tint with the material colour. */
+const cachedTextures = new Map<number, DataTexture>()
+/** Shared white radial glow texture (brightness in RGB, so it suits additive blending); cached per size to avoid duplicate VRAM textures. */
 export function radialGlowTexture(size = 64) {
+  const existing = cachedTextures.get(size)
+  if (existing) return existing
   const data = new Uint8Array(size * size * 4), c = (size - 1) / 2
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const v = Math.round(255 * glowFalloff(Math.hypot(x - c, y - c) / c))
@@ -30,5 +33,6 @@ export function radialGlowTexture(size = 64) {
   const texture = new DataTexture(data, size, size)
   // Left in linear colour space on purpose: the falloff is shaped for additive blending in linear light.
   texture.magFilter = texture.minFilter = LinearFilter; texture.needsUpdate = true
+  cachedTextures.set(size, texture)
   return texture
 }

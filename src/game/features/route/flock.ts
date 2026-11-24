@@ -2,7 +2,7 @@ import { dampFactor } from '../../player/movement'
 // Guide fireflies: a handful of motes simulated on the CPU (at most a dozen or so, so this is cheap). Each follows the
 // player in a loose orbit until it is sent to a lantern, then flies there and is absorbed.
 export const MAX_MOTES = 24
-const ORBIT_RADIUS = 0.85, ORBIT_HEIGHT = 1.35, FOLLOW_RATE = 2.6, DELIVER_RATE = 2.2, ARRIVE = 0.12
+const ORBIT_RADIUS = 0.85, ORBIT_HEIGHT = 1.35, FOLLOW_RATE = 2.6, DELIVER_RATE = 2.6, ARRIVE = 0.14
 export interface Mote { x: number; y: number; z: number; seed: number; target: [number, number, number] | null }
 
 export class Flock {
@@ -21,19 +21,25 @@ export class Flock {
   /** A new journey: no fireflies follow. */
   clear() { this.motes.length = 0 }
   get following() { return this.motes.reduce((n, m) => n + (m.target ? 0 : 1), 0) }
-  /** Advances every mote; `time` drives the orbit so followers circle the player. */
-  update(dt: number, player: { x: number; y?: number; z: number }, time: number) {
+  /** Advances every mote; `time` drives the orbit and `flowBoost` (0..1) livens circling during luminous flow. */
+  update(dt: number, player: { x: number; y?: number; z: number }, time: number, flowBoost = 0) {
     const follow = dampFactor(FOLLOW_RATE, dt), deliver = dampFactor(DELIVER_RATE, dt)
+    const speedScale = 1 + 0.55 * flowBoost, radiusScale = 1 - 0.16 * flowBoost
     for (let i = this.motes.length - 1; i >= 0; i--) {
       const m = this.motes[i]
       if (m.target) {
         const [tx, ty, tz] = m.target, dx = tx - m.x, dy = ty - m.y, dz = tz - m.z
-        // Rise a little on the way so the flight reads as an arc rather than a slide.
-        m.x += dx * deliver; m.z += dz * deliver; m.y += dy * deliver + Math.min(1, Math.hypot(dx, dz)) * 0.6 * dt
-        if (Math.hypot(dx, dy, dz) < ARRIVE) this.motes.splice(i, 1)
+        const hd = Math.hypot(dx, dz) || 1e-4
+        // Graceful spiral inward toward the lantern alongside a gentle vertical arc.
+        const swirl = Math.min(1, hd / 2.2) * 1.45 * (m.seed > 0.5 ? 1 : -1) * dt
+        m.x += dx * deliver + (-dz / hd) * swirl
+        m.z += dz * deliver + (dx / hd) * swirl
+        m.y += dy * deliver + Math.min(1, hd) * 0.65 * dt
+        if (Math.hypot(tx - m.x, ty - m.y, tz - m.z) < ARRIVE) this.motes.splice(i, 1)
         continue
       }
-      const angle = time * 0.9 + m.seed * Math.PI * 2, r = ORBIT_RADIUS + 0.15 * Math.sin(time * 1.3 + m.seed * 9)
+      const angle = time * 0.9 * speedScale + m.seed * Math.PI * 2
+      const r = (ORBIT_RADIUS + 0.15 * Math.sin(time * 1.3 + m.seed * 9)) * radiusScale
       const tx = player.x + Math.cos(angle) * r, tz = player.z + Math.sin(angle) * r, ty = (player.y ?? 0) + ORBIT_HEIGHT + 0.25 * Math.sin(time * 1.7 + m.seed * 13)
       m.x += (tx - m.x) * follow; m.y += (ty - m.y) * follow; m.z += (tz - m.z) * follow
     }
