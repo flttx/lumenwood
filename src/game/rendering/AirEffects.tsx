@@ -22,10 +22,13 @@ void main() {
 }`
 const shaftFragment = `uniform vec3 uColor; uniform float uOpacity; uniform float uTime; varying vec2 vUv; varying float vFade;
 void main() {
-  float edge = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x);
-  float fall = smoothstep(0.0, 0.55, vUv.y) * smoothstep(1.0, 0.8, vUv.y);
-  float threads = 0.55 + 0.45 * pow(0.5 + 0.5 * sin(vUv.x * 37.0 + sin(vUv.y * 6.0) * 1.2), 2.0);
-  float shimmer = (0.8 + 0.2 * sin(vUv.y * 9.0 - uTime * 0.6 + vUv.x * 4.0)) * threads;
+  // Soft volumetric cone falloff without repeating parallel tape stripes.
+  float spread = mix(0.45, 0.22, vUv.y);
+  float across = abs(vUv.x - 0.5) / spread;
+  float edge = pow(max(0.0, 1.0 - smoothstep(0.0, 1.0, across)), 1.8);
+  float fall = smoothstep(0.0, 0.45, vUv.y) * smoothstep(1.0, 0.62, vUv.y);
+  float wisp = 0.72 + 0.28 * sin(vUv.x * 7.5 + sin(vUv.y * 3.5 - uTime * 0.25) * 0.9);
+  float shimmer = (0.85 + 0.15 * sin(vUv.y * 5.0 - uTime * 0.45 + vUv.x * 2.5)) * wisp;
   gl_FragColor = vec4(uColor * edge * fall * shimmer * uOpacity * vFade, 1.0);
   #include <colorspace_fragment>
 }`
@@ -104,8 +107,8 @@ export function AirEffects() {
   const scratch = useMemo(() => ({ m: new Matrix4(), yaw: new Quaternion(), lean: new Quaternion(), pos: new Vector3(), one: new Vector3(1, 1, 1), up: new Vector3(0, 1, 0), z: new Vector3(0, 0, 1), day: new Color(0xffe2a6), dusk: new Color(0x9fb2e0), white: new Color(0xffffff) }), [])
   useFrame(({ camera, clock }) => {
     const { shafts, shaftMesh, shaftMaterial, mistMaterial } = parts, p = atmosphere.preset, dusk = atmosphere.blend
-    // Canopy sunbeams belong to daytime/golden hour only; fade completely to 0 at night so no diagonal stripes cross the night sky.
-    const shaftOpacity = (0.18 - 0.14 * dusk) * Math.max(0, 1 - atmosphere.night * 1.4) * (1 - 0.5 * atmosphere.wetland)
+    // Canopy sunbeams belong to daytime/golden hour only; kept subtle so they complement screen-space god rays.
+    const shaftOpacity = (0.11 - 0.08 * dusk) * Math.max(0, 1 - atmosphere.night * 1.4) * (1 - 0.5 * atmosphere.wetland)
     shaftMesh.visible = shaftOpacity > 0.004
     if (shaftMesh.visible) {
       shafts.forEach((shaft, i) => {
@@ -123,8 +126,8 @@ export function AirEffects() {
     mistMaterial.uniforms.uTime.value = clock.elapsedTime
     mistMaterial.uniforms.uWindDir.value.set(wind.dirX, wind.dirZ)
     mistMaterial.uniforms.uWindGust.value = wind.gust
-    mistMaterial.uniforms.uColor.value.setHex(p.fog).lerp(scratch.white, 0.12)
-    mistMaterial.uniforms.uOpacity.value = 0.065 + 0.145 * atmosphere.wetland + 0.13 * dusk
+    mistMaterial.uniforms.uColor.value.setHex(p.fog).lerp(scratch.white, 0.06)
+    mistMaterial.uniforms.uOpacity.value = 0.045 + 0.095 * atmosphere.wetland + 0.075 * dusk
   })
   return <><primitive object={parts.shaftMesh}/><primitive object={parts.mistMesh}/></>
 }

@@ -64,8 +64,10 @@ export function SunlightDirector({ player }: { player: Vector3 }) {
     if ((memory.timer -= dt) > 0) return
     memory.timer = 0.25
     const index = nearestMirror(player)
-    const status = s.grownAt !== null ? '藤桥已长成，暮色也不会让它消失' : !day ? '日光镜需要阳光 · 暂停可改为白天' : path.receiver ? '嫩芽正在吸收阳光' : path.loop ? '光返回了来处 · 试着改变方向' : path.relay ? '第二座镜已收到阳光 · 观察它的落点' : path.segments[0]?.hit === 'rock' ? '光被岩石挡住了 · 试着转动镜面' : '观察光束的落点，把光送向另一座镜'
-    const hud = inSunRect(player.x, player.z, SUN_CLEARING, 2) ? { index, heading: index >= 0 ? s.steps[index] * 45 : 0, growth: Math.floor(s.growth * 100), status, daylight: day, grown: s.grownAt !== null } : null
+    const status = s.grownAt !== null ? '藤桥已长成，入夜也不会消散' : !day ? '日光镜需要阳光 · 按 N 切换至白天' : path.receiver ? '嫩芽正在汲取阳光 · 保持光路片刻' : path.loop ? '光束折回了来处 · 换个方向试试' : path.relay ? '第二座镜已接住阳光 · 去调整它的方向' : path.segments[0]?.hit === 'rock' ? '光路被岩石挡住了 · 试着转开镜面' : '转动镜面观察落点，将阳光引向第二座镜'
+    // Once the crossing is complete and the reward collected, only show the panel if the player intentionally approaches a mirror.
+    const showPanel = s.crossed ? index >= 0 : inSunRect(player.x, player.z, SUN_CLEARING, 2)
+    const hud = showPanel ? { index, heading: index >= 0 ? s.steps[index] * 45 : 0, growth: Math.floor(s.growth * 100), status, daylight: day, grown: s.grownAt !== null } : null
     const signature = JSON.stringify(hud)
     if (signature !== memory.signature) { memory.signature = signature; store.setSunlight(hud) }
   })

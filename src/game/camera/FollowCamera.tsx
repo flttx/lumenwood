@@ -42,9 +42,11 @@ export function FollowCamera({ input, position, velocity, rig }: { input: InputS
   const dir = useMemo(() => new Vector3(), [])
   const aim = useMemo(() => new Vector3(), [])
   const smoothY = useRef<number | null>(null)
+  const smoothZoom = useRef(0)
   useFrame(({ camera }, delta) => {
     if (useGameStore.getState().phase !== 'playing') return
     const dt = Math.min(delta, 0.1)
+    smoothZoom.current += (input.zoomOffset - smoothZoom.current) * dampFactor(10, dt)
     const targetY = position.y + PIVOT_HEIGHT
     // Smooth small vertical elevation steps (slopes, stones, bridges) while snapping across teleports.
     if (smoothY.current === null || Math.abs(targetY - smoothY.current) > 1.5) smoothY.current = targetY
@@ -60,7 +62,7 @@ export function FollowCamera({ input, position, velocity, rig }: { input: InputS
     impulse.target *= Math.exp(-6.5 * dt)
     // Shorten the camera arm when looking sharply upward so admiring tall redwoods, the Ancient Tree or stars clears the ground.
     const lookUp = smoothstep(-0.15, -0.78, input.pitch)
-    const baseDistance = CAMERA_DISTANCE - 2.6 * lookUp * (1 - Math.max(cinematic, moment)) + 0.35 * impulse.value * (1 - cinematic)
+    const baseDistance = CAMERA_DISTANCE + smoothZoom.current * (1 - Math.max(cinematic, moment)) - 2.6 * lookUp * (1 - Math.max(cinematic, moment)) + 0.35 * impulse.value * (1 - cinematic)
     const allowed = safeCameraArm(pivot, dir, baseDistance, ENDING_PULL_BACK * cinematic + cameraMoment.pull * moment, cameraMoment.lift * moment, occluders, treeCanopies)
     rig.distance = allowed < rig.distance ? allowed : rig.distance + (allowed - rig.distance) * dampFactor(RETURN_RATE, dt)
     camera.position.copy(pivot).addScaledVector(dir, rig.distance)

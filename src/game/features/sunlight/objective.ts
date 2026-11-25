@@ -7,7 +7,7 @@ import { hasDaylight, traceSunlight } from './progress'
 export function sunlightObjective(p: RouteProgress, x: number, z: number, time: number): RouteObjective | null {
   const s = p.sunlight
   const make = (id: string, title: string, detail: string, target: { x: number; z: number }, actionHint = '走向光路空地'): RouteObjective =>
-    ({ id: `sun-${id}`, title, detail, target, actionHint, progress: '借光生长 · 玩法样板（临时美术）' })
+    ({ id: `sun-${id}`, title, detail, target, actionHint, progress: '借光生长 · 林间光路' })
   if (s.crossed && x > 18 && z <= -14.5 && z > -18) return make('bank', '沿岸边返回营地', '从沟壑南侧绕回林径。', { x: 14, z: -16 }, '沿安全岸边前行')
   if (s.grownAt !== null && x > 18 && x < 30 && z > -14.5 && z < 5) {
     if (!s.crossed) return make('reward', '走过藤桥，取回光之种子', '你借来的阳光已让藤蔓长成通路。', z < -5.5 ? { x: SUN_BRIDGE.x, z: -4.5 } : SUN_REWARD, '沿藤桥前行')

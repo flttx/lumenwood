@@ -77,6 +77,7 @@ test('west glen-lake loop stays closed before camp lights, then opens northward'
   const x = (GLEN_LAKE_TRAIL.minX + GLEN_LAKE_TRAIL.maxX) / 2
   await teleport(page, x, GLEN.maxZ - 1.5); await hold(page, 'KeyS', 1200) // yaw 0: S walks north (+Z)
   expect((await snapshot(page)).position[1]).toBeLessThanOrEqual(GLEN.maxZ + 0.001)
+  await expect(page.locator('.world-prompt')).toContainText('点亮林间营地全部 3 盏灯笼开启')
   await page.evaluate(() => {
     const save = { v: 2, released: [0, 1, 2, 3, 4, 5], lit: [true, true, true, false, false, false, false, false, false], completed: ['camp'], finale: false, captions: [], ending: false, position: [0, 0], seeds: [], secrets: [] }
     localStorage.setItem('lumenwood-save-v1', JSON.stringify(save))
@@ -86,4 +87,13 @@ test('west glen-lake loop stays closed before camp lights, then opens northward'
   await teleport(page, x, GLEN.maxZ - 1.5); await setView(page, 0, 0.28)
   await hold(page, 'KeyS', 1500)
   expect((await snapshot(page)).position[1]).toBeGreaterThan(GLEN.maxZ + 2)
+})
+
+test('expanded southern coastal woods connect beach directly to glen and hollow without invisible walls', async ({ page }) => {
+  await teleport(page, -44, -62); await setView(page, Math.PI / 2, 0.28); await frames(page) // yaw π/2: W walks west (-X)
+  await hold(page, 'KeyW', 2200)
+  expect((await snapshot(page)).position[0]).toBeLessThan(-50) // crossed beyond old beach edge into west cove woods
+  await teleport(page, 44, -62); await setView(page, -Math.PI / 2, 0.28); await frames(page) // yaw -π/2: W walks east (+X)
+  await hold(page, 'KeyW', 2200)
+  expect((await snapshot(page)).position[0]).toBeGreaterThan(50) // crossed beyond old beach edge into east cove woods
 })

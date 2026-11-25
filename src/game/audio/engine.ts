@@ -1,6 +1,6 @@
 import { Vector3, type Camera } from 'three'
 import { ambienceMix, chimeFrequency, nextChirpDelay, nextCroakDelay, nextOwlDelay } from './soundscape'
-import { BEAT, BEATS_PER_BAR, arpNote, bellNote, chordAt, midiFreq } from './music'
+import { BEAT, BEATS_PER_BAR, arpNote, bellNote, chordAt, chordVariant, isBreathingBar, midiFreq, preludeNote } from './music'
 import { WATERFALL } from '../world/zones/sideLayout'
 import { PLUNGE_POOL } from '../world/zones/wetlandLayout'
 import { campfire } from '../world/zones/campLayout'
@@ -19,7 +19,12 @@ class Soundscape {
   private active = false
   private suspendTimer: number | null = null
   private master!: GainNode
+  private ambienceBus!: GainNode
+  private sfxBus!: GainNode
+  private musicBus!: GainNode
   private reverbSend!: GainNode
+  private ambienceReverb!: GainNode
+  private sfxReverb!: GainNode
   private wind!: GainNode
   private windFilter!: BiquadFilterNode
   private pine!: GainNode
@@ -32,12 +37,17 @@ class Soundscape {
   private croakTimer = 1
   private fireTimer = 0.3
   private owlTimer = 10
+  private preludeTimer = 4.5
+  private preludeStep = 0
   private music!: GainNode
   private musicLayers = 0
   private secretBonus = 0
   private nextBeat = 0
   private beatIndex = 0
   private volume = 0.7
+  private ambienceVolume = 1
+  private musicVolume = 1
+  private sfxVolume = 1
   private readonly forward = new Vector3()
   private readonly up = new Vector3()
   private readonly firePos = new Vector3(campfire.x, heightAt(campfire.x, campfire.z) + 0.5, campfire.z)
@@ -56,7 +66,7 @@ class Soundscape {
   /** Clears session counters and silences lingering score voices before starting a new/restored journey. */
   resetSession() {
     this.musicLayers = 0; this.secretBonus = 0; this.nextBeat = 0; this.beatIndex = 0
-    this.chimes = 0; this.splashes = 0; this.footsteps = 0; this.owlTimer = 10
+    this.chimes = 0; this.splashes = 0; this.footsteps = 0; this.owlTimer = 10; this.preludeTimer = 4.5; this.preludeStep = 0
     if (this.ctx && this.music) {
       const now = this.ctx.currentTime
       this.music.gain.cancelScheduledValues(now)
@@ -85,6 +95,20 @@ class Soundscape {
     if (!Number.isFinite(volume)) return
     this.volume = Math.max(0, Math.min(1, volume))
     if (this.ctx && this.active) this.master.gain.setTargetAtTime(this.volume * 0.8, this.ctx.currentTime, 0.05)
+  }
+
+  /** Independently scales natural ambience, generative music, and interactive SFX buses. */
+  setChannelVolumes(ambience: number, music: number, sfx: number) {
+    if (Number.isFinite(ambience)) this.ambienceVolume = Math.max(0, Math.min(1, ambience))
+    if (Number.isFinite(music)) this.musicVolume = Math.max(0, Math.min(1, music))
+    if (Number.isFinite(sfx)) this.sfxVolume = Math.max(0, Math.min(1, sfx))
+    if (!this.ctx) return
+    const now = this.ctx.currentTime
+    this.ambienceBus.gain.setTargetAtTime(this.ambienceVolume, now, 0.05)
+    this.ambienceReverb.gain.setTargetAtTime(this.ambienceVolume, now, 0.05)
+    this.musicBus.gain.setTargetAtTime(this.musicVolume, now, 0.05)
+    this.sfxBus.gain.setTargetAtTime(this.sfxVolume, now, 0.05)
+    this.sfxReverb.gain.setTargetAtTime(this.sfxVolume, now, 0.05)
   }
 
   setActive(active: boolean) {
@@ -140,7 +164,7 @@ class Soundscape {
       this.birdTimer = nextChirpDelay(Math.random())
       if (mix.birds > 0.05) this.birdPhrase(ctx)
     }
-    this.scheduleMusic(ctx)
+    this.scheduleMusic(ctx, dt)
     if ((this.croakTimer -= dt) <= 0) {
       this.croakTimer = nextCroakDelay(Math.random())
       if (mix.frogs > 0.05) this.croak(ctx)
@@ -165,7 +189,7 @@ class Soundscape {
     this.footsteps++
     if (!ctx || ctx.state !== 'running') return
     const now = ctx.currentTime, out = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 7.5, positionX: x, positionY: y, positionZ: z })
-    out.connect(this.master)
+    out.connect(this.sfxBus)
     let activeSources = 0
     const release = () => { if (--activeSources <= 0) out.disconnect() }
     const burst = (filter: BiquadFilterOptions, level: number, length: number, delay = 0, rate = 1) => {
@@ -214,7 +238,7 @@ class Soundscape {
     const band = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 900 + Math.random() * 700, Q: 1.1 }), gain = new GainNode(ctx, { gain: 0 })
     const panner = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 6.5, positionX: x, positionY: y, positionZ: z })
     gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.14 + 0.18 * strength, now + 0.012); gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28)
-    source.connect(band).connect(gain).connect(panner).connect(this.master)
+    source.connect(band).connect(gain).connect(panner).connect(this.sfxBus)
     source.onended = () => panner.disconnect()
     source.start(now, Math.random() * 2, 0.32)
   }
@@ -225,8 +249,8 @@ class Soundscape {
     this.chimes++
     if (!ctx || ctx.state !== 'running') return
     const panner = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance, positionX: x, positionY: y, positionZ: z })
-    panner.connect(this.master)
-    panner.connect(this.reverbSend)
+    panner.connect(this.sfxBus)
+    panner.connect(this.sfxReverb)
     const f = chimeFrequency(index), now = ctx.currentTime + delay
     let left = 3
     const release = () => { if (--left <= 0) panner.disconnect() }
@@ -245,12 +269,12 @@ class Soundscape {
     if (kind === 'preview') {
       const osc = new OscillatorNode(ctx, { type: 'sine', frequency: 523.25 }), gain = new GainNode(ctx, { gain: 0 })
       gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.14, now + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35)
-      osc.connect(gain).connect(this.master); osc.start(now); osc.stop(now + 0.38)
+      osc.connect(gain).connect(this.sfxBus); osc.start(now); osc.stop(now + 0.38)
       return
     }
     const panner = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 6, positionX: x, positionY: y, positionZ: z })
-    panner.connect(this.master)
-    if (kind === 'lock' || kind === 'pulse' || kind === 'echo' || kind === 'hearth') panner.connect(this.reverbSend)
+    panner.connect(this.sfxBus)
+    if (kind === 'lock' || kind === 'pulse' || kind === 'echo' || kind === 'hearth') panner.connect(this.sfxReverb)
     if (kind === 'reject' || kind === 'reset') {
       // Soft descending wood/stone pair — clearly distinct from pentatonic success chimes.
       const notes = kind === 'reset' ? [260, 195] : [220, 175]
@@ -319,8 +343,8 @@ class Soundscape {
     if (!ctx || ctx.state !== 'running') return
     const now = ctx.currentTime
     const panner = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 10, positionX: x, positionY: y, positionZ: z })
-    panner.connect(this.master)
-    panner.connect(this.reverbSend)
+    panner.connect(this.sfxBus)
+    panner.connect(this.sfxReverb)
     if (kind === 'vineGrow') {
       // Woody creak + warm marimba grain climbing in pitch with sunlight growth.
       let left = 2
@@ -378,7 +402,7 @@ class Soundscape {
     const band = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 1800 + Math.random() * 2400, Q: 2.2 }), gain = new GainNode(ctx, { gain: 0 })
     const pan = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 4.5, rolloffFactor: 1.4, positionX: this.firePos.x, positionY: this.firePos.y, positionZ: this.firePos.z })
     gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.07 + Math.random() * 0.06, now + 0.004); gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.055)
-    src.connect(band).connect(gain).connect(pan).connect(this.master)
+    src.connect(band).connect(gain).connect(pan).connect(this.ambienceBus)
     src.onended = () => pan.disconnect()
     src.start(now, Math.random() * 2.5, 0.07)
   }
@@ -386,6 +410,12 @@ class Soundscape {
   private build(ctx: AudioContext) {
     this.ctx = ctx
     this.master = new GainNode(ctx, { gain: this.volume * 0.8 })
+    this.ambienceBus = new GainNode(ctx, { gain: this.ambienceVolume })
+    this.sfxBus = new GainNode(ctx, { gain: this.sfxVolume })
+    this.musicBus = new GainNode(ctx, { gain: this.musicVolume })
+    this.ambienceBus.connect(this.master)
+    this.sfxBus.connect(this.master)
+    this.musicBus.connect(this.master)
     // Gentle master soft limiter keeps stacked pentatonic chimes + multi-layer score cleanly below clipping.
     const limiter = new DynamicsCompressorNode(ctx, { threshold: -14, knee: 12, ratio: 3, attack: 0.008, release: 0.18 })
     this.master.connect(limiter).connect(ctx.destination)
@@ -404,6 +434,10 @@ class Soundscape {
     const revLow = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2600 })
     this.reverbSend = new GainNode(ctx, { gain: 0.26 })
     this.reverbSend.connect(reverb).connect(revLow).connect(this.master)
+    this.ambienceReverb = new GainNode(ctx, { gain: this.ambienceVolume })
+    this.ambienceReverb.connect(this.reverbSend)
+    this.sfxReverb = new GainNode(ctx, { gain: this.sfxVolume })
+    this.sfxReverb.connect(this.reverbSend)
     // Wind: looping noise through a gust-responsive low-pass, plus high-altitude pine bough air.
     const noise = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate), data = noise.getChannelData(0)
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
@@ -414,15 +448,15 @@ class Soundscape {
     sway.connect(swayDepth).connect(filter.frequency)
     this.windFilter = filter
     this.wind = new GainNode(ctx, { gain: 0 })
-    source.connect(filter).connect(this.wind).connect(this.master)
+    source.connect(filter).connect(this.wind).connect(this.ambienceBus)
     source.start(); sway.start()
     const pineSrc = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true, playbackRate: 0.85 })
     const pineBand = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 980, Q: 0.7 }), pineLow = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2100 })
     this.pine = new GainNode(ctx, { gain: 0 })
-    pineSrc.connect(pineBand).connect(pineLow).connect(this.pine).connect(this.master)
+    pineSrc.connect(pineBand).connect(pineLow).connect(this.pine).connect(this.ambienceBus)
     pineSrc.start(0, 1.1)
     // Crickets: smooth sine-gated trills instead of raw square steps (which caused harsh digital clicks).
-    this.crickets = new GainNode(ctx, { gain: 0 }); this.crickets.connect(this.master)
+    this.crickets = new GainNode(ctx, { gain: 0 }); this.crickets.connect(this.ambienceBus)
     for (const [freq, trill, rhythm, pan] of [[4300, 31, 1.4, -0.6], [3900, 27, 1.1, 0.55]]) {
       const tone = new OscillatorNode(ctx, { frequency: freq }), level = new GainNode(ctx, { gain: 0.028 })
       const trillGate = new GainNode(ctx, { gain: 0.5 }), trillLfo = new OscillatorNode(ctx, { type: 'sine', frequency: trill })
@@ -432,44 +466,52 @@ class Soundscape {
       tone.connect(level).connect(trillGate).connect(chirpGate).connect(new StereoPannerNode(ctx, { pan })).connect(this.crickets)
       tone.start(); trillLfo.start(); chirpLfo.start()
     }
-    this.birds = new GainNode(ctx, { gain: 0 }); this.birds.connect(this.master)
+    this.birds = new GainNode(ctx, { gain: 0 }); this.birds.connect(this.ambienceBus)
     // Wetland water: start immediately at a non-zero buffer offset (`start(0, offset)` rather than delayed `start(when)`).
     const lap = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true, playbackRate: 0.7 })
     const lapFilter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 520, Q: 0.8 }), swell = new GainNode(ctx, { gain: 0.6 })
     for (const [rate, depth] of [[0.31, 0.25], [0.17, 0.15]]) { const lfo = new OscillatorNode(ctx, { frequency: rate }); lfo.connect(new GainNode(ctx, { gain: depth })).connect(swell.gain); lfo.start() }
     this.water = new GainNode(ctx, { gain: 0 })
-    lap.connect(lapFilter).connect(swell).connect(this.water).connect(this.master)
+    lap.connect(lapFilter).connect(swell).connect(this.water).connect(this.ambienceBus)
     lap.start(0, 1.3)
-    this.frogs = new GainNode(ctx, { gain: 0 }); this.frogs.connect(this.master)
-    this.music = new GainNode(ctx, { gain: 1 }); this.music.connect(this.master)
+    this.frogs = new GainNode(ctx, { gain: 0 }); this.frogs.connect(this.ambienceBus)
+    this.music = new GainNode(ctx, { gain: 1 }); this.music.connect(this.musicBus)
     // High-passed music reverb send keeps bass notes clean while giving arps, pads, and bells forest hall warmth.
     const musicRevHP = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 240 })
     const musicRevGain = new GainNode(ctx, { gain: 0.22 })
-    this.music.connect(musicRevHP).connect(musicRevGain).connect(this.reverbSend)
+    this.musicBus.connect(musicRevHP).connect(musicRevGain).connect(this.reverbSend)
     // The glen's waterfall: a steady rush placed at its foot, balanced so echo-stone chimes remain intelligible.
     const fall = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true, playbackRate: 1.1 })
     const fallBand = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 900, Q: 0.5 }), fallLow = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 2400 })
     const fallPan = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 6.5, rolloffFactor: 1.4, positionX: (WATERFALL.x + PLUNGE_POOL.x) / 2, positionY: 2, positionZ: WATERFALL.z })
-    fall.connect(fallBand).connect(fallLow).connect(new GainNode(ctx, { gain: 0.42 })).connect(fallPan).connect(this.master)
+    fall.connect(fallBand).connect(fallLow).connect(new GainNode(ctx, { gain: 0.42 })).connect(fallPan).connect(this.ambienceBus)
     fall.start(0, 0.7)
     // Surf in the crescent cove: a darker rush that swells and draws back every few seconds.
     const surf = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true, playbackRate: 0.6 })
     const surfLow = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 700, Q: 0.5 }), surfSwell = new GainNode(ctx, { gain: 0.35 })
     const surfWave = new OscillatorNode(ctx, { frequency: 0.13 }); surfWave.connect(new GainNode(ctx, { gain: 0.3 })).connect(surfSwell.gain); surfWave.start()
     const surfPan = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 10, rolloffFactor: 1.2, positionX: 0, positionY: -2, positionZ: -92 })
-    surf.connect(surfLow).connect(surfSwell).connect(surfPan).connect(this.master)
+    surf.connect(surfLow).connect(surfSwell).connect(surfPan).connect(this.ambienceBus)
     surf.start(0, 2.1)
     // Campfire soft low flame bed right at the hearth.
     const fire = new AudioBufferSourceNode(ctx, { buffer: noise, loop: true, playbackRate: 0.55 })
     const fireLow = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 340, Q: 0.8 })
     const firePan = new PannerNode(ctx, { panningModel: 'HRTF', distanceModel: 'inverse', refDistance: 3.5, rolloffFactor: 1.6, positionX: this.firePos.x, positionY: this.firePos.y, positionZ: this.firePos.z })
-    fire.connect(fireLow).connect(new GainNode(ctx, { gain: 0.18 })).connect(firePan).connect(this.master)
+    fire.connect(fireLow).connect(new GainNode(ctx, { gain: 0.18 })).connect(firePan).connect(this.ambienceBus)
     fire.start(0, 0.4)
   }
 
-  /** Look-ahead scheduler: queues every beat that starts within the next 0.25 s, so timing never depends on frame rate. */
-  private scheduleMusic(ctx: AudioContext) {
-    if (this.musicLayers === 0) { this.nextBeat = 0; return }
+  /** Look-ahead scheduler: queues every beat that starts within the next 0.25 s, plus sparse opening prelude breaths. */
+  private scheduleMusic(ctx: AudioContext, dt: number) {
+    if (this.musicLayers === 0) {
+      this.nextBeat = 0
+      if ((this.preludeTimer -= dt) <= 0) {
+        this.preludeTimer = 7.5 + Math.random() * 4.5
+        const tone = preludeNote(this.preludeStep++)
+        this.note(ctx, midiFreq(tone), ctx.currentTime + 0.05, 4.2, 0.018, 0.6, 'sine', (Math.random() - 0.5) * 0.7)
+      }
+      return
+    }
     if (this.nextBeat < ctx.currentTime) this.nextBeat = ctx.currentTime + 0.1 // first beat, or catching up after a pause
     while (this.nextBeat < ctx.currentTime + 0.25) {
       this.playBeat(ctx, this.beatIndex++, this.nextBeat)
@@ -477,15 +519,16 @@ class Soundscape {
     }
   }
 
-  /** One beat of the score: pad, arpeggio, bass, bells and shimmer join in as more voices are allowed (see music.ts). */
+  /** One beat of the score: pad, arpeggio, bass, bells and shimmer join in with subtle 8-bar breathing rests. */
   private playBeat(ctx: AudioContext, index: number, t: number) {
-    const layers = this.musicLayers, bar = Math.floor(index / BEATS_PER_BAR), beat = index % BEATS_PER_BAR, chord = chordAt(bar)
-    if (beat === 0) for (const n of chord) this.note(ctx, midiFreq(n + 12), t, BEAT * 4.3, 0.03, 1.2, 'sine')
-    if (layers >= 2) {
+    const layers = this.musicLayers, bar = Math.floor(index / BEATS_PER_BAR), beat = index % BEATS_PER_BAR
+    const chord = chordAt(bar), voiced = chordVariant(bar), breathing = isBreathingBar(bar) && layers < 7
+    if (beat === 0) for (const n of voiced) this.note(ctx, midiFreq(n + 12), t, BEAT * 4.3, breathing ? 0.024 : 0.03, 1.2, 'sine')
+    if (layers >= 2 && (!breathing || beat === 0)) {
       const steps = layers >= 6 ? 4 : 2 // eighths, or sixteenths once the tree's trunk is lit
-      for (let s = 0; s < steps; s++) this.note(ctx, midiFreq(arpNote(bar, beat * steps + s)), t + (s * BEAT) / steps, 0.9, 0.028, 0.01, 'triangle', s % 2 ? 0.45 : -0.45)
+      for (let s = 0; s < steps; s++) this.note(ctx, midiFreq(arpNote(bar, beat * steps + s)), t + (s * BEAT) / steps, 0.9, breathing ? 0.018 : 0.028, 0.01, 'triangle', s % 2 ? 0.45 : -0.45)
     }
-    if (layers >= 3 && beat % 2 === 0) this.note(ctx, midiFreq(chord[0] - 12), t, 2, 0.07, 0.02, 'sine')
+    if (layers >= 3 && beat % 2 === 0 && (!breathing || beat === 0)) this.note(ctx, midiFreq(chord[0] - 12), t, 2, 0.07, 0.02, 'sine')
     if (layers >= 4 && (beat === 1 || layers >= 7)) this.note(ctx, midiFreq(bellNote(bar, Math.random())), t, 2.4, 0.025, 0.005, 'sine', Math.random() * 1.2 - 0.6)
     if (layers >= 5 && beat === 0) this.note(ctx, midiFreq(chord[2] + 24), t, BEAT * 4.5, 0.012, 1.6, 'sine')
     if (layers >= 7 && this.secretBonus > 0 && beat % 2 === 1) {
@@ -524,7 +567,7 @@ class Soundscape {
   /** Two to four quick rising whistles from a random direction. */
   private birdPhrase(ctx: AudioContext) {
     const start = ctx.currentTime + 0.05, base = 2400 + Math.random() * 1400, notes = 2 + Math.floor(Math.random() * 3)
-    const pan = new StereoPannerNode(ctx, { pan: Math.random() * 1.6 - 0.8 }); pan.connect(this.birds); pan.connect(this.reverbSend)
+    const pan = new StereoPannerNode(ctx, { pan: Math.random() * 1.6 - 0.8 }); pan.connect(this.birds); pan.connect(this.ambienceReverb)
     let left = notes
     const release = () => { if (--left <= 0) pan.disconnect() }
     for (let i = 0; i < notes; i++) {
@@ -539,8 +582,8 @@ class Soundscape {
   private owlCall(ctx: AudioContext) {
     const start = ctx.currentTime + 0.05, pan = new StereoPannerNode(ctx, { pan: (Math.random() > 0.5 ? 1 : -1) * (0.4 + Math.random() * 0.45) })
     const filter = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 750 })
-    filter.connect(pan).connect(this.master)
-    filter.connect(this.reverbSend)
+    filter.connect(pan).connect(this.ambienceBus)
+    filter.connect(this.ambienceReverb)
     let left = 2
     const release = () => { if (--left <= 0) { pan.disconnect(); filter.disconnect() } }
     for (const [offset, f0, f1, dur] of [[0, 370, 340, 0.28], [0.42, 345, 312, 0.52]] as const) {

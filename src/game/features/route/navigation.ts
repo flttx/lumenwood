@@ -1,4 +1,4 @@
-import { ASCENT, BEACH, BRIDGE, CAMP, EAST_RIDGE_TRAIL, GLADE, GLEN, GLEN_LAKE_TRAIL, GLEN_PASS, HIGHLAND, HOLLOW, HOLLOW_PASS, HOLLOW_VALE_TRAIL, LAKE, LAKE_PASS, NORTH_CORRIDOR, OVERLOOK, OVERLOOK_PASS, REEF, REEF_CAUSEWAY, STAR_CLIFF, STAR_PASS, VALE, VALE_PASS, WETLAND, rectDistance, type Rect } from '../../world/regions'
+import { ASCENT, BEACH, BRIDGE, CAMP, EAST_COVE_WOODS, EAST_RIDGE_TRAIL, GLADE, GLEN, GLEN_LAKE_TRAIL, GLEN_PASS, HIGHLAND, HOLLOW, HOLLOW_PASS, HOLLOW_VALE_TRAIL, LAKE, LAKE_PASS, NORTH_CORRIDOR, OVERLOOK, OVERLOOK_PASS, REEF, REEF_CAUSEWAY, STAR_CLIFF, STAR_PASS, VALE, VALE_PASS, WEST_COVE_WOODS, WETLAND, rectDistance, type Rect } from '../../world/regions'
 import { flowers } from '../../world/zones/floraLayout'
 import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
 import { seeds } from '../../world/zones/sideLayout'
@@ -29,6 +29,8 @@ function sideExit(x: number, z: number, zone: Zone): NavigationTarget | null {
   if (within(x, z, OVERLOOK) || within(x, z, OVERLOOK_PASS)) return { x: x > OVERLOOK.minX + 2 ? OVERLOOK.minX + 1 : HIGHLAND.maxX - 3, z: (OVERLOOK_PASS.minZ + OVERLOOK_PASS.maxZ) / 2 }
   if (within(x, z, VALE) || within(x, z, VALE_PASS)) return { x: x > VALE.minX + 2 ? VALE.minX + 1 : WETLAND.maxX - 3, z: (VALE_PASS.minZ + VALE_PASS.maxZ) / 2 }
   if (within(x, z, REEF) || within(x, z, REEF_CAUSEWAY)) return { x: 0, z: BEACH.minZ + 2 }
+  if (within(x, z, WEST_COVE_WOODS)) return { x: -42, z: -60 }
+  if (within(x, z, EAST_COVE_WOODS)) return { x: 42, z: -60 }
   if (within(x, z, BEACH) && z < CAMP.minZ) return { x: 0, z: CAMP.minZ + 3 }
   if (within(x, z, STAR_CLIFF) || within(x, z, STAR_PASS)) return { x: middle(STAR_PASS), z: HIGHLAND.maxZ - 4 }
   if (within(x, z, GLEN_LAKE_TRAIL)) return { x: middle(GLEN_LAKE_TRAIL), z: zone === 'camp' ? GLEN.maxZ - 4 : LAKE.minZ + 4 }

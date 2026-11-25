@@ -82,8 +82,8 @@ export function VineBridge() {
     items.moteMat.uniforms.uTime.value = now; items.moteMat.uniforms.uSize.value = 72 * dpr; items.moteMat.uniforms.uOpacity.value = 0.8
   })
   return <group ref={group} name="Sunlight-Temporary-Vine-Bridge" position={[SUN_BRIDGE.x, 0, SUN_BRIDGE.from]} visible={false}>
-    {items.ropes.map((g, i) => <mesh key={i} geometry={g} material={items.material} castShadow receiveShadow/>)}
-    {items.cross.map((g, i) => <mesh key={i} geometry={g} material={items.ribs} castShadow receiveShadow/>)}
+    {items.ropes.map((g, i) => <mesh key={`rope-${i}`} geometry={g} material={items.material} castShadow receiveShadow/>)}
+    {items.cross.map((g, i) => <mesh key={`cross-${i}`} geometry={g} material={items.ribs} castShadow receiveShadow/>)}
     <points ref={motesRef} geometry={items.moteGeo} material={items.moteMat} visible={false} frustumCulled={false}/>
     <VineLeaves/>
   </group>

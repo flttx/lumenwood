@@ -43,34 +43,34 @@ export interface LightingPreset {
 }
 export const presets: Record<TimeOfDay, LightingPreset> = {
   day: {
-    skyTop: 0x5796c9, skyHorizon: 0xe4e7d2, fog: 0xb4cabc, fogNear: 50, fogFar: 225,
-    hemiSky: 0xb9d8ee, hemiGround: 0x416548, hemiIntensity: 1.35,
-    sun: 0xffeed4, sunIntensity: 3.5, sunElevation: 0.58, sunAzimuth: 0.35, shadowStrength: 0.86,
-    exposure: 1.08, fireflies: 0, lantern: 0, flowerGlow: 1, flowerHalo: 0,
-    sunGlow: 0.78, shadeTint: 0x7297a1, lightTint: 0xe0dfc2, contrast: 1.07, saturation: 1.1, vignette: 0.2,
-    bloom: 0.26, bloomThreshold: 1.1, fill: 0.65,
-    mist: 0.0035, mistFalloff: 0.36, rays: 1.15,
+    skyTop: 0x2c70c4, skyHorizon: 0xd9ebf4, fog: 0x9ec5cf, fogNear: 68, fogFar: 255,
+    hemiSky: 0xaad4f5, hemiGround: 0x3b5938, hemiIntensity: 1.02,
+    sun: 0xfff0cc, sunIntensity: 4.15, sunElevation: 0.5, sunAzimuth: 0.42, shadowStrength: 0.92,
+    exposure: 1.06, fireflies: 0, lantern: 0, flowerGlow: 1, flowerHalo: 0,
+    sunGlow: 0.92, shadeTint: 0x5c859e, lightTint: 0xeee4c6, contrast: 1.09, saturation: 1.12, vignette: 0.18,
+    bloom: 0.24, bloomThreshold: 1.15, fill: 0.18,
+    mist: 0.0022, mistFalloff: 0.42, rays: 0.95,
   },
   twilight: {
-    skyTop: 0x30395f, skyHorizon: 0xe0a17d, fog: 0x55677c, fogNear: 22, fogFar: 120,
-    hemiSky: 0xa4b5cf, hemiGround: 0x42553e, hemiIntensity: 1.75,
-    sun: 0xffb37a, sunIntensity: 1.45, sunElevation: 0.12, sunAzimuth: 0.6, shadowStrength: 0.6,
-    exposure: 1.24, fireflies: 1, lantern: 1, flowerGlow: 1.05, flowerHalo: 1,
-    sunGlow: 0.35, shadeTint: 0x6b8292, lightTint: 0xead09d, contrast: 1.08, saturation: 1.08, vignette: 0.28,
-    bloom: 0.4, bloomThreshold: 1, fill: 0.55,
-    mist: 0.01, mistFalloff: 0.34, rays: 0.2,
+    skyTop: 0x1e2c59, skyHorizon: 0xee9c6e, fog: 0x4b5c78, fogNear: 28, fogFar: 145,
+    hemiSky: 0x8ea4cc, hemiGround: 0x354038, hemiIntensity: 1.25,
+    sun: 0xffa860, sunIntensity: 2.1, sunElevation: 0.14, sunAzimuth: 0.62, shadowStrength: 0.72,
+    exposure: 1.22, fireflies: 1, lantern: 1, flowerGlow: 1.05, flowerHalo: 1,
+    sunGlow: 0.65, shadeTint: 0x5d7490, lightTint: 0xf0cc96, contrast: 1.09, saturation: 1.1, vignette: 0.26,
+    bloom: 0.38, bloomThreshold: 1.04, fill: 0.22,
+    mist: 0.0075, mistFalloff: 0.36, rays: 0.32,
   },
   // Night (third pass): deep blue sky, a high silver moon in the north-east (the "sun" light becomes moonlight, still
   // casting soft shadows), stars and the Milky Way in the sky shader, every glow at its strongest.
   night: {
-    skyTop: 0x0b1328, skyHorizon: 0x293946, fog: 0x1f2c3e, fogNear: 20, fogFar: 110,
-    hemiSky: 0x8a9db3, hemiGround: 0x2c3c2e, hemiIntensity: 0.98,
+    skyTop: 0x070e20, skyHorizon: 0x1d2e42, fog: 0x162436, fogNear: 24, fogFar: 130,
+    hemiSky: 0x7690b0, hemiGround: 0x202e26, hemiIntensity: 0.85,
     // The moon hangs low (about 22 degrees): the camera's pitch lets the player look only so far up.
-    sun: 0xcbd9df, sunIntensity: 1.3, sunElevation: 0.38, sunAzimuth: 0.95, shadowStrength: 0.72,
-    exposure: 1.32, fireflies: 1, lantern: 1, flowerGlow: 1.15, flowerHalo: 1,
-    sunGlow: 0, shadeTint: 0x586675, lightTint: 0xd8d5bc, contrast: 1.09, saturation: 1.04, vignette: 0.32,
-    bloom: 0.42, bloomThreshold: 0.96, fill: 0.24,
-    mist: 0.01, mistFalloff: 0.34, rays: 0.05,
+    sun: 0xc4daf2, sunIntensity: 1.55, sunElevation: 0.38, sunAzimuth: 0.95, shadowStrength: 0.78,
+    exposure: 1.28, fireflies: 1, lantern: 1, flowerGlow: 1.15, flowerHalo: 1,
+    sunGlow: 0, shadeTint: 0x4d5d72, lightTint: 0xd8d8c4, contrast: 1.09, saturation: 1.06, vignette: 0.3,
+    bloom: 0.4, bloomThreshold: 0.98, fill: 0.14,
+    mist: 0.0075, mistFalloff: 0.36, rays: 0.06,
   },
 }
 const COLOR_KEYS = new Set<keyof LightingPreset>(['skyTop', 'skyHorizon', 'fog', 'hemiSky', 'hemiGround', 'sun', 'shadeTint', 'lightTint'])
@@ -89,15 +89,15 @@ export function blendPresets(t: number, out: LightingPreset = { ...presets.day }
 }
 /** The wetlands are cooler and mistier than the camp (ART_DIRECTION: twilight blue, low-density mist). */
 export const wetlandTints: ZoneTints = {
-  day: { fog: 0xa5c4ba, skyHorizon: 0xdae6d7, fogNear: 26, fogFar: 130 },
-  twilight: { fog: 0x425d70, skyHorizon: 0xaf9b9a, fogNear: 17, fogFar: 90 },
-  night: { fog: 0x1c3040, skyHorizon: 0x2c404b, fogNear: 16, fogFar: 90 },
+  day: { fog: 0x90bdb8, skyHorizon: 0xd0e6e4, fogNear: 34, fogFar: 155 },
+  twilight: { fog: 0x3b536b, skyHorizon: 0xba9595, fogNear: 22, fogFar: 110 },
+  night: { fog: 0x162a3c, skyHorizon: 0x223847, fogNear: 20, fogFar: 105 },
 }
 /** The highland plateau has clear, warm air and a long view (ART_DIRECTION: scale and depth, overlooking the forest). */
 export const highlandTints: ZoneTints = {
-  day: { fog: 0xc4d6cc, skyHorizon: 0xe8e9d3, fogNear: 56, fogFar: 240 },
-  twilight: { fog: 0x536b79, skyHorizon: 0xdaa17e, fogNear: 30, fogFar: 165 },
-  night: { fog: 0x243a47, skyHorizon: 0x354954, fogNear: 28, fogFar: 150 },
+  day: { fog: 0xaad0db, skyHorizon: 0xe2eef5, fogNear: 78, fogFar: 285 },
+  twilight: { fog: 0x4d657c, skyHorizon: 0xe69f76, fogNear: 36, fogFar: 185 },
+  night: { fog: 0x1d3244, skyHorizon: 0x2a4052, fogNear: 34, fogFar: 170 },
 }
 type ZoneTints = Record<TimeOfDay, { fog: number; skyHorizon: number; fogNear: number; fogFar: number }>
 /** Pulls `out` toward a zone's look by `k` (0 none, 1 fully), for the time `t` (0–2). Mutates and returns `out`. */

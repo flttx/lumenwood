@@ -71,7 +71,7 @@ export function SunlightOptics() {
     })
   })
   return <group name="Sunlight-Temporary-Optics">
-    {items.mirrors.map((m, i) => <group key={i}><primitive object={m.stem}/><primitive object={m.disc}/></group>)}
-    {items.beams.map((b, i) => <group key={i}><primitive object={b.core}/><primitive object={b.haze}/><primitive object={b.spot}/></group>)}
+    {items.mirrors.map((m, i) => <group key={`mirror-${i}`}><primitive object={m.stem}/><primitive object={m.disc}/></group>)}
+    {items.beams.map((b, i) => <group key={`beam-${i}`}><primitive object={b.core}/><primitive object={b.haze}/><primitive object={b.spot}/></group>)}
   </group>
 }

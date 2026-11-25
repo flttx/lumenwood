@@ -7,9 +7,13 @@ import { soundscape } from './engine'
 /** Bridges low-frequency settings (volume, pause) and the frame loop (listener, ambience) to the soundscape. */
 export function SoundscapeDriver() {
   useEffect(() => {
-    let lastVolume = -1, lastActive: boolean | null = null
-    const apply = (s: { volume: number; phase: string }) => {
+    let lastVolume = -1, lastAmb = -1, lastMus = -1, lastSfx = -1, lastActive: boolean | null = null
+    const apply = (s: { volume: number; ambienceVolume: number; musicVolume: number; sfxVolume: number; phase: string }) => {
       if (s.volume !== lastVolume) { lastVolume = s.volume; soundscape.setVolume(s.volume) }
+      if (s.ambienceVolume !== lastAmb || s.musicVolume !== lastMus || s.sfxVolume !== lastSfx) {
+        lastAmb = s.ambienceVolume; lastMus = s.musicVolume; lastSfx = s.sfxVolume
+        soundscape.setChannelVolumes(s.ambienceVolume, s.musicVolume, s.sfxVolume)
+      }
       const active = s.phase === 'playing'
       if (active !== lastActive) { lastActive = active; soundscape.setActive(active) }
     }

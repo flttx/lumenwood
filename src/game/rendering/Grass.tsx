@@ -16,7 +16,7 @@ import { routeClock } from '../features/route/progress'
 // with no CPU work per frame. Height and density come from a baked field (grassField.ts). The blades use a lit material
 // (sun, sky, tree shadows, fog), glow at the tips when backlit by the low sun, sway in the wind, and are pushed down and
 // aside by the player: a short trail of recent footsteps fades out, so trampled grass springs back over a couple of seconds.
-const RADIUS = 23, SEGMENTS = 3, TRAIL = 8, TRAIL_STEP = 0.35, TRAIL_RECOVER = 1.8
+const RADIUS = 28, SEGMENTS = 3, TRAIL = 8, TRAIL_STEP = 0.35, TRAIL_RECOVER = 1.8
 const BASE = new Color(0x304321), TIP = new Color(0x789447), TIP_DRY = new Color(0x97875c), TIP_GLOW = new Color(0xffd27a)
 const DAY_BASE = new Color(0x285535), DAY_TIP = new Color(0x77aa52), DAY_DRY = new Color(0x9caa68), DAY_GLOW = new Color(0xe4edb3)
 /** The grass reads the player's position from here (World wires it once), keeping Grass free of per-frame React props. */
@@ -77,7 +77,7 @@ const vertexBody = `
     float h00 = fract(sin(dot(cell, vec2(127.1, 311.7))) * 43758.5), h10 = fract(sin(dot(cell + vec2(1, 0), vec2(127.1, 311.7))) * 43758.5);
     float h01 = fract(sin(dot(cell + vec2(0, 1), vec2(127.1, 311.7))) * 43758.5), h11 = fract(sin(dot(cell + vec2(1, 1), vec2(127.1, 311.7))) * 43758.5);
     vPatch = mix(mix(h00, h10, fr.x), mix(h01, h11, fr.x), fr.y);
-    float height = (0.13 + 0.29 * aBlade.w) * keep;
+    float height = (0.16 + 0.34 * aBlade.w) * keep;
     float t = position.y;
     float angle = aShape.x * 6.283185;
     vec2 side = vec2(cos(angle), sin(angle));
@@ -96,7 +96,7 @@ const vertexBody = `
       push += (pd > 0.01 ? fromPulse / pd : uWindDir) * ring * 0.75;
       flatten = max(flatten, ring * 0.45);
     }
-    float width = (0.036 + 0.026 * aShape.y) * pow(max(1.0 - t, 0.0), 1.15) * keep;
+    float width = (0.044 + 0.032 * aShape.y) * pow(max(1.0 - t, 0.0), 1.1) * keep;
     float waveCoord = dot(p, uWindDir) * 0.18 - uTime * (1.5 + 0.8 * uWindGust);
     float gust = sin(waveCoord) * (0.55 + 0.55 * uWindGust) + sin(waveCoord * 2.4 + p.x * 0.7) * 0.22;
     vec2 bend = (uWindDir * gust * (1.0 - flatten) * 0.38 + vec2(-side.y, side.x) * (0.3 + aShape.z * 0.65)) * t * t * height + push * t * height * 0.85;

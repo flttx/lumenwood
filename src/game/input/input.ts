@@ -1,9 +1,10 @@
 import { requestLock } from './focus'
 import { useGameStore } from '../../state/gameStore'
-export interface InputState { keys: Set<string>; yaw: number; pitch: number }
-export function createInput(): InputState { return { keys: new Set(), yaw: 0, pitch: 0.28 } }
+export interface InputState { keys: Set<string>; yaw: number; pitch: number; zoomOffset: number }
+export function createInput(): InputState { return { keys: new Set(), yaw: 0, pitch: 0.28, zoomOffset: 0 } }
 const MAX_MOUSE_DELTA = 150
 export const MIN_PITCH = -0.78, MAX_PITCH = 0.9
+export const MIN_ZOOM_OFFSET = -2.2, MAX_ZOOM_OFFSET = 3.0
 
 export function attachInput(input: InputState, element: HTMLElement, isPlaying: () => boolean) {
   let dragging = false, dragged = false, lastX = 0, lastY = 0
@@ -17,7 +18,17 @@ export function attachInput(input: InputState, element: HTMLElement, isPlaying: 
   }
   const down = (e: KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return
-    if (isPlaying()) input.keys.add(e.code)
+    const tag = (e.target as HTMLElement | null)?.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+    if (!isPlaying()) return
+    if (e.code === 'KeyR' && !e.repeat) {
+      useGameStore.getState().setAutoWalk(!useGameStore.getState().autoWalk)
+      return
+    }
+    if ((e.code === 'KeyW' || e.code === 'KeyS' || e.code === 'ArrowUp' || e.code === 'ArrowDown') && useGameStore.getState().autoWalk) {
+      useGameStore.getState().setAutoWalk(false)
+    }
+    input.keys.add(e.code)
   }
   const up = (e: KeyboardEvent) => { input.keys.delete(e.code) }
   const clear = () => { input.keys.clear(); dragging = false; dragged = false }
@@ -37,17 +48,25 @@ export function attachInput(input: InputState, element: HTMLElement, isPlaying: 
       applyLook(dx, dy)
     }
   }
+  const wheel = (e: WheelEvent) => {
+    if (!isPlaying()) return
+    e.preventDefault()
+    const step = Math.sign(e.deltaY) * 0.45
+    input.zoomOffset = Math.max(MIN_ZOOM_OFFSET, Math.min(MAX_ZOOM_OFFSET, input.zoomOffset + step))
+  }
   const click = () => {
     if (dragged) { dragged = false; return }
-    if (isPlaying()) requestLock(element)
+    if (isPlaying() && !useGameStore.getState().dragOnly) requestLock(element)
   }
   window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', clear)
   window.addEventListener('mouseup', mouseUp)
   element.addEventListener('mousedown', mouseDown); document.addEventListener('mousemove', mouse); element.addEventListener('click', click)
+  element.addEventListener('wheel', wheel, { passive: false })
   return () => {
     window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', clear)
     window.removeEventListener('mouseup', mouseUp)
     element.removeEventListener('mousedown', mouseDown); document.removeEventListener('mousemove', mouse); element.removeEventListener('click', click)
+    element.removeEventListener('wheel', wheel)
     clear()
   }
 }

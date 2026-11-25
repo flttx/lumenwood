@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CAMP, EAST_RIDGE_TRAIL, GLEN, GLEN_LAKE_TRAIL, HOLLOW, HOLLOW_VALE_TRAIL, LAKE, NORTH_CORRIDOR, OVERLOOK, REEF, REEF_CAUSEWAY, STAR_CLIFF, STAR_PASS, HIGHLAND, VALE, WETLAND, BEACH, clampToRegions, rectDistance, regionDistance, walkableRegions } from './regions'
+import { CAMP, EAST_COVE_WOODS, EAST_RIDGE_TRAIL, GLEN, GLEN_LAKE_TRAIL, GLEN_PASS, HOLLOW, HOLLOW_PASS, HOLLOW_VALE_TRAIL, LAKE, LAKE_PASS, NORTH_CORRIDOR, OVERLOOK, OVERLOOK_PASS, REEF, REEF_CAUSEWAY, STAR_CLIFF, STAR_PASS, HIGHLAND, VALE, VALE_PASS, WEST_COVE_WOODS, WETLAND, BEACH, clampToRegions, rectDistance, regionDistance, walkableRegions } from './regions'
 import { sz } from './scale'
 import { paths } from './terrain/terrain'
 import { treeColliders } from './zones/forestLayout'
@@ -18,6 +18,14 @@ describe('walkable regions', () => {
     expect(EAST_RIDGE_TRAIL.minZ).toBeLessThan(VALE.maxZ); expect(EAST_RIDGE_TRAIL.maxZ).toBeGreaterThan(OVERLOOK.minZ)
     expect(REEF_CAUSEWAY.maxZ).toBeGreaterThan(BEACH.minZ); expect(REEF_CAUSEWAY.minZ).toBeLessThan(REEF.maxZ)
     expect(STAR_PASS.minZ).toBeLessThan(HIGHLAND.maxZ); expect(STAR_PASS.maxZ).toBeGreaterThan(STAR_CLIFF.minZ)
+    // Southern coastal woodland loops connect Glen ↔ Beach ↔ Hollow seamlessly from the start, and passes stay wide.
+    expect(WEST_COVE_WOODS.maxZ).toBeGreaterThan(GLEN.minZ); expect(WEST_COVE_WOODS.maxX).toBeGreaterThan(BEACH.minX)
+    expect(EAST_COVE_WOODS.minX).toBeLessThan(BEACH.maxX); expect(EAST_COVE_WOODS.maxX).toBeGreaterThan(HOLLOW.minX)
+    expect(GLEN_PASS.maxZ - GLEN_PASS.minZ).toBeGreaterThanOrEqual(30)
+    expect(HOLLOW_PASS.maxZ - HOLLOW_PASS.minZ).toBeGreaterThanOrEqual(20)
+    expect(LAKE_PASS.maxZ - LAKE_PASS.minZ).toBeGreaterThanOrEqual(30)
+    expect(VALE_PASS.maxZ - VALE_PASS.minZ).toBeGreaterThanOrEqual(30)
+    expect(OVERLOOK_PASS.maxZ - OVERLOOK_PASS.minZ).toBeGreaterThanOrEqual(30)
   })
   it('a closed gate keeps the player in the camp and blocks gated side loops; an open gate lets them through', () => {
     const x = (NORTH_CORRIDOR.minX + NORTH_CORRIDOR.maxX) / 2, p = { x, z: CAMP.maxZ + 0.6 }

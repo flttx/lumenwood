@@ -15,7 +15,10 @@ export function grassDensity(x: number, z: number, clearings: readonly { x: numb
   if (cliff > 0.001 && cliff < 0.999) return 0 // no upright grass interpolated through the glen's exposed rock face
   if (basinDepth(x, z) < -0.01 || heightAt(x, z) < SEA_LEVEL + 2.4) return 0 // no grass on the beach and sand
   let d = 1 - pathWeight(x, z)
-  d *= 1 - Math.max(0, Math.min(1, (hillWeight(x, z) - 0.35) / 0.4))
+  // Keep lush grass climbing gentle hillsides; only thin out on steep rocky faces so slopes never read bald.
+  const slope = Math.hypot(heightAt(x + 1, z) - heightAt(x - 1, z), heightAt(x, z + 1) - heightAt(x, z - 1)) * 0.5
+  d *= 1 - Math.max(0, Math.min(1, (slope - 0.52) / 0.36))
+  d *= 1 - 0.28 * Math.max(0, Math.min(1, (hillWeight(x, z) - 0.45) / 0.55))
   for (const c of clearings) d *= Math.min(1, Math.max(0, (Math.hypot(x - c.x, z - c.z) - c.r) / 1.5))
   return Math.max(0, Math.min(1, d))
 }

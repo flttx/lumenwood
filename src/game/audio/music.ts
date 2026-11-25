@@ -20,6 +20,25 @@ export function musicLayers(p: MusicProgress) {
 }
 /** Chord for bar `bar`. */
 export const chordAt = (bar: number) => PROGRESSION[((bar % PROGRESSION.length) + PROGRESSION.length) % PROGRESSION.length]
+/**
+ * Harmonic colour variant for long exploration loops: every second 4-bar phrase gently adds an upper colour tone
+ * (Fmaj7 on bar 2, Em7/G6 warmth on bar 3) while remaining strictly inside C major.
+ */
+export function chordVariant(bar: number): readonly number[] {
+  const base = chordAt(bar)
+  const phrase = Math.floor((((bar % 8) + 8) % 8) / 4)
+  const slot = ((bar % 4) + 4) % 4
+  if (phrase === 1 && slot === 2) return [base[0], base[1], base[2], 4] // Fmaj7
+  if (phrase === 1 && slot === 3) return [base[0], base[1], base[2], 4] // G6
+  return base
+}
+/** Every 8th bar gives arpeggios a gentle breathing pause so long sessions stay restful rather than mechanical. */
+export const isBreathingBar = (bar: number) => bar > 0 && ((bar % 8) + 8) % 8 === 7
+/** Sparse, airy C-pentatonic prelude note for the quiet opening minutes before the first lantern is lit. */
+export function preludeNote(step: number) {
+  const tones = [12, 16, 19, 24, 21, 19, 14, 16] as const
+  return tones[((step % tones.length) + tones.length) % tones.length]
+}
 /** Arpeggio note (semitones above C3) for eighth-note `step` of `bar`: chord tones rising an octave up, then back. */
 export function arpNote(bar: number, step: number) {
   const chord = chordAt(bar), tones = [chord[0], chord[1], chord[2], chord[0] + 12, chord[2], chord[1], chord[0] + 12, chord[1] + 12]

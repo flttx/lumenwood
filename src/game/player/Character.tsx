@@ -7,6 +7,7 @@ import { dampFactor, RUN_SPEED, WALK_SPEED } from './movement'
 import { heightAt } from '../world/terrain/terrain'
 import { resonance } from '../features/resonance/resonance'
 import { gaitFor } from './gait'
+import { hopState } from './hop'
 import { HandLantern } from './HandLantern'
 import { useGameStore } from '../../state/gameStore'
 // CHR-001 (docs/ASSET_MANIFEST.md): one skinned mesh with in-place idle / walk / run clips; facing +Z like the player group.
@@ -78,7 +79,10 @@ export function Character({ velocity, position }: { velocity: Vector3; position:
       tilt.rotation.z += (targetBank - tilt.rotation.z) * dampFactor(10, dt)
       tilt.rotation.x += (targetPitch - tilt.rotation.x) * dampFactor(8, dt)
       const flare = resonance.lanternFlare
-      tilt.scale.set(1 - 0.015 * flare, 1 + 0.035 * flare, 1 - 0.015 * flare)
+      const sq = hopState.squash * 0.085
+      const sy = 1 + 0.035 * flare + sq
+      const sxz = 1 - 0.015 * flare - sq * 0.5
+      tilt.scale.set(sxz, sy, sxz)
     }
   })
   return <group ref={group}><group ref={tiltGroup}><primitive object={scene}/><Suspense fallback={null}><HandLantern character={scene}/></Suspense></group></group>

@@ -18,6 +18,7 @@ import { cameraPulse } from '../../camera/FollowCamera'
 import { advanceResonance, boostFlow, pulseRadiusAt, resonance, triggerPulse, wakeReach } from './resonance'
 
 const MAX_PINGS = 12, PING_LIFE = 2.4, FLOW_MOTES = 44
+const QUIET_ECHO_PROMPT = '近处已归于宁静 · 暂未听到新的回声'
 const SECRET_HEARTS: readonly { id: SecretId; x: number; z: number }[] = [
   { id: 'glen', x: PLUNGE_POOL.x, z: PLUNGE_POOL.z },
   { id: 'hollow', x: HOLLOW_HEART[0], z: HOLLOW_HEART[1] },
@@ -110,7 +111,7 @@ export function ResonanceDirector({ player }: { player: Vector3 }) {
       active: false, x: 0, y: 0, z: 0, triggerAt: 0, fired: false, pitch: 1, color: 0xffe4a0, flowerIndex: -1,
     }))
     const trail = Array.from({ length: FLOW_MOTES }, () => ({ x: 0, y: 0, z: 0, life: 0, vx: 0, vy: 0, vz: 0 }))
-    return { ringGeo, ringMat, beaconGeo, beacons, flowGeo, flowMat, flowPoints, pings, trail, nextMote: 0, emitClock: 0, requested: false, lastHud: '' }
+    return { ringGeo, ringMat, beaconGeo, beacons, flowGeo, flowMat, flowPoints, pings, trail, nextMote: 0, emitClock: 0, requested: false, lastHud: '', quietTimer: 0 }
   }, [])
 
   useEffect(() => {
@@ -131,7 +132,7 @@ export function ResonanceDirector({ player }: { player: Vector3 }) {
     const element = gl.domElement
     const canPulse = () => {
       const s = useGameStore.getState()
-      return s.phase === 'playing' && !s.endingCard && !s.contextLost
+      return s.phase === 'playing' && !s.journalOpen && !s.endingCard && !s.contextLost
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== 'KeyF' || e.repeat || e.ctrlKey || e.metaKey || e.altKey || !canPulse()) return
@@ -156,13 +157,18 @@ export function ResonanceDirector({ player }: { player: Vector3 }) {
 
   useFrame((_, delta) => {
     const store = useGameStore.getState()
-    if (store.phase !== 'playing') { fx.requested = false; return }
+    if (store.phase !== 'playing' || store.journalOpen) { fx.requested = false; return }
     const dt = Math.min(delta, 0.1), now = routeClock.now
+    if (fx.quietTimer > 0) {
+      fx.quietTimer -= dt
+      if (fx.quietTimer <= 0 && store.prompt === QUIET_ECHO_PROMPT) store.setPrompt(null)
+    }
     advanceResonance(resonance, dt, now)
-    const hudKey = `${resonance.combo}:${route.secretsAt.size}`
+    const flowStep = Math.round(resonance.flow * 20) / 20
+    const hudKey = `${resonance.combo}:${route.secretsAt.size}:${flowStep}`
     if (hudKey !== fx.lastHud) {
       fx.lastHud = hudKey
-      store.setResonanceHud({ combo: resonance.combo, secrets: route.secretsAt.size })
+      store.setResonanceHud({ combo: resonance.combo, secrets: route.secretsAt.size, flow: flowStep })
     }
 
     if (fx.requested) {
@@ -204,6 +210,13 @@ export function ResonanceDirector({ player }: { player: Vector3 }) {
           if (d <= maxR + 8) candidates.push({ dist: Math.min(d, maxR), x: h.x, y: heightAt(h.x, h.z), z: h.z, pitch: 1.2, color: 0xffe8b0, flowerIndex: -1 })
         }
         candidates.sort((a, b) => a.dist - b.dist)
+        if (candidates.length === 0 && (!store.prompt || store.prompt === QUIET_ECHO_PROMPT)) {
+          store.setPrompt(QUIET_ECHO_PROMPT)
+          fx.quietTimer = 2.0
+        } else if (candidates.length > 0 && store.prompt === QUIET_ECHO_PROMPT) {
+          store.setPrompt(null)
+          fx.quietTimer = 0
+        }
         for (let i = 0; i < MAX_PINGS; i++) {
           const c = candidates[i], p = fx.pings[i]
           if (!c) { p.active = false; continue }

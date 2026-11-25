@@ -39,7 +39,7 @@ function ReusedProps() {
     items.budMaterials.forEach(m => { m.emissiveIntensity = 0.08 + g * 1.8 })
     items.ferns.forEach(f => { f.scale.setScalar(0.25 + g * 0.6) })
   })
-  return <group name="Sunlight-Reused-Meshy-Props">{items.pedestals.map((p, i) => <primitive key={i} object={p}/>)}<primitive object={items.bud}/><primitive object={items.blocker}/>{items.ferns.map((f, i) => <primitive key={i} object={f}/>)}</group>
+  return <group name="Sunlight-Reused-Meshy-Props">{items.pedestals.map((p, i) => <primitive key={`pedestal-${i}`} object={p}/>)}<primitive object={items.bud}/><primitive object={items.blocker}/>{items.ferns.map((f, i) => <primitive key={`fern-${i}`} object={f}/>)}</group>
 }
 export function Sunlight({ player }: { player: Vector3 }) {
   return <><ReusedProps/><SunlightBanks/><SunlightOptics/><VineBridge/><SunlightDirector player={player}/></>

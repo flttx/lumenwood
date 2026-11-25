@@ -22,15 +22,50 @@ describe('gameStore hardening and HUD queues', () => {
       quality: 'medium',
       timeOfDay: 'day',
       volume: 1.8,
+      ambienceVolume: -0.5,
+      musicVolume: 0.4,
+      sfxVolume: 2.2,
       sensitivity: 0.1,
       invertY: true,
+      dragOnly: true,
+      powerSave: true,
+      scenicIdle: true,
     })).toEqual({
       quality: 'medium',
       timeOfDay: 'day',
       volume: 1,
+      ambienceVolume: 0,
+      musicVolume: 0.4,
+      sfxVolume: 1,
       sensitivity: 0.4,
       invertY: true,
+      dragOnly: true,
+      powerSave: true,
+      scenicIdle: true,
     })
+  })
+
+  it('toggles mute cleanly while preserving last non-zero volume, tracks visited regions, and clears journal/autoWalk on pause or title', () => {
+    const store = useGameStore.getState()
+    store.setVolume(0.55)
+    expect(store.toggleMute()).toBe(0)
+    expect(useGameStore.getState().volume).toBe(0)
+    expect(store.toggleMute()).toBeCloseTo(0.55)
+    expect(useGameStore.getState().volume).toBeCloseTo(0.55)
+
+    store.start()
+    store.setAutoWalk(true)
+    store.setJournalOpen(true)
+    expect(useGameStore.getState().journalOpen).toBe(true)
+    expect(useGameStore.getState().autoWalk).toBe(false)
+
+    store.showRegion('glen')
+    store.showRegion('glen')
+    expect(useGameStore.getState().visitedRegions).toEqual(['camp', 'glen'])
+
+    store.pause()
+    expect(useGameStore.getState().journalOpen).toBe(false)
+    expect(useGameStore.getState().autoWalk).toBe(false)
   })
 
   it('wraps storage errors safely and deduplicates identical writes', () => {

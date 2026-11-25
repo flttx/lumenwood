@@ -1,7 +1,7 @@
 import type { BoxCollider, CircleCollider } from '../../player/collision'
 import type { ScatterItem } from '../../rendering/scatterChunks'
 import { random } from '../../shared/random'
-import { CAMP, GLEN, HIGHLAND, HOLLOW, LAKE, OVERLOOK, REEF, STAR_CLIFF, VALE, WETLAND } from '../regions'
+import { CAMP, EAST_COVE_WOODS, GLEN, HIGHLAND, HOLLOW, LAKE, OVERLOOK, REEF, STAR_CLIFF, VALE, WEST_COVE_WOODS, WETLAND } from '../regions'
 import { cliffWeight, groundUnder, heightAt, nearestPathPoint, paths, pathWeight } from '../terrain/terrain'
 import { cabin, campClearings } from './campLayout'
 import { flowers } from './floraLayout'
@@ -65,13 +65,13 @@ function undergrowth(seed: number, count: number, areas: Area[], room: number, s
 // Side areas get their own seeds, so the main areas' dressing is unchanged: a lush glen, a mushroom-carpeted hollow, plus Vale/StarCliff/Reef.
 export const ferns = [
   ...undergrowth(201, 1100, [CAMP, HIGHLAND, WETLAND], 0.2, [0.8, 1.5], 0.7, 0.6),
-  ...undergrowth(301, 420, [GLEN, HOLLOW, LAKE, OVERLOOK], 0.2, [0.9, 1.7], 0.6, 0.6),
-  ...undergrowth(321, 180, [VALE, STAR_CLIFF], 0.2, [0.9, 1.6], 0.65, 0.6),
+  ...undergrowth(301, 480, [GLEN, HOLLOW, LAKE, OVERLOOK], 0.2, [0.9, 1.7], 0.6, 0.6),
+  ...undergrowth(321, 260, [VALE, STAR_CLIFF, WEST_COVE_WOODS, EAST_COVE_WOODS], 0.2, [0.9, 1.6], 0.65, 0.6),
 ].filter(p => !inTreeApproachView(p.x, p.z, p.scale * 0.9))
 export const mossStones = [
   ...undergrowth(203, 260, [CAMP, HIGHLAND, WETLAND], 0.6, [0.6, 1.4], 0.4, 0.75),
-  ...undergrowth(303, 110, [GLEN, LAKE, OVERLOOK], 0.6, [0.7, 1.6], 0.3, 0.75),
-  ...undergrowth(323, 55, [VALE, STAR_CLIFF, REEF], 0.6, [0.7, 1.5], 0.25, 0.75),
+  ...undergrowth(303, 125, [GLEN, LAKE, OVERLOOK], 0.6, [0.7, 1.6], 0.3, 0.75),
+  ...undergrowth(323, 80, [VALE, STAR_CLIFF, REEF, WEST_COVE_WOODS, EAST_COVE_WOODS], 0.6, [0.7, 1.5], 0.25, 0.75),
 ]
 export const mushrooms = [...undergrowth(205, 220, [CAMP, WETLAND, HIGHLAND], 0.1, [0.8, 1.6], 0.9, 0.3), ...undergrowth(305, 260, [HOLLOW], 0.1, [1, 2.2], 0.6, 0.3), ...undergrowth(306, 50, [GLEN], 0.1, [0.8, 1.5], 0.9, 0.3)]
 

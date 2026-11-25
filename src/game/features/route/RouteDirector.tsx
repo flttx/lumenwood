@@ -5,7 +5,7 @@ import { useGameStore } from '../../../state/gameStore'
 import { soundscape } from '../../audio/engine'
 import { musicLayers } from '../../audio/music'
 import { cameraPulse } from '../../camera/FollowCamera'
-import { ASCENT, BEACH, CAMP, EAST_RIDGE_TRAIL, GLADE, GLEN, GLEN_LAKE_TRAIL, HIGHLAND, HOLLOW, HOLLOW_VALE_TRAIL, LAKE, NORTH_CORRIDOR, OVERLOOK, REEF, STAR_CLIFF, VALE, WETLAND, gates, rectDistance } from '../../world/regions'
+import { ASCENT, BEACH, CAMP, EAST_COVE_WOODS, EAST_RIDGE_TRAIL, GLADE, GLEN, GLEN_LAKE_TRAIL, HIGHLAND, HOLLOW, HOLLOW_VALE_TRAIL, LAKE, NORTH_CORRIDOR, OVERLOOK, REEF, STAR_CLIFF, VALE, WEST_COVE_WOODS, WETLAND, gates, rectDistance } from '../../world/regions'
 import { GLADE_CENTRE } from '../../world/zones/wetlandLayout'
 import { PLATEAU_HEIGHT } from '../../world/zones/highlandLayout'
 import { sz } from '../../world/scale'
@@ -22,6 +22,7 @@ import { livePose, saveRequest, serialize, writeSave } from './save'
 import { sunlightObjective } from '../sunlight/objective'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { conduit } from './conduit'
+import { lockedGatePrompt } from './gatePrompt'
 // Applies the route rules each frame: advances play time and the flock, lights nodes the player reaches with enough
 // fireflies, opens gates once a zone's stream has arrived, and plays the finale and ending. It also drives the guidance
 // (first-time captions, a pulse on the next target after a stall), the score's voices and the local save. Rendering lives
@@ -33,14 +34,15 @@ const REGION_SETTLE = 1.2
 export const hint = { x: 0, y: 0, z: 0, at: -Infinity }
 export function resetHint() { hint.x = 0; hint.y = 0; hint.z = 0; hint.at = -Infinity }
 const sideAreas: [RegionId, typeof GLEN][] = [
-  ['glen', GLEN], ['hollow', HOLLOW], ['lake', LAKE], ['overlook', OVERLOOK], ['beach', BEACH],
+  ['glen', GLEN], ['hollow', HOLLOW], ['lake', LAKE], ['overlook', OVERLOOK],
+  ['beach', BEACH], ['beach', WEST_COVE_WOODS], ['beach', EAST_COVE_WOODS],
   ['vale', VALE], ['reef', REEF], ['starcliff', STAR_CLIFF],
 ]
 
 export function RouteDirector({ player }: { player: Vector3 }) {
   // A node reacts once per approach; walking more than REARM metres away re-arms it.
   const armed = useMemo(() => lanternPlacements.map(() => true), [])
-  const memory = useMemo(() => ({ released: route.released.size, lastProgress: routeClock.now, saveTimer: SAVE_EVERY, dirty: false, gates: '', region: '' as RegionId | '', candidate: '' as RegionId | '', candidateSince: 0, journey: '' }), [])
+  const memory = useMemo(() => ({ released: route.released.size, lastProgress: routeClock.now, saveTimer: SAVE_EVERY, dirty: false, gates: '', region: '' as RegionId | '', candidate: '' as RegionId | '', candidateSince: 0, journey: '', gateHint: null as string | null }), [])
   useFrame((_, delta) => {
     if (useGameStore.getState().phase !== 'playing') return
     const dt = Math.min(delta, 0.1), now = (routeClock.now += dt)
@@ -107,6 +109,14 @@ export function RouteDirector({ player }: { player: Vector3 }) {
     if (gateState !== memory.gates) {
       if (memory.gates) { progressed(); cameraPulse(0.32) }
       memory.gates = gateState
+    }
+    // Tell the player clearly how to unlock a sealed mist passage or river channel when walking up to it.
+    const nextGateHint = lockedGatePrompt(route, gates, player.x, player.z)
+    if (nextGateHint !== memory.gateHint) {
+      const store = useGameStore.getState()
+      if (nextGateHint && (!store.prompt || store.prompt === memory.gateHint)) store.setPrompt(nextGateHint)
+      else if (!nextGateHint && store.prompt === memory.gateHint) store.setPrompt(null)
+      memory.gateHint = nextGateHint
     }
     // Riding an opened firefly corridor, highland ramp, or side loop sustains luminous flow so traversal feels kinetic.
     if ((gates.north && (rectDistance(player.x, player.z, NORTH_CORRIDOR) === 0 || rectDistance(player.x, player.z, GLEN_LAKE_TRAIL) === 0 || rectDistance(player.x, player.z, HOLLOW_VALE_TRAIL) === 0))

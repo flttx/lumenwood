@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Vector3 } from 'three'
 import { useGameStore } from '../../../state/gameStore'
+import { soundscape } from '../../audio/engine'
 import { heightAt } from '../../world/terrain/terrain'
 import { hint } from './RouteDirector'
 import { directionLabel, navigationFocus, routeObjective, targetBearing, type NavigationHud } from './navigation'
@@ -15,11 +16,26 @@ import { ANCIENT_TREE } from '../../world/zones/highlandLayout'
 
 /** Persistent instructions update at most four times a second; only changed, quantised values enter React state. */
 export function RouteGuidance({ player }: { player: Vector3 }) {
-  const memory = useMemo(() => ({ timer: 0, id: '', routeId: '', signature: '', forward: new Vector3(), pulseAt: -Infinity, pulseId: '', main: false, area: '' }), [])
+  const memory = useMemo(() => ({ timer: 0, id: '', routeId: '', signature: '', forward: new Vector3(), pulseAt: -Infinity, pulseId: '', manualPulseAt: -Infinity, main: false, area: '' }), [])
   useEffect(() => {
     const toggle = (e: KeyboardEvent) => {
-      if (e.code !== 'KeyT' || e.repeat || useGameStore.getState().phase !== 'playing' || !sideAreaAt(player.x, player.z)) return
-      e.preventDefault(); memory.area = sideAreaAt(player.x, player.z) ?? ''; memory.main = !memory.main; memory.timer = 0
+      if (e.code !== 'KeyT' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return
+      const s = useGameStore.getState()
+      if (s.phase !== 'playing' || s.journalOpen || s.endingCard) return
+      const side = sideAreaAt(player.x, player.z)
+      if (side) {
+        e.preventDefault(); memory.area = side; memory.main = !memory.main; memory.timer = 0
+        return
+      }
+      // Outside side areas, pressing T fires an on-demand guidance light pillar & chime toward the current objective.
+      const target = navigationFocus.target
+      if (target && routeClock.now - memory.manualPulseAt > 1.5) {
+        e.preventDefault()
+        const lifted = heightAt(target.x, target.z)
+        Object.assign(hint, { x: target.x, y: lifted, z: target.z, at: routeClock.now })
+        soundscape.chime(4, target.x, lifted + 1.5, target.z)
+        memory.manualPulseAt = routeClock.now
+      }
     }
     window.addEventListener('keydown', toggle)
     return () => window.removeEventListener('keydown', toggle)

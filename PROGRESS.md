@@ -1,5 +1,9 @@
 # 项目进度
 
+最新进展（2026-11-25）：完成**全岛可行走区域与山口环路大幅扩展**（零付费资产、不进入 P5、兼容 v2 存档与全部主线门控）。全面拓宽全部山口与林径（溪谷/幽谷/镜湖/阳石林谷/眺望台/北崖山口由原 7–10 m 扩至 24–44 m，三条门控林径扩至 26–30 m，北侧走廊与高地坡道扩至 13–16 m），大幅外扩月牙海湾沙滩（92 m 宽）、望海石台、瀑布溪谷、蘑菇幽谷、镜湖、阳石林谷、隐秘空地、古树高地（156 m 宽）、悬崖眺望台与北崖星台（102 m 宽），并新增开局即通的「西南林岸」与「东南松林坡」直接打通「瀑布溪谷 ↔ 月牙海湾 ↔ 蘑菇幽谷」南部海湾大环路，同步补齐海浪范围、海岸林径、树木/蕨类/苔石与岛屿手账连线。全部 37 文件 175 项单测与 40 项 Playwright 端到端回归通过，详情见文末。
+
+最新进展（2026-11-25）：完成**多角色试玩复盘后的 P0 → P1 → P2 体验与操控综合优化**（零付费资产、不进入 P5、兼容 v2 存档与既有设置）。P0 落地 HUD 一键静音与 `M` 快捷键、暂停页补回「上下反转」并新增「自由光标（仅拖拽环视）」与 720p 无裁切底栏按键布局、`T` 键全图可用（支线切换本地/主线，主线立即发出目标光柱与方位提示音）及补齐底部拖拽/按键提示；P1 修复 `Sunlight` 三处 React 重复 key 控制台报错、完成后自动收起「借光生长」面板并去除界面工程备注、`H` 观景模式彻底隐藏日光卡与世界提示、音频总线拆分为「环境白噪音 / 背景音乐 / 交互音效」独立分轨，并为 `F` 唤光无附近目标时补齐柔和反馈；P2 新增 `Tab`「流光岛屿手账」（12 区域拓扑简图 + 16 句森林记忆图鉴）、滚轮镜距缩放、`R` 自动漫步、办公本「省电 30 帧」与「后台白噪音（失焦不暂停）」开关，以及动态音乐开局稀疏前奏与 8 小节呼吸留白/和声色彩变化。全部 35 文件 171 项单测与 39 项 Playwright 端到端回归通过，详情见文末。
+
 最新进展（2026-11-24）：完成**地图环路连通（1）与岛内空白区域填充（2）**扩展（100% 复用既有 Meshy GLB 与程序化地形/海岸系统、零付费建模、不进入 P5、向下兼容 v2 存档）。新增三条门控支线环路（西侧「瀑布溪谷 ↔ 镜湖」、东侧「蘑菇幽谷 ↔ 阳石林谷」、高地东回径「阳石林谷 ↔ 悬崖眺望台」）与三处新探索区域（「阳石林谷」限时四石柱共鸣、「望海石台」浅湾沙堤/踏石与三海石唤醒、「北崖星台」北海观景石龛 `E` 交互），支线秘密增至 6 处、光之种子增至 16 颗并稳定外围树世界整数晶格。全部 35 文件 169 项单测与 38 项 Playwright 端到端回归通过，详情见文末。
 
 最新进展（2026-11-24）：围绕**场景质感、空间音效、动效细节**完成一轮视听协同升级（零付费资产、不进入 P5、兼容 v2 存档）。新增共享全局风场（草海阵风波/植被摇曳/落叶横漂/噪声雾/风声滤波器联动）、草地唤光涟漪、双层云带与夜空微星雾、噪声侵蚀关口迷雾、木屋暮夜暖窗光、瀑布月光高光；接入代码合成的 2.1 s 立体声森林混响（ConvolverNode）与母带软限幅、高地松涛与夜间远林猫头鹰轻啼、藤桥/光桥/迷雾/种子入灯连续事件音效；补齐角色转弯倾身/坡度贴合/唤光微动效、藤桥逐根蔓生与弹性出叶、种子曲线飞入提灯、萤火螺旋入灯、克制事件微镜头呼吸及 HUD 微绽放。全部 35 文件 164 项单测与 35 项 Playwright 端到端回归通过，详情见文末。
@@ -484,3 +488,96 @@
   - **性能基线**（Edge headless、RTX 5060 Ti / ANGLE D3D11、1280×720、DPR 1、高画质，步行转向 6 s、预热后 331 帧）：平均 `16.67 ms`、p95 `16.8 ms`、最大 `16.8 ms`（60 FPS 同步封顶）；末帧 **`361` 次绘制 / `3,665,903` 三角形**（受 60 Hz 垂直同步封顶，高地/东谷区域增多令单方向视锥树块略增，已通过 `TREE_CHUNK = 28` 合并分块控制在 380 次以内）。
   - `git diff --check`：通过。
 - 未验证项：本次未进行真人连续手玩穿越全部环路与三处新区域的体验与构图截屏目视复核，亦未在低端集显/移动端评估扩图后的显存与加载耗时；建议启动 `pnpm dev` / `pnpm preview` 亲自漫游体验新环路、阳石林谷、望海石台与北崖星台观感。
+
+## 实际验证（2026-11-25，P0 → P1 → P2 玩家与上班族体验优化）
+
+- 范围：依据浏览器第一手实玩体验（玩家、上班族与休闲观景视角）按 P0 → P1 → P2 顺序落地操控、界面、音频分轨、旅途手账与动态音乐打磨；零付费资产、不进入 P5、向下兼容 v2 存档与本地设置。
+- P0（静音、操控与 720p 暂停布局）：
+  - `src/state/gameStore.ts`、`src/ui/Hud.tsx`、`src/ui/Settings.tsx`、`src/ui/decor.tsx`：新增 `toggleMute()`（记忆上次非零音量）、HUD 右上角一键静音按钮与 `M` 快捷键（附短提示条）；设置面板补回已实现但漏渲染的「上下反转」开关并新增「自由光标（不锁鼠标、仅拖拽环视）」开关。
+  - `src/ui/Overlay.tsx` & `src/app/style.css`：将暂停页「操控按键」调整为底部通栏卡片并收紧垂直间距，解决 1280×720 下暂停页滚动裁切按键说明的问题。
+  - `src/game/features/route/RouteGuidance.tsx`、`src/ui/Hud.tsx`、`src/ui/TitleScreen.tsx`：`T` 键在支线保持切换本地/主线线索，在主线区域按下则立即向当前指引目标升起柔光光柱并播放方位提示音（1.5 s 防连按）；补齐底部提示栏对拖拽环视、`Shift` 奔跑、`F` 唤光、`M` 静音与 `Tab` 手账的说明。
+- P1（重复 Key 修复、日光卡与观景清理、音频分轨、唤光反馈）：
+  - `src/game/features/sunlight/Sunlight.tsx`、`SunlightOptics.tsx`、`VineBridge.tsx`：为同级 `.map()` 列表补充语义前缀 key（`pedestal-`、`fern-`、`mirror-`、`beam-`、`rope-`、`cross-`），消除 React 重复 key 控制台报错。
+  - `src/game/features/sunlight/SunlightDirector.tsx`、`objective.ts`、`src/ui/SunlightPanel.tsx`：过桥并拾取种子后仅在玩家再次走近镜子时才显示日光面板；将面向玩家 HUD 的“玩法样板·临时美术”替换为“林间光路”（代码注释与文档仍保留临时美术标注）。
+  - `src/app/style.css`：`H` 观景模式一并隐藏 `.sunlight-panel` 与 `.world-prompt`，右上角胶囊栏静息透明度降至 `0.24`（悬停恢复）。
+  - `src/game/audio/engine.ts`、`SoundscapeDriver.tsx`、`src/ui/Settings.tsx`：建立独立 `ambienceBus` / `musicBus` / `sfxBus` 与对应混响发送，在设置音量旁新增可展开「分轨」滑块（环境白噪音 / 背景音乐 / 交互音效）。
+  - `src/game/features/resonance/ResonanceDirector.tsx`：按 `F` / 右键唤光但探测范围内无未发现目标时，给出 2 s 轻柔提示“近处已归于宁静 · 暂未听到新的回声”（不覆盖篝火等已有交互提示）。
+- P2（旅途手账、镜距、自动漫步、办公本省电/后台白噪音、音乐留白）：
+  - `src/ui/JournalModal.tsx`、`Overlay.tsx`、`Hud.tsx`、`App.tsx`：新增 `Tab` 键（及 HUD 手账图标）呼出的「流光岛屿手账」，含 12 区域拓扑简图（当前位置脉动、已探索/已完成状态、门控连线、各区灯火与种子/秘密计数）与 16 句「森林记忆」图鉴；打开手账时冻结角色移动并释放鼠标，`Tab` 或 `Esc` 关闭。
+  - `src/game/input/input.ts`、`FollowCamera.tsx`、`Player.tsx`、`focus.ts`、`App.tsx`：新增滚轮镜距缩放（默认偏移 `0`、平滑阻尼 `[-2.2, +3.0]` m）、`R` 自动漫步（按方向键或暂停自动取消）、办公本「省电 30 帧」（`frameloop="demand"` + 33 ms 节拍与 `dpr=1`）与「后台白噪音」（失焦/切标签页不自动暂停，默认关闭以保留原焦点保护）。
+  - `src/game/audio/music.ts` & `engine.ts`：保留原有 `musicLayers` / `chordAt` / `arpNote` / `bellNote` 规则，新增开局 0 灯稀疏五声音阶前奏、8 小节呼吸留白（`isBreathingBar`）与交替四小节 C 大调色彩和弦（`chordVariant`）。
+- 实际执行的检查（最终代码上全部实际执行并通过）：
+  - `pnpm typecheck`：通过（0 错误）。
+  - `pnpm lint`：通过（0 错误 / 0 警告）。
+  - `pnpm test`：**35 文件 / 171 项全部通过**（`gameStore.test.ts` 新增 1 项并扩展新设置净化断言、`music.test.ts` 新增 1 项测试呼吸留白/和弦变体/前奏音符）。
+  - `pnpm build`：通过（245 ms；`dist/assets/index-gfdbVi4c.js` `341.66 kB` / gzip `117.05 kB`，`dist/assets/index-CsKqyhyQ.css` `31.98 kB`）。
+  - `pnpm test:e2e`（Playwright 自动构建并启动 `127.0.0.1:4173` 预览服）：**39/39 全部通过（10.1 分钟）**，包含新增 `e2e/ux.e2e.ts`（验证 `M` 键一键静音、720p 暂停页不裁切、分轨混音与开关渲染、`Tab` 岛屿手账与森林记忆切换、`R` 自动漫步、滚轮调镜距及 0 条 React 重复 key 报错）。
+- 未验证与限制：
+  - 仓库未存放 Noto Serif SC 完整原字体文件，本次新增少量界面字（如「手账」「分轨」「省电」）未重跑 `scripts/fonts/subset.py`，在衬线标题处由系统回退衬线字体渲染。
+  - 音乐开局前奏、8 小节呼吸留白与三轨音量平衡未经真人佩戴耳机实听评估；「省电 30 帧」的真实轻薄本功耗与核显温度未在弱设备上实测。
+
+## 实际验证（2026-11-25，全界面文案润色与森林青墨主题配色升级）
+
+- 范围：审查全部界面、按钮、加载提示、日光面板、暂停/结局/错误界面与手账文案，统一世界观术语与过时操作提示，并将 UI 配色由偏冷灰蓝底升级为「深松青墨 × 提灯暖金 × 微光苔绿」体系；不改玩法规则，保留全部既有测试选择器与 v2 存档兼容。
+- 文案与术语统一：
+  - `src/ui/TitleScreen.tsx` & `LoadingVeil.tsx`：标题眉标改为“林间拾光 · 静谧探索”，润色标语与简介；加载提示轮播更新为涵盖唤光 `F/右键`、`T` 指引、`Tab` 手账、`M` 静音与 `H` 观景的 4 条现行提示。
+  - `src/ui/Hud.tsx`、`Overlay.tsx`、`Settings.tsx`、`JournalModal.tsx`、`HearthDirector.tsx`：统一「秘密」→「秘境 / 秘境回响」，修正 HUD 初始区域副标从英文 `LUMENWOOD` 统一为中文“林间营地”；设置项「灵敏度」明确为「镜头灵敏度」并补充 `F/右键 唤光`；暂停页底部提示按「自由光标」状态动态切换；结局卡引导按 `Tab` 查手账；错误/上下文丢失界面文案与按钮统一融入世界观。
+  - `src/game/features/sunlight/SunlightDirector.tsx`：修正过时提示“暂停可改为白天”为“按 N 切换至白天”，并统一各光路状态描述语气。
+- 主题配色升级（`src/app/style.css`、`src/ui/ErrorBoundary.tsx`、`src/ui/JournalModal.tsx`）：
+  - 全局底色与毛玻璃卡片由偏冷灰蓝调整为深松青墨（`--ink: #08110f`、`--glass: rgba(10, 22, 19, .66)`），配更温润的提灯暖金（`--gold: #f4d392`）与新增荧光苔绿语义强调色（`--moss: #9ad8a6`）。
+  - 目标卡临近态（`.objective.near`）切换为苔绿微光左边框、标签与脉冲罗盘；手账简图加入柔和岛屿微光渐变与已探索区域苔绿描边，记忆列表补充细金滚动条；`ErrorBoundary` 兜底界面升级为统一毛玻璃卡片与暖金按钮。
+- 实际执行的检查（最终代码上全部通过）：
+  - `pnpm typecheck`：通过（0 错误）。
+  - `pnpm lint`：通过（0 错误 / 0 警告）。
+  - `pnpm test`：**35 文件 / 171 项全部通过**。
+  - `pnpm build`：通过（250 ms；`dist/assets/index-MT3vfsjc.css` `32.66 kB` / gzip `7.58 kB`，`index-C7iVmGuL.js` `342.59 kB`）。
+  - Playwright 界面相关端到端回归（`explore` / `guidance` / `sunlight` / `ux` / `highland` / `route`）：**25/25 全部通过（7.2 分钟）**；未重跑未受影响的纯地形/湿地/树种/性能基线 4 组用例（`perf`、`side`、`tree`、`wetland`）。
+  - 实机视觉复检补修与复测：修复 `Hud.tsx` 同级 `region.id` 与 `caption.id` 初值同为 `1` 引发的 React 重复 key 报错、下移 `.time-toast` 消除与顶部灯火卡重叠、手账简图标签加青墨描边并调宽南端留白、收紧暂停页垂直间距使展开「分轨」后仍在 1280×720 视口内（`y + height <= 720`），以及主线按 `T` 同步弹出 `指引 ·` 方位提示条；复跑 `pnpm typecheck`、`pnpm lint`、`pnpm test`（35 文件 171 项）、`pnpm build` 与 `playwright test e2e/ux.e2e.ts e2e/explore.e2e.ts`（13/13）全部通过。
+- 未验证与限制：新增的少量界面中文字符未重跑 `scripts/fonts/subset.py`（缺少原始 Noto Serif SC 字体源），在衬线展示处由系统衬线字体回退；新青墨配色在白天/暮光/夜晚三时段及不同色域显示器上的主观观感待用户实机刷新确认。
+
+## 实际验证（2026-11-25，跳跃手感、纯净风景照、可交互手账与流光进度条）
+
+- 范围：继续推进后续交互与探索体验优化（零付费资产、不进入 P5、兼容 v2 存档与全部边界/沟壑/深水碰撞规则）。
+- 实现内容：
+  - **轻盈小跳（`Space`）**：新增 `src/game/player/hop.ts` 纯函数跳跃物理与缓冲（峰值约 `0.94 m`，支持落地前 `0.12 s` 预输入缓冲），接入 `Player.tsx`、`Character.tsx`（起跳拉伸/落地微压扁弹性反馈）与 `session.ts` 复位；起跳与落地按地面材质触发脚步/水花声，水平碰撞与边界约束完全保留。
+  - **一键纯净风景照（`P` / HUD 相机按钮）**：新增 `src/game/rendering/photo.ts` 并在 `PostFX.tsx` 最终调色出图后同步抓帧下载无 HUD 遮挡 PNG（不开启 `preserveDrawingBuffer`，零常驻开销），`Hud.tsx` 补充相机图标、暖光快门闪动与保存提示。
+  - **可交互「流光岛屿手账」**：升级 `src/ui/JournalModal.tsx`，12 区域 SVG 节点均支持点击与键盘聚焦，右侧札记卡实时切换该区风物简介、踏足状态、灯火/秘境/光之种子进度与日光藤桥状态。
+  - **「流光连行」微能量条**：`gameStore.ts`、`ResonanceDirector.tsx`（按 5% 量化更新）与 `Hud.tsx` 在连行提示胶囊内显示动态流光进度条；`Settings.tsx` 暂停按键条补齐 `Space 跳跃` 与 `P 拍照`（720p 下展开分轨仍零溢出）。
+- 实际执行的检查（最终代码上全部通过）：
+  - `pnpm typecheck`：通过（0 错误）。
+  - `pnpm lint`：通过（0 错误 / 0 警告）。
+  - `pnpm test`：**37 文件 / 175 项全部通过**（新增 `src/game/player/hop.test.ts` 2 项、`src/game/rendering/photo.test.ts` 2 项）。
+  - `pnpm build`：通过（250 ms；`dist/assets/index-C9K0MiFh.js` `348.41 kB` / gzip `119.76 kB`，`index-D140sIpg.css` `34.10 kB`）。
+  - Playwright 端到端回归（`ux` / `explore` / `sunlight` / `wetland`）：**18/18 全部通过（4.0 分钟）**，`e2e/ux.e2e.ts` 新增验证点击手账区域节点切换札记、`Space` 起跳与落地回归高度、`P` 键触发纯净风景照提示及严格 720p 下展开分轨零裁切。
+  - `git diff --check`：通过。
+- 未验证与限制：下载 PNG 文件的视觉构图与在不同浏览器（Firefox/Safari）的下载弹窗策略未逐一实测；`Space` 小跳与草地/木桥/浅水落地音色手感待真人实机试玩确认。
+
+## 实际验证（2026-11-25，全岛可行走区域与山口环路大幅扩展）
+
+- 起因：用户反馈“可行走区域不够大，很多地方都走不了”。核查 `regions.ts` 发现各山口仅 7–10 m 宽，且营地、溪谷、海湾、幽谷之间及各外围区域存在大片视觉可见但被隐形边界拦住的林地与海岸。
+- 实现内容：
+  - **全面拓宽全部山口与通道（`src/game/world/regions.ts`）**：`GLEN_PASS` 扩至 38 m、`HOLLOW_PASS` 扩至 24 m、`LAKE_PASS` 扩至 42 m、`VALE_PASS` 扩至 44 m、`OVERLOOK_PASS` 扩至 40 m、`STAR_PASS` 扩至 38 m、`REEF_CAUSEWAY` 扩至 15 m、`NORTH_CORRIDOR` 扩至 13 m、`ASCENT` 扩至 16 m，三条门控林间环路（`GLEN_LAKE_TRAIL`、`HOLLOW_VALE_TRAIL`、`EAST_RIDGE_TRAIL`）扩至 26–30 m 宽；保留营地东侧边界与三处主线门控进度约束不变。
+  - **大幅外扩各区域并打通南部海湾林岸环路**：`BEACH` 扩至 92 m 宽、`REEF` 扩至 48×20 m、`GLEN` 向南扩至 `z -52`、`HOLLOW` 扩至 62×68 m、`LAKE` 扩至 73×76 m、`VALE` 扩至 80×72 m、`GLADE` 扩至 64 m 宽、`HIGHLAND` 扩至 156×85 m、`OVERLOOK` 扩至 64 m 长、`STAR_CLIFF` 扩至 102 m 宽；新增开局即开放的 `WEST_COVE_WOODS` 与 `EAST_COVE_WOODS` 两片海岸林地，直接打通「瀑布溪谷 ↔ 月牙海湾 ↔ 蘑菇幽谷」南部大环路。
+  - **地形、海浪、植被与引导同步适配**：`terrain.ts` 补齐两条南部海岸林径与加宽沙堤；`surf.ts` 与 `Sea.tsx` 同步扩展海湾浪带覆盖至 `|x| < 68`；`forestLayout.ts` 与 `sceneryLayout.ts` 为外扩区域与南部海岸林地补充树木、蕨类与苔石，并做跨区树干间距防重叠校验；`navigation.ts`、`secrets/objective.ts`、`RouteDirector.tsx` 与 `JournalModal.tsx` 同步接入新区域归属、返回指引与手账南部连线。
+- 实际执行的检查（最终代码上全部通过）：
+  - `pnpm typecheck`：通过（0 错误）。
+  - `pnpm lint`：通过（0 错误 / 0 警告）。
+  - `pnpm test`：**37 文件 / 175 项全部通过**（`regions.test.ts` 扩展验证新山口宽度与南部海湾林岸连通性，`forestStructure.test.ts`、`terrain.test.ts`、`collision.test.ts` 全部通过）。
+  - `pnpm build`：通过（242 ms；`dist/assets/index-ZG0Vm1dy.js` `348.95 kB` / gzip `119.95 kB`）。
+  - `pnpm test:e2e`：**40/40 全部通过（11.3 分钟）**，包含新增 `e2e/side.e2e.ts` 南部海湾林岸无阻挡连通校验及全部性能基线、边界、树种、主支线、日光、湿地与 UX 回归。
+  - `git diff --check`：通过。
+- 未验证与限制：尚未真人长时间漫游目视排查新扩充的西南/东南海岸林岸交界处每处坡面与树冠构图；外扩后全岛近景地面块与树木数量有所增加，弱设备核显帧率表现仍待实机评估。
+
+## 实际验证（2026-11-25，关口迷雾视锥剔除加密与未解锁关口即时提示）
+
+- 起因：用户实玩截图显示蘑菇幽谷北口拓宽后迷雾偏稀且走到封锁边界时无任何解锁条件说明。
+- 实现内容：
+  - `src/game/features/route/GateMist.tsx` & `FireflyRoute.tsx`：改为按通道宽度自适应分层排布宽幅雾团（36–72 团无缝覆盖），补齐精确 `boundingSphere` 视锥剔除与 `115 m` 距离休眠，拉远可视范围至 65–115 m 并将雾幕前缘贴齐实际阻挡线。
+  - `src/game/features/route/gatePrompt.ts` & `RouteDirector.tsx`：新增纯函数 `lockedGatePrompt()` 覆盖 6 处门控路口（北门走廊、溪谷—镜湖、幽谷—阳石林谷、湿地光桥、高地坡道、东回径），玩家走近未开放关口时底部即时提示所需条件与当前进度（如“点亮林间营地全部 3 盏灯笼开启（1/3）”）；同步统一 `src/game/features/secrets/objective.ts` 中的“秘境已解开”术语。
+- 实际执行的检查（最终代码上全部通过）：
+  - `pnpm typecheck`：通过（0 错误）。
+  - `pnpm lint`：通过（0 错误 / 0 警告）。
+  - `pnpm test`：**38 文件 / 177 项全部通过**（新增 `src/game/features/route/gatePrompt.test.ts` 2 项）。
+  - `pnpm build`：通过（382 ms）。
+  - Playwright 回归：`e2e/side.e2e.ts` **10/10 通过**（新增验证未解锁环口弹出“点亮林间营地全部 3 盏灯笼开启”提示），`e2e/route.e2e.ts` **5/5 通过（1.9 分钟）**。
+  - `git diff --check`：通过。

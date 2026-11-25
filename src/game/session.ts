@@ -6,6 +6,7 @@ import { navigationFocus } from './features/route/navigation'
 import { activityClock, resetProgress, route, routeClock } from './features/route/progress'
 import { resetHint } from './features/route/RouteDirector'
 import { resetResonance } from './features/resonance/resonance'
+import { resetHop } from './player/hop'
 import { livePose, saveRequest, spawnPoint } from './features/route/save'
 import { resetSecretFx } from './features/secrets/fx'
 import { createSecretState } from './features/secrets/secrets'
@@ -29,6 +30,7 @@ export function resetSessionState(clearProgress = false) {
   resetCameraMoment()
   resetHint()
   resetResonance()
+  resetHop()
   resetSecretFx()
   secretSession.state = createSecretState()
   navigationFocus.target = null

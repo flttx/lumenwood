@@ -40,7 +40,7 @@ export function HearthDirector({ player }: { player: Vector3 }) {
       if (step < Math.min(found, memories.length)) {
         store.showCaption(memories[step])
       } else {
-        store.showCaption(`已寻得 ${found}/${seeds.length} 颗种子 · 秘密已解开 ${route.secretsAt.size}/${SECRET_IDS.length}`)
+        store.showCaption(`已寻得 ${found}/${seeds.length} 颗光之种子 · 秘境回响 ${route.secretsAt.size}/${SECRET_IDS.length}`)
       }
     }
     window.addEventListener('keydown', onKey)

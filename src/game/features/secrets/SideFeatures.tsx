@@ -189,23 +189,38 @@ function Spores() {
  *  GLB's front is +Z; rotation.y = θ turns it to face (sin θ, cos θ). */
 function Landmarks() {
   const shrine = useGLTF(SHRINE_URL, false, false).scene, lip = useGLTF(LIP_URL, false, false).scene, parapet = useGLTF(PARAPET_URL, false, false).scene
+  const rock = useGLTF(ROCK_URL, false, false).scene
   const parts = useMemo(() => {
-    const place = (scene: Object3D, url: string, x: number, y: number, z: number, angle: number) => {
+    const place = (scene: Object3D, url: string, x: number, y: number, z: number, angle: number, scale: [number, number, number] = [1, 1, 1]) => {
       const mesh = new Mesh(sourceMesh(scene, url).geometry, sourceMesh(scene, url).material)
-      mesh.position.set(x, y, z); mesh.rotation.y = angle; mesh.castShadow = true; mesh.receiveShadow = true
+      mesh.position.set(x, y, z); mesh.rotation.y = angle; mesh.scale.set(...scale); mesh.castShadow = true; mesh.receiveShadow = true
       return mesh
     }
     const shrineGround = groundUnder(SHRINE[0], SHRINE[1], 1.8)
     const valeGround = groundUnder(VALE_HEART[0], VALE_HEART[1], 1.8)
     const starGround = groundUnder(STAR_SHRINE[0], STAR_SHRINE[1], 1.8)
     // The ledge sits on the cliff top with its worn channel at the lip, the water leaving from its front edge.
-    const lipX = WATERFALL.x - 1.6, parapetX = OVERLOOK.maxX + 0.7
+    const lipX = WATERFALL.x - 1.6, topY = waterfallTop(), parapetX = OVERLOOK.maxX + 0.7
     const reefParapetZ = -124.5, starParapetZ = 374.5
+    // Grounded rock outcrops framing the waterfall lip shoulders (buried into the cliff crest) and plunge pool base.
+    const cliffRocks: [number, number, number, number, [number, number, number]][] = [
+      [WATERFALL.x - 2.3, topY - 2.7, WATERFALL.z - 4.5, 0.7, [2.8, 2.5, 2.9]],
+      [WATERFALL.x - 2.1, topY - 2.5, WATERFALL.z + 4.5, 2.3, [2.9, 2.6, 2.6]],
+      [WATERFALL.x - 2.8, topY - 2.9, WATERFALL.z - 9.4, 1.4, [3.2, 2.7, 3.0]],
+      [WATERFALL.x - 2.6, topY - 2.8, WATERFALL.z + 9.6, 4.1, [3.1, 2.8, 3.2]],
+      [WATERFALL.x + 0.9, WATER_LEVEL - 0.85, WATERFALL.z - 5.2, 1.1, [3.1, 3.8, 2.8]],
+      [WATERFALL.x + 1.0, WATER_LEVEL - 0.85, WATERFALL.z + 5.4, 2.8, [3.2, 4.1, 2.9]],
+      [WATERFALL.x + 0.7, WATER_LEVEL - 0.8, WATERFALL.z - 10.6, 3.8, [3.6, 4.4, 3.2]],
+      [WATERFALL.x + 0.8, WATER_LEVEL - 0.8, WATERFALL.z + 11.0, 0.9, [3.5, 4.2, 3.4]],
+      [WATERFALL.x + 2.4, WATER_LEVEL - 0.65, WATERFALL.z - 7.8, 2.2, [2.2, 1.8, 2.2]],
+      [WATERFALL.x + 2.5, WATER_LEVEL - 0.65, WATERFALL.z + 8.0, 4.6, [2.4, 1.9, 2.3]],
+    ]
     const halo = (x: number, y: number, z: number, size: number, color: number) => { const s = new Sprite(glow(color)); s.position.set(x, y, z); s.scale.setScalar(size); return s }
     return {
       meshes: [
         place(shrine, SHRINE_URL, SHRINE[0], shrineGround - 0.05, SHRINE[1], Math.PI / 2),
-        place(lip, LIP_URL, lipX, waterfallTop() - 1.75, WATERFALL.z, Math.PI / 2),
+        place(lip, LIP_URL, lipX, topY - 1.75, WATERFALL.z, Math.PI / 2),
+        ...cliffRocks.map(([x, y, z, a, s]) => place(rock, ROCK_URL, x, y, z, a, s)),
         place(parapet, PARAPET_URL, parapetX, groundUnder(parapetX, VISTA_POINT[1], 1) - 0.05, VISTA_POINT[1], -Math.PI / 2),
         place(shrine, SHRINE_URL, VALE_HEART[0], valeGround - 0.05, VALE_HEART[1], Math.PI),
         place(shrine, SHRINE_URL, STAR_SHRINE[0], starGround - 0.05, STAR_SHRINE[1], Math.PI),
@@ -222,7 +237,7 @@ function Landmarks() {
         ...[-1, 1].map(side => halo(STAR_SHRINE[0] + side * 1.72, groundUnder(STAR_SHRINE[0], starParapetZ, 1) + 1.42, starParapetZ, 0.9, 0xffe0a0)),
       ],
     }
-  }, [shrine, lip, parapet])
+  }, [shrine, lip, parapet, rock])
   useEffect(() => () => {
     ;(parts.shrineHalo.material as SpriteMaterial).dispose()
     ;(parts.valeHalo.material as SpriteMaterial).dispose()

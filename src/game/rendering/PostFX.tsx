@@ -11,6 +11,7 @@ import { AtmospherePass } from './AtmospherePass'
 import { reviveCircles } from '../features/route/revive'
 import { route, routeClock } from '../features/route/progress'
 import { trailTarget } from './Grass'
+import { captureCanvasPhoto, photoCapture } from './photo'
 // Screen pipeline:
 // 1. Render 3D scene once into `sceneTarget` (HalfFloat + DepthTexture; 4× MSAA on medium/high, 0× on low).
 // 2. High quality only: depth-only half-res GTAOPass (`setGBuffer(sceneTarget.depthTexture)`) — eliminates the old
@@ -48,8 +49,8 @@ void main() {
 }`,
 }
 
-/** How faded the not-yet-restored world is (0 none, 1 fully): a hint of what lighting it brings back, not a grey world. */
-const FADED = 0.38
+/** How faded the not-yet-restored world is (0 none, 1 fully): subtle in daylight so the opening forest stays vibrant. */
+const FADED = 0.34
 const MIN_POST_DIM = 64
 
 export function PostFX() {
@@ -126,7 +127,7 @@ export function PostFX() {
     air.rays = p.rays; air.raysOn = bloomOn
     air.depthTexture = fx.sceneTarget.depthTexture
     const revived = reviveCircles(route, routeClock.now, air.revive)
-    air.reviveCount = revived.count; air.reviveAll = revived.all; air.faded = 0.22 + (FADED - 0.22) * atmosphere.blend
+    air.reviveCount = revived.count; air.reviveAll = revived.all; air.faded = 0.1 + (FADED - 0.1) * atmosphere.blend
     // Cloud shadows only where the sun is strong enough to cast them.
     air.cloud = 0.28 * Math.min(1, p.sunIntensity / 4.2) * (1 - atmosphere.blend); air.time = fxTime.current
     air.mistColor.setHex(p.fog)
@@ -166,6 +167,13 @@ export function PostFX() {
     current = write
     fx.grade.render(gl, nextWrite(), current, dt, false)
     gl.setRenderTarget(null)
+    if (photoCapture.requested) {
+      photoCapture.requested = false
+      const ok = captureCanvasPhoto(gl.domElement)
+      const cb = photoCapture.onResult
+      photoCapture.onResult = null
+      cb?.(ok)
+    }
   }, 1)
   return null
 }

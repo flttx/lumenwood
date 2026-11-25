@@ -86,7 +86,7 @@ export function World() {
   }, [element, input, position])
   useEffect(() => attachInput(input, element, () => {
     const s = useGameStore.getState()
-    return s.phase === 'playing' && !s.endingCard && !s.contextLost
+    return s.phase === 'playing' && !s.journalOpen && !s.endingCard && !s.contextLost
   }), [element, input])
   useEffect(() => attachFocusGuards(element), [element])
   useEffect(() => installDebugApi({ input, position, velocity, rig, gl, scene }), [input, position, velocity, rig, gl, scene])

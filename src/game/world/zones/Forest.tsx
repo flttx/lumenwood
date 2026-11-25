@@ -30,8 +30,8 @@ for (const k of KINDS) useGLTF.preload(MODELS[k].url, false, false)
 function Trees() {
   return <>{KINDS.map(k => <group key={k}>
     {playable[k].length > 0 && <Scatter url={MODELS[k].url} lods={MODELS[k].lods} items={playable[k]} chunkSize={TREE_CHUNK} lodDistance={MODELS[k].lodDistance} maxDistance={VIEW_DISTANCE} castShadow doubleSided={k === 'redwood'} foliage={TREE_FOLIAGE}/>}
-    {/* Backdrop trees can stand just outside a walkable boundary; use the near LOD there too. */}
-    {backdrop[k].length > 0 && <Scatter url={MODELS[k].url} lods={MODELS[k].lods} items={backdrop[k]} chunkSize={48} lodDistance={MODELS[k].lodDistance} maxDistance={VIEW_DISTANCE} receiveShadow={false} doubleSided={k === 'redwood'} foliage={TREE_FOLIAGE}/>}
+    {/* Backdrop trees cast shadows when inside the ±54 m shadow box so hillside trunks ground onto slopes. */}
+    {backdrop[k].length > 0 && <Scatter url={MODELS[k].url} lods={MODELS[k].lods} items={backdrop[k]} chunkSize={48} lodDistance={MODELS[k].lodDistance} maxDistance={VIEW_DISTANCE} castShadow receiveShadow={false} doubleSided={k === 'redwood'} foliage={TREE_FOLIAGE}/>}
   </group>)}</>
 }
 

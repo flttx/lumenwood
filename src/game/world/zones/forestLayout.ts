@@ -1,7 +1,7 @@
 import type { CircleCollider } from '../../player/collision'
 import type { CylinderOccluder } from '../../camera/occlusion'
 import { SEA_LEVEL, coveWeight, cliffWeight, groundUnder, heightAt, nearestPathPoint, paths, seaWeight, valueNoise } from '../terrain/terrain'
-import { CAMP, GLEN, HIGHLAND, HOLLOW, LAKE, OVERLOOK, STAR_CLIFF, VALE, WETLAND, regionDistance, worldBounds } from '../regions'
+import { CAMP, EAST_COVE_WOODS, GLEN, HIGHLAND, HOLLOW, LAKE, OVERLOOK, STAR_CLIFF, VALE, WEST_COVE_WOODS, WETLAND, regionDistance, worldBounds } from '../regions'
 import { cabin } from './campLayout'
 import { ANCIENT_TREE, cradleSpots, rampRocks } from './highlandLayout'
 import { basinDepth, PLUNGE_POOL } from './wetlandLayout'
@@ -122,29 +122,35 @@ export const WETLAND_TREE_COUNT = 40
 const wetlandGround: Ok = (x, z, r) => [[0, 0], [r + 1, 0], [-r - 1, 0], [0, r + 1], [0, -r - 1]].every(([dx, dz]) => basinDepth(x + dx, z + dz) === 0)
 export const wetlandTrees = plant(61, WETLAND_TREE_COUNT, WETLAND, [0.05, 0.4], wetlandGround)
 /** Plateau trees keep a wide ring of open ground around the ancient tree so it stands alone as the landmark. */
-export const HIGHLAND_TREE_COUNT = 60
+export const HIGHLAND_TREE_COUNT = 82
 const cradles = cradleSpots.map(([x, z]) => ({ x, z }))
 const highlandGround: Ok = (x, z, r) => Math.hypot(x - ANCIENT_TREE[0], z - ANCIENT_TREE[1]) > 22 + r && cradles.every(c => Math.hypot(c.x - x, c.z - z) > 4 + r)
 const highlandTrees = plant(83, HIGHLAND_TREE_COUNT, HIGHLAND, [0.3, 0.45], highlandGround)
-// Side areas (2026-11-12). The glen keeps its plunge pool and the cliff foot open so the waterfall is seen from the trail;
-// the hollow is a dark redwood stand around its giant mushrooms; the lake has a few firs on its shores; the overlook keeps
-// its outer edge bare for the view.
+// Side areas & coastal woodland loops.
 const dry: Ok = (x, z, r) => [[0, 0], [r + 1, 0], [-r - 1, 0], [0, r + 1], [0, -r - 1]].every(([dx, dz]) => basinDepth(x + dx, z + dz) === 0)
 const glenGround: Ok = (x, z, r) => dry(x, z, r) && cliffWeight(x, z) === 0 && Math.hypot(x - PLUNGE_POOL.x, z - PLUNGE_POOL.z) > PLUNGE_POOL.r + 6 + r
 const hollowGround: Ok = (x, z, r) => giantMushrooms.every(m => Math.hypot(m.x - x, m.z - z) > m.radius + 2.5 + r)
 const overlookGround: Ok = (x, _z, r) => x + r < OVERLOOK.maxX - 10
 const valeGround: Ok = (x, z, r) => dry(x, z, r) && Math.hypot(x - VALE_HEART[0], z - VALE_HEART[1]) > VALE_RING_RADIUS + 4 + r
 const starGround: Ok = (x, z, r) => z + r < STAR_CLIFF.maxZ - 9 && Math.hypot(x - STAR_SHRINE[0], z - STAR_SHRINE[1]) > 7 + r
-/** Caps per side area: glen, hollow, lake, overlook, vale, star cliff. */
-export const SIDE_TREE_COUNTS = [70, 55, 24, 12, 34, 10] as const
-const sideTrees = [
-  ...plant(131, SIDE_TREE_COUNTS[0], GLEN, [0.2, 0.45], glenGround),
-  ...plant(141, SIDE_TREE_COUNTS[1], HOLLOW, [0.6, 0.3], hollowGround),
-  ...plant(151, SIDE_TREE_COUNTS[2], LAKE, [0.05, 0.55], dry),
-  ...plant(161, SIDE_TREE_COUNTS[3], OVERLOOK, [0.15, 0.5], overlookGround),
-  ...plant(171, SIDE_TREE_COUNTS[4], VALE, [0.08, 0.42], valeGround),
-  ...plant(181, SIDE_TREE_COUNTS[5], STAR_CLIFF, [0.15, 0.5], starGround, highlandTrees),
-]
+const coveWoodGround: Ok = (x, z, r) => dry(x, z, r) && heightAt(x, z) > SEA_LEVEL + 2.5 && coveWeight(x, z) < 0.25 && r < 4.5
+/** Caps per side area: glen, hollow, lake, overlook, vale, star cliff, west/east cove woods. */
+export const SIDE_TREE_COUNTS = [85, 68, 34, 16, 48, 16, 22, 22] as const
+const sideTrees = (() => {
+  const out: TreeSpot[] = []
+  const add = (seed: number, count: number, area: Area, mix: [number, number], ok: Ok, extra: TreeSpot[] = []) => {
+    out.push(...plant(seed, count, area, mix, ok, [...extra, ...out]))
+  }
+  add(131, SIDE_TREE_COUNTS[0], GLEN, [0.2, 0.45], glenGround)
+  add(141, SIDE_TREE_COUNTS[1], HOLLOW, [0.6, 0.3], hollowGround)
+  add(151, SIDE_TREE_COUNTS[2], LAKE, [0.05, 0.55], dry, wetlandTrees)
+  add(161, SIDE_TREE_COUNTS[3], OVERLOOK, [0.15, 0.5], overlookGround, highlandTrees)
+  add(171, SIDE_TREE_COUNTS[4], VALE, [0.08, 0.42], valeGround, wetlandTrees)
+  add(181, SIDE_TREE_COUNTS[5], STAR_CLIFF, [0.15, 0.5], starGround, highlandTrees)
+  add(191, SIDE_TREE_COUNTS[6], WEST_COVE_WOODS, [0.18, 0.42], coveWoodGround, campTrees)
+  add(195, SIDE_TREE_COUNTS[7], EAST_COVE_WOODS, [0.2, 0.45], coveWoodGround, campTrees)
+  return out
+})()
 /** VEG-009 birches (scene enrichment): pale trunks and airy crowns where the canopy opens, at stand edges and glade
  *  margins, never deep in a stand; often two or three together. Planted after the conifers, around them. */
 export const BIRCH_COUNT = 96

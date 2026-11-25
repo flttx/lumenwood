@@ -9,48 +9,52 @@ export interface Rect { minX: number; maxX: number; minZ: number; maxZ: number }
 export interface PlanarPoint { x: number; z: number }
 export const CAMP: Rect = { minX: -WORLD_LIMIT, maxX: WORLD_LIMIT, minZ: -WORLD_LIMIT, maxZ: WORLD_LIMIT }
 /** Overlaps the camp and the wetlands by half a metre so the union has no seam. */
-export const NORTH_CORRIDOR: Rect = { minX: sz(-5.6), maxX: sz(-1.4), minZ: WORLD_LIMIT - 0.5, maxZ: sz(36.5) }
+export const NORTH_CORRIDOR: Rect = { minX: sz(-6.2), maxX: sz(-1.0), minZ: WORLD_LIMIT - 0.5, maxZ: sz(36.5) }
 export const WETLAND: Rect = { minX: sz(-26), maxX: sz(12), minZ: sz(36), maxZ: sz(62) }
 /** Spans the channel between the wetlands and the glade; overlaps both by half a metre. */
 export const BRIDGE: Rect = { minX: sz(-4.6), maxX: sz(-2.4), minZ: sz(62) - 0.5, maxZ: sz(66) + 0.5 }
-export const GLADE: Rect = { minX: sz(-11), maxX: sz(3), minZ: sz(66), maxZ: sz(75) }
+export const GLADE: Rect = { minX: -42, maxX: 22, minZ: sz(66), maxZ: sz(75) }
 /** Ramp from the glade up to the plateau; gated until the glade's finale has played. */
-export const ASCENT: Rect = { minX: sz(-6), maxX: sz(-2), minZ: sz(75) - 0.5, maxZ: sz(100) + 0.5 }
-export const HIGHLAND: Rect = { minX: sz(-26), maxX: sz(18), minZ: sz(100), maxZ: sz(134) }
-// Side areas (third pass, 2026-11-12; the user found the world too small): optional places off the route, always open,
-// each reached through a narrow pass in the hills so finding it feels like a discovery. Coordinates are world metres.
-/** Waterfall glen west of the camp: a valley with a stream running from a plunge pool under a cliff waterfall. */
-export const GLEN_PASS: Rect = { minX: -70.5, maxX: -WORLD_LIMIT + 0.5, minZ: 2, maxZ: 9 }
-export const GLEN: Rect = { minX: -128, maxX: -70, minZ: -28, maxZ: 38 }
-/** Mushroom hollow east of the camp: a dark stand of redwoods over giant glowing mushrooms. */
-export const HOLLOW_PASS: Rect = { minX: WORLD_LIMIT - 0.5, maxX: 70.5, minZ: -31, maxZ: -24 }
-export const HOLLOW: Rect = { minX: 70, maxX: 112, minZ: -58, maxZ: -2 }
-/** Mirror lake west of the wetlands: a wide shallow lake with an island. */
-export const LAKE_PASS: Rect = { minX: -75.5, maxX: sz(-26) + 0.5, minZ: 118, maxZ: 126 }
-export const LAKE: Rect = { minX: -130, maxX: -75, minZ: 92, maxZ: 152 }
-/** Cliff overlook east of the highland plateau: the land falls away beyond it, opening a view over the forest. */
-export const OVERLOOK_PASS: Rect = { minX: sz(18) - 0.5, maxX: 62.5, minZ: 296, maxZ: 303 }
-export const OVERLOOK: Rect = { minX: 62, maxX: 92, minZ: 280, maxZ: 318 }
-/** Crescent cove south of the camp (2026-11-13; the user wanted to reach the sea): a sandy beach down to the waterline. */
-export const BEACH: Rect = { minX: -24, maxX: 24, minZ: -86, maxZ: -WORLD_LIMIT + 0.5 }
-// Map expansion (2026-11-24): interconnected side-area loops + three interior/coastal zones reusing existing assets.
-/** West ridge trail connecting the waterfall glen's north end directly to the mirror lake (opens with north gate). */
-export const GLEN_LAKE_TRAIL: Rect = { minX: -101, maxX: -93, minZ: 37.5, maxZ: 92.5 }
+export const ASCENT: Rect = { minX: sz(-7.2), maxX: sz(-0.8), minZ: sz(75) - 0.5, maxZ: sz(100) + 0.5 }
+export const HIGHLAND: Rect = { minX: -98, maxX: 58, minZ: sz(100), maxZ: sz(134) }
+// Side areas & wide coastal/forest meadows (expanded 2026-11-25 so players can roam freely without tight invisible walls).
+/** Waterfall glen west of the camp: a broad valley with a stream running from a plunge pool under a cliff waterfall. */
+export const GLEN_PASS: Rect = { minX: -70.5, maxX: -WORLD_LIMIT + 0.5, minZ: -14, maxZ: 24 }
+export const GLEN: Rect = { minX: -128, maxX: -70, minZ: -52, maxZ: 38 }
+/** Mushroom hollow east of the camp: a deep stand of redwoods over giant glowing mushrooms. */
+export const HOLLOW_PASS: Rect = { minX: WORLD_LIMIT - 0.5, maxX: 70.5, minZ: -36, maxZ: -12 }
+export const HOLLOW: Rect = { minX: 70, maxX: 132, minZ: -66, maxZ: 2 }
+/** Mirror lake west of the wetlands: a wide shallow lake with generous lakeside meadows and an island. */
+export const LAKE_PASS: Rect = { minX: -75.5, maxX: sz(-26) + 0.5, minZ: 102, maxZ: 144 }
+export const LAKE: Rect = { minX: -148, maxX: -75, minZ: 88, maxZ: 164 }
+/** Cliff overlook east of the highland plateau: the land falls away beyond it, opening a view over the forest and sea. */
+export const OVERLOOK_PASS: Rect = { minX: 57.5, maxX: 62.5, minZ: 280, maxZ: 320 }
+export const OVERLOOK: Rect = { minX: 62, maxX: 92, minZ: 266, maxZ: 330 }
+/** Crescent cove south of the camp: a wide sandy beach down to the waterline, flanked by coastal woodland loops. */
+export const BEACH: Rect = { minX: -46, maxX: 46, minZ: -86, maxZ: -WORLD_LIMIT + 0.5 }
+/** Southwest coastal woods connecting Waterfall Glen directly to Crescent Cove Beach. */
+export const WEST_COVE_WOODS: Rect = { minX: -112, maxX: -45.5, minZ: -68, maxZ: -51.5 }
+/** Southeast pine slope connecting Crescent Cove Beach directly to Mushroom Hollow. */
+export const EAST_COVE_WOODS: Rect = { minX: 45.5, maxX: 116, minZ: -68, maxZ: -55.5 }
+// Interconnected side-area loops + interior/coastal zones.
+/** West ridge valley connecting the waterfall glen's north end directly to the mirror lake (opens with north gate). */
+export const GLEN_LAKE_TRAIL: Rect = { minX: -114, maxX: -84, minZ: 37.5, maxZ: 88.5 }
 /** Sunstone Vale east of the wetlands: an airy birch sanctuary with glowing stone pillars. */
-export const VALE_PASS: Rect = { minX: 29.5, maxX: 48.5, minZ: 96, maxZ: 104 }
-export const VALE: Rect = { minX: 48, maxX: 98, minZ: 92, maxZ: 156 }
+export const VALE_PASS: Rect = { minX: 29.5, maxX: 48.5, minZ: 94, maxZ: 138 }
+export const VALE: Rect = { minX: 48, maxX: 128, minZ: 88, maxZ: 160 }
 /** East woodland shortcut connecting the mushroom hollow to the sunstone vale (opens with north gate). */
-export const HOLLOW_VALE_TRAIL: Rect = { minX: 94, maxX: 102, minZ: -2.5, maxZ: 92.5 }
+export const HOLLOW_VALE_TRAIL: Rect = { minX: 88, maxX: 116, minZ: 1.5, maxZ: 88.5 }
 /** East highland return ridge descending gently from the cliff overlook back into the vale (opens with ascent gate). */
-export const EAST_RIDGE_TRAIL: Rect = { minX: 72, maxX: 82, minZ: 155.5, maxZ: 280.5 }
-/** Tidewater Reef south of the crescent cove: a shallow sandspit and stepping-stone causeway out to a coastal terrace. */
-export const REEF_CAUSEWAY: Rect = { minX: -4.5, maxX: 4.5, minZ: -108.5, maxZ: -85.5 }
-export const REEF: Rect = { minX: -18, maxX: 18, minZ: -124, maxZ: -108 }
-/** Starlight Terrace north of the ancient tree plateau: a wind-swept northern cliff overlooking sea and aurora. */
-export const STAR_PASS: Rect = { minX: -15, maxX: -5, minZ: 334.5, maxZ: 348.5 }
-export const STAR_CLIFF: Rect = { minX: -34, maxX: 14, minZ: 348, maxZ: 374 }
+export const EAST_RIDGE_TRAIL: Rect = { minX: 64, maxX: 90, minZ: 159.5, maxZ: 266.5 }
+/** Tidewater Reef south of the crescent cove: a broad sandspit and stepping-stone causeway out to a coastal terrace. */
+export const REEF_CAUSEWAY: Rect = { minX: -7.5, maxX: 7.5, minZ: -108.5, maxZ: -85.5 }
+export const REEF: Rect = { minX: -24, maxX: 24, minZ: -128, maxZ: -108 }
+/** Starlight Terrace north of the ancient tree plateau: a wide northern cliff overlooking sea and aurora. */
+export const STAR_PASS: Rect = { minX: -28, maxX: 10, minZ: 334.5, maxZ: 348.5 }
+export const STAR_CLIFF: Rect = { minX: -62, maxX: 40, minZ: 348, maxZ: 374 }
 export const sideRegions: readonly Rect[] = [
   GLEN_PASS, GLEN, HOLLOW_PASS, HOLLOW, LAKE_PASS, LAKE, OVERLOOK_PASS, OVERLOOK, BEACH,
+  WEST_COVE_WOODS, EAST_COVE_WOODS,
   VALE_PASS, VALE, REEF_CAUSEWAY, REEF, STAR_PASS, STAR_CLIFF,
 ]
 /** Every region that shapes the terrain, gated or not. */

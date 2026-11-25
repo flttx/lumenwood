@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Color, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, ShaderMaterial, Vector3 } from 'three'
+import { Color, InstancedMesh, Matrix4, PlaneGeometry, Quaternion, ShaderMaterial, Sphere, Vector3 } from 'three'
 import { atmosphere } from '../../rendering/timeOfDay'
 import { random } from '../../shared/random'
 import { smoothstep } from '../../shared/math'
@@ -11,13 +11,13 @@ import { GATE_DELAY, routeClock } from './progress'
 // model). It hides what lies beyond; the walkable-region clamp is what actually stops the player. One instanced mesh of camera-facing puffs
 // (a single draw call). Scene fog is not applied: seen from the trail the puffs sit beyond the fog's near distance and
 // would fade into it.
-const PUFFS = 80, OPACITY = 0.95, CLEAR_TIME = 2.5
+const OPACITY = 0.96, CLEAR_TIME = 2.5, MAX_MIST_DIST = 115
 const vertexShader = `varying vec2 vUv; varying float vFar; varying float vSeed;
 void main() {
   vUv = uv;
   vSeed = float(gl_InstanceID) * 1.93;
   vec4 centre = modelViewMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-  vFar = smoothstep(45.0, 90.0, -centre.z); // no scene fog on the puffs, so they fade out with distance themselves
+  vFar = smoothstep(65.0, 115.0, -centre.z); // visible from mid-valley, fades cleanly before distance cull
   vec2 size = vec2(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz));
   gl_Position = projectionMatrix * (centre + vec4(position.xy * size, 0.0, 0.0));
 }`
@@ -40,29 +40,37 @@ void main() {
 export interface MistArea { minX: number; maxX: number; minZ: number; maxZ: number; seed: number }
 /** `clearsFrom` returns when the route that opens this gate completed (null while closed); the mist is gone GATE_DELAY later. */
 export function GateMist({ area, clearsFrom }: { area: MistArea; clearsFrom: () => number | null }) {
-  const { mesh, material, puffs } = useMemo(() => {
+  const { mesh, material, puffs, center } = useMemo(() => {
     const rand = random(area.seed)
-    const material = new ShaderMaterial({ uniforms: { uColor: { value: new Color() }, uRimColor: { value: new Color(0xffd788) }, uOpacity: { value: OPACITY }, uTime: { value: 0 }, uClear: { value: 0 } }, vertexShader, fragmentShader, transparent: true, depthWrite: false })
-    const mesh = new InstancedMesh(new PlaneGeometry(1, 1), material, PUFFS)
-    mesh.frustumCulled = false
     const { minX, maxX, minZ, maxZ } = area
-    const puffs = Array.from({ length: PUFFS }, () => {
-      const size = 4 + rand() * 3.5
-      const x = minX - 1.2 + rand() * (maxX - minX + 2.4), z = minZ + rand() * (maxZ - minZ)
-      return { home: [x, heightAt(x, z) + 0.5 + rand() * 4, z], scale: new Vector3(size, size * 0.8, 1), phase: rand() * 6.28 }
+    // Stratified curtain scaled cleanly with passage width: full coverage with low fragment overdraw.
+    const count = Math.min(72, Math.max(36, Math.round((maxX - minX) * 2.2)))
+    const material = new ShaderMaterial({ uniforms: { uColor: { value: new Color() }, uRimColor: { value: new Color(0xffd788) }, uOpacity: { value: OPACITY }, uTime: { value: 0 }, uClear: { value: 0 } }, vertexShader, fragmentShader, transparent: true, depthWrite: false })
+    const mesh = new InstancedMesh(new PlaneGeometry(1, 1), material, count)
+    const midX = (minX + maxX) / 2, midZ = (minZ + maxZ) / 2, midY = heightAt(midX, midZ) + 2.5
+    const center = new Vector3(midX, midY, midZ)
+    mesh.boundingSphere = new Sphere(center.clone(), Math.hypot((maxX - minX) / 2, (maxZ - minZ) / 2) + 9)
+    mesh.frustumCulled = true
+    const puffs = Array.from({ length: count }, (_, i) => {
+      const size = 5.4 + rand() * 3.0
+      const frac = (i + rand()) / count
+      const x = minX - 1.5 + frac * (maxX - minX + 3.0), z = minZ + rand() * (maxZ - minZ)
+      return { home: [x, heightAt(x, z) + 0.8 + rand() * 4.0, z], scale: new Vector3(size * 1.12, size * 0.85, 1), phase: rand() * 6.28 }
     })
-    return { mesh, material, puffs }
+    return { mesh, material, puffs, center }
   }, [area])
   useEffect(() => () => { mesh.geometry.dispose(); material.dispose(); mesh.dispose() }, [mesh, material])
   const scratch = useMemo(() => ({ matrix: new Matrix4(), position: new Vector3(), identity: new Quaternion(), dark: new Color(0x10141f), cleared: false }), [])
-  useFrame(() => {
+  useFrame(({ camera }) => {
     const now = routeClock.now, done = clearsFrom()
     if (done === null) scratch.cleared = false
     // Clears during the last moments of the stream's travel, so the gate is free exactly when it opens.
     const clear = done === null ? 0 : smoothstep(done + GATE_DELAY - CLEAR_TIME, done + GATE_DELAY, now)
-    mesh.visible = clear < 0.999
-    if (!mesh.visible) return
-    const midX = (area.minX + area.maxX) / 2, midZ = (area.minZ + area.maxZ) / 2
+    if (clear >= 0.999) { mesh.visible = false; return }
+    const distSq = camera.position.distanceToSquared(center)
+    if (distSq > MAX_MIST_DIST * MAX_MIST_DIST) { mesh.visible = false; return }
+    mesh.visible = true
+    const midX = center.x, midZ = center.z
     if (clear > 0.01 && !scratch.cleared) {
       scratch.cleared = true
       if (done !== null && now - done < GATE_DELAY + 1.5) soundscape.event('mistClear', midX, heightAt(midX, midZ) + 1.5, midZ)
@@ -70,7 +78,7 @@ export function GateMist({ area, clearsFrom }: { area: MistArea; clearsFrom: () 
     material.uniforms.uOpacity.value = OPACITY * (1 - clear)
     material.uniforms.uTime.value = now
     material.uniforms.uClear.value = clear
-    material.uniforms.uColor.value.setHex(atmosphere.preset.fog).lerp(scratch.dark, 0.6)
+    material.uniforms.uColor.value.setHex(atmosphere.preset.fog).lerp(scratch.dark, 0.52)
     puffs.forEach((p, i) => {
       // Slow churn; while clearing the puffs part outward from the passage centerline and lift north.
       const side = p.home[0] >= midX ? 1 : -1

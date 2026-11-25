@@ -105,10 +105,10 @@ export function beachProfile(x: number, z: number) {
     ? edge + (SEA_LEVEL - edge) * smoothstep(WATERLINE, shore, z)
     : SEA_LEVEL + (SEABED - SEA_LEVEL) * smoothstep(shore, shore - 45, z)
   const rw = reefWeight(x, z)
-  const spitW = (1 - smoothstep(5.0, 11.5, Math.abs(x))) * smoothstep(WATERLINE, WATERLINE - 2.5, z) * (1 - smoothstep(-107, -111, z))
+  const spitW = (1 - smoothstep(8.0, 14.5, Math.abs(x))) * smoothstep(WATERLINE, WATERLINE - 2.5, z) * (1 - smoothstep(-107, -111, z))
   if (rw <= 0 && spitW <= 0) return base
   const spitH = SEA_LEVEL + 0.42 + 1.63 * smoothstep(-101, -108, z)
-  const dome = 1 - smoothstep(0, 13, Math.hypot(x, z + 116))
+  const dome = 1 - smoothstep(0, 20, Math.hypot(x, z + 118))
   const reefH = SEA_LEVEL + 2.05 + 0.25 * dome + 0.2 * (valueNoise(x * 0.14 + 5, z * 0.14 - 3) - 0.5)
   const w = 1 - (1 - spitW) * (1 - rw)
   const target = (spitH * spitW + reefH * rw) / Math.max(spitW + rw, 1e-5)
@@ -118,7 +118,15 @@ export function beachProfile(x: number, z: number) {
  *  glen's cliff, the cove's beach, and the island's shores falling to the seabed. */
 export function heightAt(x: number, z: number) {
   const distance = regionDistance(x, z), rim = smoothstep(FLAT_EDGE, HILL_FULL, distance), basin = basinDepth(x, z)
-  const hills = rim === 0 ? 0 : rim * HILL_HEIGHT * (0.45 + 0.55 * valueNoise(x * 0.06, z * 0.06))
+  let hills = 0
+  if (rim > 0) {
+    // Multi-octave FBM + subtle ridge shaping replaces single-frequency smooth mounds while staying strictly <= HILL_HEIGHT.
+    const n1 = valueNoise(x * 0.045, z * 0.045)
+    const n2 = valueNoise(x * 0.11 + 19.3, z * 0.11 - 7.1)
+    const ridge = 1 - Math.abs(valueNoise(x * 0.075 - 11.4, z * 0.075 + 23.7) * 2 - 1)
+    const shape = Math.min(1, 0.28 + 0.42 * n1 + 0.16 * n2 + 0.14 * ridge * ridge)
+    hills = rim * HILL_HEIGHT * shape
+  }
   const starLift = 2.6 * smoothstep(340, 356, z) * (1 - smoothstep(26, 48, Math.abs(x + 10)))
   let land = hills + basin + elevation(z) + starLift + rolling(x, z) + CLIFF_HEIGHT * cliffWeight(x, z) * (0.85 + 0.15 * valueNoise(z * 0.3, 2))
   const cove = z < COVE_TOP + 4 ? coveWeight(x, z) : 0
@@ -167,6 +175,9 @@ export const paths: [number, number][][] = [
   [[97, -34], [98, -12], [98, 20], [98, 55], [98, 86], [90, 98], [78, 114]],
   [[73, 138], [76, 152], [77, 180], [77, 215], [77, 250], [77, 278], [77, 296]],
   [[-10, 308], [-10, 328], [-10, 344], [-10, 358]],
+  // Southern coastal woodland trails connecting Glen ↔ Beach ↔ Hollow (2026-11-25).
+  [[-92, -32], [-90, -52], [-72, -60], [-42, -66], [-18, -70]],
+  [[96, -42], [92, -60], [68, -62], [42, -66], [18, -70]],
 ]
 function segmentPoint(px: number, pz: number, [ax, az]: [number, number], [bx, bz]: [number, number]): [number, number] {
   const dx = bx - ax, dz = bz - az, t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / (dx * dx + dz * dz)))

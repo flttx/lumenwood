@@ -1,4 +1,4 @@
-import { BEACH, GLEN, GLEN_PASS, HOLLOW, HOLLOW_PASS, LAKE, LAKE_PASS, OVERLOOK, OVERLOOK_PASS, REEF, REEF_CAUSEWAY, STAR_CLIFF, STAR_PASS, VALE, VALE_PASS, rectDistance, type Rect } from '../../world/regions'
+import { BEACH, EAST_COVE_WOODS, GLEN, GLEN_PASS, HOLLOW, HOLLOW_PASS, LAKE, LAKE_PASS, OVERLOOK, OVERLOOK_PASS, REEF, REEF_CAUSEWAY, STAR_CLIFF, STAR_PASS, VALE, VALE_PASS, WEST_COVE_WOODS, rectDistance, type Rect } from '../../world/regions'
 import { HOLLOW_HEART, VISTA_POINT, fordStones, giantMushrooms, reefCairns, seeds, valeStones } from '../../world/zones/sideLayout'
 import type { RouteProgress, SecretId } from '../route/progress'
 import type { RouteObjective } from '../route/navigation'
@@ -10,7 +10,7 @@ const areas: readonly (readonly [SideArea, Rect])[] = [
   ['hollow', HOLLOW], ['hollow', HOLLOW_PASS],
   ['lake', LAKE], ['lake', LAKE_PASS],
   ['overlook', OVERLOOK], ['overlook', OVERLOOK_PASS],
-  ['beach', BEACH],
+  ['beach', BEACH], ['beach', WEST_COVE_WOODS], ['beach', EAST_COVE_WOODS],
   ['vale', VALE], ['vale', VALE_PASS],
   ['reef', REEF], ['reef', REEF_CAUSEWAY],
   ['starcliff', STAR_CLIFF], ['starcliff', STAR_PASS],
@@ -34,9 +34,9 @@ export function sideObjective(p: RouteProgress, x: number, z: number, state: Sec
   }
   if (p.secretsAt.has(area)) {
     const reward = seeds.findIndex(s => s.secret === area)
-    if (reward >= 0 && !p.seedsAt.has(reward)) return make('循着新出现的光，取回种子', '此地的秘密已经解开。', seeds[reward], '秘密已解开', `side-${area}-reward`)
+    if (reward >= 0 && !p.seedsAt.has(reward)) return make('循着新出现的光，取回种子', '此地的秘境已经解开。', seeds[reward], '秘境已解开', `side-${area}-reward`)
     const extra = seeds.reduce((n, s, i) => n + (!s.secret && !p.seedsAt.has(i) && rectDistance(s.x, s.z, areaRects[area]) === 0 ? 1 : 0), 0)
-    return make('此地的秘密已解开', extra > 0 ? `此地还有 ${extra} 颗光之种子，或按 T 查看主线方向。` : '继续看看周围，或按 T 查看主线方向。', null, '秘密已解开')
+    return make('此地的秘境已解开', extra > 0 ? `此地还有 ${extra} 颗光之种子，或按 T 查看主线方向。` : '继续看看周围，或按 T 查看主线方向。', null, '秘境已解开')
   }
   if (area === 'glen') return make('倾听瀑布，再回应三块回声石', '听清三声的先后，再靠近石头；按错后可以重新倾听。', Math.hypot(x + 113, z - 8) > 20 ? { x: -113, z: 8 } : null, `回声 ${state.echo.length}/3`)
   if (area === 'hollow') {
